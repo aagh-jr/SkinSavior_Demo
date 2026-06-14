@@ -406,7 +406,9 @@ async function persistAnswers(answers: Answers) {
     pregnancy_safe: answers.pregnancy_safe === "yes",
     answers: answers as Record<string, unknown>,
   };
-  await supabase.from("profiles").upsert(update, { onConflict: "id" });
+  await supabase
+    .from("profiles")
+    .upsert(update as never, { onConflict: "id" });
 }
 
 function AccountStep({
