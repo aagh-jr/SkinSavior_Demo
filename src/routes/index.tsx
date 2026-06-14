@@ -37,7 +37,6 @@ function Nav() {
         <span className="font-serif text-2xl font-semibold tracking-tight text-ink">
           skinsavior
         </span>
-        <div className="flex items-center gap-3 md:gap-4">
         <nav className="hidden items-center gap-6 lg:flex">
           <a href="/search" className="text-sm text-muted-foreground hover:text-ink">Products</a>
           <a href="#ingredients" className="text-sm text-muted-foreground hover:text-ink">Ingredients</a>
