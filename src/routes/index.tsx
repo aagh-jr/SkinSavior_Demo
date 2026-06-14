@@ -42,6 +42,7 @@ function Nav() {
           <a href="#ingredients" className="text-sm text-muted-foreground hover:text-ink">Ingredients</a>
           <a href="#routines" className="text-sm text-muted-foreground hover:text-ink">Routines</a>
           <a href="#community" className="text-sm text-muted-foreground hover:text-ink">Community</a>
+          <a href="/user" className="text-sm text-muted-foreground hover:text-ink">User</a>
         </nav>
         <div className="flex items-center gap-3 md:gap-4">
           <SearchBar />
