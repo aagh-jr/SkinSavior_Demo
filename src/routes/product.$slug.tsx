@@ -1,24 +1,11 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { SearchBar } from "@/components/SearchBar";
-import { getProduct, products } from "@/lib/products";
+import { getProduct, products, type Product } from "@/lib/products";
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: ({ params }) => {
-    const product = getProduct(params.slug);
-    if (!product) throw notFound();
-    return product;
-  },
-  head: ({ loaderData }) =>
-    loaderData
-      ? {
-          meta: [
-            { title: `${loaderData.name} — skinsavior` },
-            { name: "description", content: loaderData.description.slice(0, 160) },
-            { property: "og:title", content: `${loaderData.name} — skinsavior` },
-            { property: "og:description", content: loaderData.description.slice(0, 160) },
-          ],
-        }
-      : {},
+  head: () => ({
+    meta: [{ title: "Product — skinsavior" }],
+  }),
   notFoundComponent: () => (
     <div className="min-h-screen bg-[#f6f1e9] p-12 text-[#2a241d]">
       <div className="font-serif text-3xl">Product not found</div>
@@ -37,7 +24,18 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const p = Route.useLoaderData();
+  const { slug } = Route.useParams();
+  const p: Product | undefined = getProduct(slug);
+  if (!p) {
+    return (
+      <div className="min-h-screen bg-[#f6f1e9] p-12 text-[#2a241d]">
+        <div className="font-serif text-3xl">Product not found</div>
+        <Link to="/search" search={{ q: "" }} className="mt-4 inline-block text-[#9a4a2f] underline">
+          Browse all products →
+        </Link>
+      </div>
+    );
+  }
   const related = products.filter((x) => x.slug !== p.slug).slice(0, 3);
 
   return (

@@ -1,17 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { z } from "zod";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { SearchBar } from "@/components/SearchBar";
 import { searchProducts, products } from "@/lib/products";
 
-const schema = z.object({
-  q: fallback(z.string(), "").default(""),
-});
-
 export const Route = createFileRoute("/search")({
-  validateSearch: zodValidator(schema),
+  validateSearch: (search: Record<string, unknown>): { q: string } => ({
+    q: typeof search.q === "string" ? search.q : "",
+  }),
   head: () => ({
-    meta: [{ title: "Search — skinsavior" }, { name: "description", content: "Search skincare products and ingredients." }],
+    meta: [
+      { title: "Search — skinsavior" },
+      { name: "description", content: "Search skincare products and ingredients." },
+    ],
   }),
   component: SearchPage,
 });
