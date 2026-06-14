@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { SearchBar } from "@/components/SearchBar";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,7 +37,8 @@ function Nav() {
         <span className="font-serif text-2xl font-semibold tracking-tight text-ink">
           skinsavior
         </span>
-        <div className="flex items-center gap-5 md:gap-6">
+        <div className="flex items-center gap-3 md:gap-4">
+          <SearchBar />
           <a href="/quiz" className="hidden text-sm text-muted-foreground hover:text-ink md:inline">
             Sign in
           </a>
