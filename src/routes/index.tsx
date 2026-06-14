@@ -37,11 +37,11 @@ function Nav() {
           skinsavior
         </span>
         <div className="flex items-center gap-5 md:gap-6">
-          <a href="#survey" className="hidden text-sm text-muted-foreground hover:text-ink md:inline">
+          <a href="/quiz" className="hidden text-sm text-muted-foreground hover:text-ink md:inline">
             Sign in
           </a>
           <a
-            href="#survey"
+            href="/quiz"
             className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
           >
             Get started <span>→</span>
@@ -79,7 +79,7 @@ function Hero() {
 
         <div className="mt-8 flex flex-wrap items-center gap-5">
           <a
-            href="#survey"
+            href="/quiz"
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-4 text-base font-bold text-primary-foreground transition-colors hover:opacity-90"
           >
             Take the skin quiz <span className="text-lg">→</span>
@@ -249,7 +249,7 @@ function HowItWorks() {
 
         <div className="mt-12 text-center">
           <a
-            href="#survey"
+            href="/quiz"
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-9 py-4 text-base font-bold text-primary-foreground transition-colors hover:opacity-90"
           >
             Start the skin quiz →
@@ -439,7 +439,7 @@ function CTASurvey() {
 
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <a
-              href="#survey"
+              href="/quiz"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-4 text-base font-bold text-primary-foreground transition-colors hover:opacity-90"
             >
               Start my skin quiz <span>→</span>
