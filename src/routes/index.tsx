@@ -1,32 +1,25 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "skinsavior — Know what's actually in your skincare" },
+      { title: "skinsavior — Your skin, finally explained." },
       {
         name: "description",
         content:
-          "AI-powered transparency for every bottle on your shelf. Decode ingredients, score safety, and find products matched to your skin.",
+          "Answer a few questions about your skin. We'll match you with products backed by real research — and tell you exactly why each one is right for you.",
       },
-      { property: "og:title", content: "skinsavior — Know what's actually in your skincare" },
+      { property: "og:title", content: "skinsavior — Your skin, finally explained." },
       {
         property: "og:description",
         content:
-          "AI-powered transparency for every bottle on your shelf. Decode ingredients, score safety, and find products matched to your skin.",
+          "AI-powered skincare transparency. Personalized matches backed by real research.",
       },
       { property: "og:type", content: "website" },
     ],
     links: [
-      {
-        rel: "preconnect",
-        href: "https://fonts.googleapis.com",
-      },
-      {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossOrigin: "anonymous",
-      },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap",
@@ -39,29 +32,19 @@ export const Route = createFileRoute("/")({
 function Nav() {
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-4 md:px-12 md:py-5">
-        <div className="flex items-center gap-8">
-          <span className="font-serif text-2xl font-semibold tracking-tight text-ink">
-            skinsavior
-          </span>
-          <nav className="hidden gap-6 text-sm text-muted-foreground md:flex">
-            <a href="#how" className="hover:text-ink">How it works</a>
-            <a href="#product" className="hover:text-ink">Inside the app</a>
-            <a href="#science" className="hover:text-ink">Our science</a>
-          </nav>
-        </div>
-        <div className="flex items-center gap-3">
-          <a
-            href="#survey"
-            className="hidden text-sm text-muted-foreground hover:text-ink md:inline"
-          >
+      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-5 md:px-14">
+        <span className="font-serif text-2xl font-semibold tracking-tight text-ink">
+          skinsavior
+        </span>
+        <div className="flex items-center gap-5 md:gap-6">
+          <a href="#survey" className="hidden text-sm text-muted-foreground hover:text-ink md:inline">
             Sign in
           </a>
           <a
             href="#survey"
-            className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
           >
-            Take the quiz
+            Get started <span>→</span>
           </a>
         </div>
       </div>
@@ -71,58 +54,56 @@ function Nav() {
 
 function Hero() {
   return (
-    <section className="mx-auto max-w-[1180px] px-6 pt-14 pb-24 md:px-12 md:pt-24 md:pb-32">
-      <div className="grid grid-cols-1 gap-12 md:grid-cols-12 md:gap-16">
-        <div className="md:col-span-7">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-warm-white px-3 py-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              AI skincare transparency
-            </span>
-          </div>
-
-          <h1 className="font-serif text-5xl leading-[1.02] tracking-tight text-ink md:text-7xl">
-            Know what's <em className="italic text-primary">actually</em> in
-            <br /> your skincare.
-          </h1>
-
-          <p className="mt-7 max-w-xl font-serif text-xl leading-relaxed text-foreground/80 md:text-2xl">
-            skinsavior decodes every ingredient, weighs the evidence, and tells you
-            — honestly — whether a product belongs on <em>your</em> face.
-          </p>
-
-          <div className="mt-9 flex flex-wrap items-center gap-4">
-            <a
-              href="#survey"
-              className="group inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5"
-            >
-              Take the 2-minute skin quiz
-              <span className="transition-transform group-hover:translate-x-1">→</span>
-            </a>
-            <a
-              href="#product"
-              className="inline-flex items-center gap-2 rounded-xl border border-accent px-6 py-3.5 text-base font-semibold text-primary hover:bg-warm-white"
-            >
-              See a product breakdown
-            </a>
-          </div>
-
-          <div className="mt-8 flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex -space-x-2">
-              <div className="h-7 w-7 rounded-full border-2 border-background bg-accent" />
-              <div className="h-7 w-7 rounded-full border-2 border-background bg-primary" />
-              <div className="h-7 w-7 rounded-full border-2 border-background bg-sage" />
-            </div>
-            <span>
-              <strong className="text-ink">38,000+</strong> shelves decoded this month
-            </span>
-          </div>
+    <section className="mx-auto grid max-w-[1180px] grid-cols-1 items-center gap-12 px-6 pt-16 pb-16 md:grid-cols-[1.08fr_1fr] md:gap-[60px] md:px-14 md:pt-[76px] md:pb-16">
+      <div>
+        <div className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-border bg-warm-white px-4 py-2">
+          <span className="h-2 w-2 rounded-full bg-sage" />
+          <span className="text-[13px] font-medium text-muted-foreground">
+            Personalized by AI · Backed by real science
+          </span>
         </div>
 
-        <div className="relative md:col-span-5">
-          <HeroCard />
+        <h1 className="font-serif text-5xl font-medium leading-[1.02] tracking-tight text-ink md:text-[66px]">
+          Your skin,
+          <br />
+          finally
+          <br />
+          explained.
+        </h1>
+
+        <p className="mt-6 max-w-[450px] text-lg leading-[1.6] text-foreground/75">
+          Answer a few questions about your skin. We'll match you with products backed
+          by real research — and tell you exactly why each one is right for{" "}
+          <em>you</em>.
+        </p>
+
+        <div className="mt-8 flex flex-wrap items-center gap-5">
+          <a
+            href="#survey"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-4 text-base font-bold text-primary-foreground transition-colors hover:opacity-90"
+          >
+            Take the skin quiz <span className="text-lg">→</span>
+          </a>
+          <span className="text-[13px] text-muted-foreground">
+            ~5 minutes · No account needed to start
+          </span>
+        </div>
+
+        <div className="mt-11 flex flex-wrap gap-x-10 gap-y-4 border-t border-border pt-8">
+          {[
+            { n: "240k+", l: "skin profiles matched" },
+            { n: "31k+", l: "products decoded" },
+            { n: "12k+", l: "research sources" },
+          ].map((s) => (
+            <div key={s.n}>
+              <div className="font-serif text-3xl font-semibold text-ink">{s.n}</div>
+              <div className="mt-0.5 text-[13px] text-muted-foreground">{s.l}</div>
+            </div>
+          ))}
         </div>
       </div>
+
+      <HeroCard />
     </section>
   );
 }
@@ -130,85 +111,70 @@ function Hero() {
 function HeroCard() {
   return (
     <div className="relative">
-      <div className="absolute -inset-6 rounded-3xl bg-secondary/60 blur-2xl" aria-hidden />
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-warm-white shadow-[0_30px_60px_-30px_rgba(60,45,25,0.25)]">
-        <div className="flex items-center justify-between border-b border-border px-5 py-3">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-primary/70" />
-            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              live match
+      <div className="rounded-[20px] border border-border bg-warm-white p-6 shadow-[0_22px_60px_rgba(80,50,30,0.10)]">
+        <div className="flex items-start gap-4">
+          <div
+            className="flex h-[92px] w-[92px] flex-shrink-0 items-end rounded-xl p-2"
+            style={{
+              background:
+                "repeating-linear-gradient(45deg,#e7ddcc 0 8px,#efe7d9 8px 16px)",
+            }}
+          >
+            <span className="rounded bg-white/80 px-1.5 py-0.5 text-[9px] text-ink/40">
+              img
             </span>
           </div>
-          <span className="font-mono text-[11px] text-muted-foreground">
-            skinsavior.ai
-          </span>
+          <div className="flex-1">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-primary">
+              COSRX
+            </div>
+            <div className="mt-1 font-serif text-[17px] font-medium leading-[1.25] text-ink">
+              Advanced Snail 96
+              <br />
+              Mucin Essence
+            </div>
+          </div>
         </div>
 
-        <div className="relative aspect-[4/3] overflow-hidden bg-[repeating-linear-gradient(45deg,#e7ddcc_0_14px,#efe7d9_14px_28px)]">
-          <div className="absolute inset-0 flex items-end p-4">
-            <span className="font-mono text-[11px] tracking-wider text-ink/60">
-              advanced snail 96 — essence
+        <div className="mt-4 flex items-center gap-2.5">
+          <div className="flex h-[50px] w-[50px] flex-shrink-0 flex-col items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <span className="font-serif text-base font-semibold leading-none">94%</span>
+            <span className="text-[8px] tracking-wider opacity-85">MATCH</span>
+          </div>
+          <div>
+            <div className="text-[13px] font-bold text-ink">
+              Great match for your skin
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Personalized · Dry · Sensitive
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3.5 flex flex-wrap gap-1.5">
+          {["Pregnancy-safe", "Fragrance-free", "FA-safe"].map((t) => (
+            <span
+              key={t}
+              className="rounded-full bg-sage-bg px-2.5 py-1 text-xs font-medium text-sage"
+            >
+              ✓ {t}
             </span>
-          </div>
+          ))}
         </div>
 
-        <div className="space-y-4 p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 flex-col items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <span className="font-serif text-xl font-semibold leading-none">94%</span>
-              <span className="mt-0.5 text-[8px] uppercase tracking-[0.12em] opacity-85">
-                match
-              </span>
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-ink">Great match for your skin</div>
-              <div className="text-xs text-muted-foreground">
-                Personalized for <strong>Dry · Sensitive · Fragrance-free</strong>
-              </div>
-            </div>
+        <div className="mt-3.5 flex items-center gap-2.5 border-t border-border pt-3.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary">
+            <span className="font-serif text-sm font-semibold text-sage">B+</span>
           </div>
-
-          <div className="flex flex-wrap gap-1.5">
-            {["Fragrance-free", "Pregnancy-safe", "Fungal-acne safe"].map((t) => (
-              <span
-                key={t}
-                className="rounded-full bg-sage-bg px-2.5 py-1 text-[11px] font-medium text-sage"
-              >
-                ✓ {t}
-              </span>
-            ))}
-          </div>
-
-          <div className="space-y-1 border-t border-border pt-3 text-[13px]">
-            <Row label="Snail Secretion Filtrate" tag="Key active" tone="sage" />
-            <Row label="Sodium Hyaluronate" tag="Humectant" />
-            <Row label="Phenoxyethanol" tag="⚠ Sensitive skin" tone="warn" />
+          <div className="text-xs text-muted-foreground">
+            Evidence grade · 6 human trials for hydration
           </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-function Row({
-  label,
-  tag,
-  tone,
-}: {
-  label: string;
-  tag: string;
-  tone?: "sage" | "warn";
-}) {
-  const toneClass =
-    tone === "sage"
-      ? "bg-sage-bg text-sage"
-      : tone === "warn"
-        ? "bg-[oklch(0.94_0.04_55)] text-primary"
-        : "bg-secondary text-muted-foreground";
-  return (
-    <div className="flex items-center justify-between">
-      <span className="font-medium text-ink">{label}</span>
-      <span className={`rounded-md px-2 py-0.5 text-[11px] ${toneClass}`}>{tag}</span>
+      <div className="absolute -bottom-4 right-5 whitespace-nowrap rounded-xl bg-ink px-4 py-2.5 text-[13px] font-semibold text-warm-white shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+        ♡ 4.7 · 12,480 reviews
+      </div>
     </div>
   );
 }
@@ -216,14 +182,14 @@ function Row({
 function HookSection() {
   return (
     <section className="border-y border-border bg-secondary/40">
-      <div className="mx-auto max-w-[1180px] px-6 py-24 md:px-12 md:py-36">
+      <div className="mx-auto max-w-[1180px] px-6 py-24 md:px-14 md:py-32">
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
           The honest pitch
         </p>
         <h2 className="mt-6 font-serif text-4xl font-medium leading-[1.05] tracking-tight text-ink text-balance md:text-7xl">
           The beauty aisle lies.
           <br />
-          <span className="text-primary italic">Your skin shouldn't have to guess.</span>
+          <span className="italic text-primary">Your skin shouldn't have to guess.</span>
         </h2>
         <p className="mt-8 max-w-2xl font-serif text-xl leading-relaxed text-foreground/75 md:text-2xl">
           We read the studies, decode the INCI, and cross-check every claim — so the
@@ -237,42 +203,58 @@ function HookSection() {
 function HowItWorks() {
   const steps = [
     {
-      n: "01",
-      title: "Tell us your skin",
-      body: "A 2-minute survey covers your type, sensitivities, goals, and the ingredients you've reacted to.",
+      n: "1",
+      title: "Tell us about your skin",
+      body: "A few quick questions about your type, concerns, the products you use now, and what hasn't worked.",
     },
     {
-      n: "02",
+      n: "2",
       title: "We build your profile",
-      body: "Our AI weights your concerns against thousands of peer-reviewed studies and clinical trials.",
+      body: "Our AI scores 31,000+ products against your exact needs — weighing ingredients, evidence, and what already works for you.",
     },
     {
-      n: "03",
-      title: "Shop with receipts",
-      body: "Every product gets a personal match score, an evidence grade, and a plain-English breakdown.",
+      n: "3",
+      title: "See your matches",
+      body: "Every product gets a personal match score. Evidence grades stay objective — community reviews are context, never the score.",
     },
   ];
   return (
-    <section id="how" className="mx-auto max-w-[1180px] px-6 py-24 md:px-12 md:py-32">
-      <div className="mb-14 flex items-end justify-between">
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
+    <section
+      id="how"
+      className="border-y border-border bg-warm-white px-6 py-20 md:px-14 md:py-24"
+    >
+      <div className="mx-auto max-w-[1100px]">
+        <div className="mb-12 text-center">
+          <div className="mb-3 text-[13px] font-semibold uppercase tracking-[0.1em] text-primary">
             How it works
-          </p>
-          <h2 className="mt-3 font-serif text-4xl tracking-tight md:text-5xl">
-            Built around your skin, not a marketing deck.
+          </div>
+          <h2 className="font-serif text-4xl font-medium tracking-tight text-ink md:text-[40px]">
+            Three steps to knowing your skin
           </h2>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
-        {steps.map((s) => (
-          <div key={s.n} className="bg-warm-white p-8 md:p-10">
-            <span className="font-mono text-xs tracking-widest text-primary">{s.n}</span>
-            <h3 className="mt-5 font-serif text-2xl">{s.title}</h3>
-            <p className="mt-3 leading-relaxed text-muted-foreground">{s.body}</p>
-          </div>
-        ))}
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
+          {steps.map((s) => (
+            <div key={s.n} className="text-center">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-background font-serif text-2xl font-semibold text-primary">
+                {s.n}
+              </div>
+              <h3 className="font-serif text-[22px] font-medium text-ink">{s.title}</h3>
+              <p className="mt-2.5 text-[15px] leading-[1.6] text-muted-foreground">
+                {s.body}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 text-center">
+          <a
+            href="#survey"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-9 py-4 text-base font-bold text-primary-foreground transition-colors hover:opacity-90"
+          >
+            Start the skin quiz →
+          </a>
+        </div>
       </div>
     </section>
   );
@@ -280,8 +262,8 @@ function HowItWorks() {
 
 function ProductSnapshot() {
   return (
-    <section id="product" className="bg-warm-white border-y border-border">
-      <div className="mx-auto max-w-[1180px] px-6 py-24 md:px-12 md:py-32">
+    <section id="product" className="bg-background">
+      <div className="mx-auto max-w-[1180px] px-6 py-24 md:px-14 md:py-32">
         <div className="mb-12 max-w-2xl">
           <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
             Inside the app
@@ -295,7 +277,7 @@ function ProductSnapshot() {
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-border bg-background shadow-[0_30px_80px_-40px_rgba(60,45,25,0.3)]">
+        <div className="overflow-hidden rounded-2xl border border-border bg-warm-white shadow-[0_30px_80px_-40px_rgba(60,45,25,0.3)]">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <div className="text-xs text-muted-foreground">
               Products / Essences / Hydrating
@@ -402,7 +384,7 @@ function ProductSnapshot() {
                     <li className="text-primary">⚠ Contains Phenoxyethanol</li>
                   </ul>
                 </div>
-                <div className="rounded-xl border border-border bg-warm-white p-5">
+                <div className="rounded-xl border border-border bg-background p-5">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-secondary font-serif text-lg font-semibold text-sage">
                       B+
@@ -426,10 +408,6 @@ function ProductSnapshot() {
             </div>
           </div>
         </div>
-
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Real product page from skinsavior — your shelf, decoded the same way.
-        </p>
       </div>
     </section>
   );
@@ -437,7 +415,7 @@ function ProductSnapshot() {
 
 function CTASurvey() {
   return (
-    <section id="survey" className="mx-auto max-w-[1180px] px-6 py-24 md:px-12 md:py-36">
+    <section id="survey" className="mx-auto max-w-[1180px] px-6 py-20 md:px-14 md:py-28">
       <div className="relative overflow-hidden rounded-3xl bg-ink p-10 text-warm-white md:p-20">
         <div
           className="absolute -right-20 -top-20 h-72 w-72 rounded-full opacity-40 blur-3xl"
@@ -449,14 +427,12 @@ function CTASurvey() {
             Start with your skin
           </p>
           <h2 className="mt-5 font-serif text-4xl leading-[1.05] text-warm-white md:text-6xl">
-            Take the 2-minute survey.
+            Take the skin quiz.
             <br />
-            <em className="italic text-[oklch(0.82_0.09_55)]">
-              We'll do the rest.
-            </em>
+            <em className="italic text-[oklch(0.82_0.09_55)]">We'll do the rest.</em>
           </h2>
           <p className="mt-6 max-w-lg text-lg text-warm-white/75">
-            Twelve questions about your skin, your reactions, and what you want from
+            A few questions about your skin, your reactions, and what you want from
             your routine. You'll walk away with a personal match score on every
             product we track.
           </p>
@@ -464,29 +440,13 @@ function CTASurvey() {
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <a
               href="#survey"
-              className="group inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-4 text-base font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-4 text-base font-bold text-primary-foreground transition-colors hover:opacity-90"
             >
-              Start my skin survey
-              <span className="transition-transform group-hover:translate-x-1">→</span>
+              Start my skin quiz <span>→</span>
             </a>
             <span className="text-sm text-warm-white/60">
-              Free · no email required to start
+              ~5 minutes · no account needed to start
             </span>
-          </div>
-
-          <div className="mt-10 grid grid-cols-3 gap-6 border-t border-warm-white/15 pt-8 text-sm text-warm-white/70">
-            <div>
-              <div className="font-serif text-2xl text-warm-white">2 min</div>
-              <div className="mt-1">Average time</div>
-            </div>
-            <div>
-              <div className="font-serif text-2xl text-warm-white">12 q's</div>
-              <div className="mt-1">Skin, goals, reactions</div>
-            </div>
-            <div>
-              <div className="font-serif text-2xl text-warm-white">∞</div>
-              <div className="mt-1">Products scored for you</div>
-            </div>
           </div>
         </div>
       </div>
@@ -497,18 +457,11 @@ function CTASurvey() {
 function Footer() {
   return (
     <footer className="border-t border-border">
-      <div className="mx-auto flex max-w-[1180px] flex-col gap-6 px-6 py-10 md:flex-row md:items-center md:justify-between md:px-12">
-        <div>
-          <div className="font-serif text-xl font-semibold text-ink">skinsavior</div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            AI-powered transparency for what you put on your skin.
-          </p>
-        </div>
-        <div className="flex gap-6 text-sm text-muted-foreground">
-          <a className="hover:text-ink" href="#">Privacy</a>
-          <a className="hover:text-ink" href="#">Sources</a>
-          <a className="hover:text-ink" href="#">Contact</a>
-        </div>
+      <div className="mx-auto flex max-w-[1180px] flex-col gap-3 px-6 py-8 md:flex-row md:items-center md:justify-between md:px-14">
+        <span className="font-serif text-lg font-semibold text-ink">skinsavior</span>
+        <span className="text-[13px] text-muted-foreground">
+          © 2026 · Independent &amp; unbiased · Not medical advice.
+        </span>
       </div>
     </footer>
   );
