@@ -37,6 +37,12 @@ function Nav() {
         <span className="font-serif text-2xl font-semibold tracking-tight text-ink">
           skinsavior
         </span>
+        <nav className="hidden items-center gap-6 lg:flex">
+          <a href="/search" className="text-sm text-muted-foreground hover:text-ink">Products</a>
+          <a href="#ingredients" className="text-sm text-muted-foreground hover:text-ink">Ingredients</a>
+          <a href="#routines" className="text-sm text-muted-foreground hover:text-ink">Routines</a>
+          <a href="#community" className="text-sm text-muted-foreground hover:text-ink">Community</a>
+        </nav>
         <div className="flex items-center gap-3 md:gap-4">
           <SearchBar />
           <a href="/quiz" className="hidden text-sm text-muted-foreground hover:text-ink md:inline">
@@ -49,6 +55,7 @@ function Nav() {
             Get started <span>→</span>
           </a>
         </div>
+
       </div>
     </header>
   );
