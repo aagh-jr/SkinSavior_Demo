@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { SearchBar } from "@/components/SearchBar";
+import { SiteNav } from "@/components/SiteNav";
 import { searchProducts, products } from "@/lib/products";
 
 export const Route = createFileRoute("/search")({
@@ -21,25 +21,7 @@ function SearchPage() {
 
   return (
     <div className="min-h-screen bg-[#f6f1e9] font-sans text-[#2a241d]">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[#e6ddcf] bg-[#f6f1e9] px-6 py-5 md:px-12">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="font-serif text-2xl font-semibold tracking-tight text-[#1d1812]">
-            skinsavior
-          </Link>
-          <div className="hidden gap-6 text-sm text-[#6b5f4f] md:flex">
-            <Link to="/search" search={{ q: "" }} className="font-semibold text-[#9a4a2f]">
-              Products
-            </Link>
-            <span>Ingredients</span>
-            <span>Routines</span>
-            <span>Community</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <SearchBar initialQuery={q} />
-          <div className="h-9 w-9 rounded-full bg-[#9a4a2f]" />
-        </div>
-      </header>
+      <SiteNav />
 
       <main className="mx-auto max-w-[1080px] px-6 py-10 md:px-12">
         <div className="mb-2 text-[13px] text-[#9a8c75]">Products / Search</div>

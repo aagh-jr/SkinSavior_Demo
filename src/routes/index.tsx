@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SearchBar } from "@/components/SearchBar";
+import { SiteNav } from "@/components/SiteNav";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,35 +31,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Nav() {
-  return (
-    <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-5 md:px-14">
-        <span className="font-serif text-2xl font-semibold tracking-tight text-ink">
-          skinsavior
-        </span>
-        <nav className="hidden items-center gap-6 lg:flex">
-          <a href="/search" className="text-sm text-muted-foreground hover:text-ink">Products</a>
-          <a href="#ingredients" className="text-sm text-muted-foreground hover:text-ink">Ingredients</a>
-          <a href="#routines" className="text-sm text-muted-foreground hover:text-ink">Routines</a>
-          <a href="#community" className="text-sm text-muted-foreground hover:text-ink">Community</a>
-          <a href="/user" className="text-sm text-muted-foreground hover:text-ink">User</a>
-        </nav>
-        <div className="flex items-center gap-3 md:gap-4">
-          <SearchBar />
-          <a href="/quiz" className="hidden text-sm text-muted-foreground hover:text-ink md:inline">
-            Sign in
-          </a>
-          <a
-            href="/quiz"
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
-          >
-            Get started <span>→</span>
-          </a>
-        </div>
-
-      </div>
-    </header>
-  );
+  return <SiteNav />;
 }
 
 function Hero() {

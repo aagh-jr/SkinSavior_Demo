@@ -11,7 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UserRouteImport } from './routes/user'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as RoutinesRouteImport } from './routes/routines'
 import { Route as QuizRouteImport } from './routes/quiz'
+import { Route as IngredientsRouteImport } from './routes/ingredients'
+import { Route as HomeRouteImport } from './routes/home'
+import { Route as CommunityRouteImport } from './routes/community'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 
@@ -25,9 +29,29 @@ const SearchRoute = SearchRouteImport.update({
   path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RoutinesRoute = RoutinesRouteImport.update({
+  id: '/routines',
+  path: '/routines',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuizRoute = QuizRouteImport.update({
   id: '/quiz',
   path: '/quiz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IngredientsRoute = IngredientsRouteImport.update({
+  id: '/ingredients',
+  path: '/ingredients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunityRoute = CommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,14 +67,22 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/community': typeof CommunityRoute
+  '/home': typeof HomeRoute
+  '/ingredients': typeof IngredientsRoute
   '/quiz': typeof QuizRoute
+  '/routines': typeof RoutinesRoute
   '/search': typeof SearchRoute
   '/user': typeof UserRoute
   '/product/$slug': typeof ProductSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/community': typeof CommunityRoute
+  '/home': typeof HomeRoute
+  '/ingredients': typeof IngredientsRoute
   '/quiz': typeof QuizRoute
+  '/routines': typeof RoutinesRoute
   '/search': typeof SearchRoute
   '/user': typeof UserRoute
   '/product/$slug': typeof ProductSlugRoute
@@ -58,22 +90,58 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/community': typeof CommunityRoute
+  '/home': typeof HomeRoute
+  '/ingredients': typeof IngredientsRoute
   '/quiz': typeof QuizRoute
+  '/routines': typeof RoutinesRoute
   '/search': typeof SearchRoute
   '/user': typeof UserRoute
   '/product/$slug': typeof ProductSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/quiz' | '/search' | '/user' | '/product/$slug'
+  fullPaths:
+    | '/'
+    | '/community'
+    | '/home'
+    | '/ingredients'
+    | '/quiz'
+    | '/routines'
+    | '/search'
+    | '/user'
+    | '/product/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/quiz' | '/search' | '/user' | '/product/$slug'
-  id: '__root__' | '/' | '/quiz' | '/search' | '/user' | '/product/$slug'
+  to:
+    | '/'
+    | '/community'
+    | '/home'
+    | '/ingredients'
+    | '/quiz'
+    | '/routines'
+    | '/search'
+    | '/user'
+    | '/product/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/community'
+    | '/home'
+    | '/ingredients'
+    | '/quiz'
+    | '/routines'
+    | '/search'
+    | '/user'
+    | '/product/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CommunityRoute: typeof CommunityRoute
+  HomeRoute: typeof HomeRoute
+  IngredientsRoute: typeof IngredientsRoute
   QuizRoute: typeof QuizRoute
+  RoutinesRoute: typeof RoutinesRoute
   SearchRoute: typeof SearchRoute
   UserRoute: typeof UserRoute
   ProductSlugRoute: typeof ProductSlugRoute
@@ -95,11 +163,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/routines': {
+      id: '/routines'
+      path: '/routines'
+      fullPath: '/routines'
+      preLoaderRoute: typeof RoutinesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/quiz': {
       id: '/quiz'
       path: '/quiz'
       fullPath: '/quiz'
       preLoaderRoute: typeof QuizRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ingredients': {
+      id: '/ingredients'
+      path: '/ingredients'
+      fullPath: '/ingredients'
+      preLoaderRoute: typeof IngredientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/community': {
+      id: '/community'
+      path: '/community'
+      fullPath: '/community'
+      preLoaderRoute: typeof CommunityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -121,7 +217,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CommunityRoute: CommunityRoute,
+  HomeRoute: HomeRoute,
+  IngredientsRoute: IngredientsRoute,
   QuizRoute: QuizRoute,
+  RoutinesRoute: RoutinesRoute,
   SearchRoute: SearchRoute,
   UserRoute: UserRoute,
   ProductSlugRoute: ProductSlugRoute,
@@ -129,3 +229,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

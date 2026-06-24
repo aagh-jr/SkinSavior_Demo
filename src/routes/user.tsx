@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { SiteNav } from "@/components/SiteNav";
 
 export const Route = createFileRoute("/user")({
   component: UserPage,
@@ -7,6 +8,7 @@ export const Route = createFileRoute("/user")({
 function UserPage() {
   return (
     <div className="min-h-screen bg-background">
+      <SiteNav />
       <div className="mx-auto max-w-[1180px] px-6 py-12 md:px-14">
         <h1 className="font-serif text-3xl font-semibold tracking-tight text-ink md:text-4xl">
           Account
