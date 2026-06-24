@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "skinsavior",
+    "slug": "skinsavior",
+    "version": "0.0.0",
+    "scheme": "skinsavior",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#f6f1e9"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.skinsavior.app"
+    },
+    "android": {
+      "package": "com.skinsavior.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

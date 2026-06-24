@@ -1,0 +1,12 @@
+[install]
+# Flat (hoisted) node_modules at the workspace root. React Native / Metro /
+# Babel resolve presets and native modules from a flat layout; Bun's default
+# isolated linker breaks babel-preset-expo's transitive plugin resolution.
+# Trade-off: a single hoisted React for the whole monorepo, so web (Next) and
+# mobile (Expo) share one React version — pinned to 19.1.0 (Expo SDK 54's
+# requirement; supported by Next 15) via root package.json `overrides`.
+linker = "hoisted"
+
+# 24h supply-chain guard, mirrored from apps/web/bunfig.toml.
+minimumReleaseAge = 86400
+minimumReleaseAgeExcludes = []
