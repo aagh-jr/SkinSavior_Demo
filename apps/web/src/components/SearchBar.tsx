@@ -1,5 +1,8 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { searchProducts } from "@/lib/products";
 
 export function SearchBar({ initialQuery = "" }: { initialQuery?: string }) {
@@ -7,7 +10,7 @@ export function SearchBar({ initialQuery = "" }: { initialQuery?: string }) {
   const [q, setQ] = useState(initialQuery);
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const results = searchProducts(q).slice(0, 5);
 
@@ -27,7 +30,7 @@ export function SearchBar({ initialQuery = "" }: { initialQuery?: string }) {
         onSubmit={(e) => {
           e.preventDefault();
           if (q.trim()) {
-            navigate({ to: "/search", search: { q } });
+            router.push(`/search?q=${encodeURIComponent(q)}`);
             setOpen(false);
           }
         }}
@@ -65,15 +68,14 @@ export function SearchBar({ initialQuery = "" }: { initialQuery?: string }) {
         <div className="absolute right-0 mt-2 w-[380px] overflow-hidden rounded-xl border border-[#e6ddcf] bg-white shadow-lg z-30">
           {results.length === 0 ? (
             <div className="px-4 py-5 text-sm text-[#6b5f4f]">
-              No matches for <strong>"{q}"</strong>
+              No matches for <strong>&quot;{q}&quot;</strong>
             </div>
           ) : (
             <>
               {results.map((p) => (
                 <Link
                   key={p.slug}
-                  to="/product/$slug"
-                  params={{ slug: p.slug }}
+                  href={`/product/${p.slug}`}
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 border-b border-[#f0e8db] px-4 py-3 last:border-0 hover:bg-[#fbf3ec]"
                 >
@@ -96,12 +98,11 @@ export function SearchBar({ initialQuery = "" }: { initialQuery?: string }) {
                 </Link>
               ))}
               <Link
-                to="/search"
-                search={{ q }}
+                href={`/search?q=${encodeURIComponent(q)}`}
                 onClick={() => setOpen(false)}
                 className="block bg-[#fbf3ec] px-4 py-2.5 text-center text-xs font-semibold text-[#9a4a2f] hover:bg-[#f6ece2]"
               >
-                See all results for "{q}" →
+                See all results for &quot;{q}&quot; →
               </Link>
             </>
           )}

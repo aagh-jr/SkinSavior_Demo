@@ -1,28 +1,8 @@
-export type Product = {
-  slug: string;
-  name: string;
-  brand: string;
-  origin: string;
-  category: string;
-  breadcrumb: string;
-  tagline: string;
-  description: string;
-  price: string;
-  retailerCount: number;
-  match: number;
-  matchFor: string;
-  badges: string[];
-  forYou: { good: string[]; warn: string[] };
-  rank: string;
-  evidenceGrade: string;
-  evidenceText: string;
-  ingredients: { name: string; pct?: string; tags: { label: string; tone: "neutral" | "good" | "warn" }[] }[];
-  safety: { label: string; value: string; tone: "good" | "warn" }[];
-  retailers: { name: string; price: string; highlight?: boolean }[];
-  rating: number;
-  reviewCount: number;
-  reviews: { author: string; profile: string; stars: string; text: string; color: string }[];
-};
+// The Product domain type now lives in the shared package so web + mobile agree.
+// This module keeps the static demo data (UI mock) until real data lands.
+import type { Product } from "@skinsavior/core/types";
+
+export type { Product };
 
 export const products: Product[] = [
   {

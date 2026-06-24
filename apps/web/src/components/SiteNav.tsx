@@ -1,18 +1,22 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { SearchBar } from "@/components/SearchBar";
 
 const LINKS = [
-  { to: "/search", label: "Products", search: { q: "" } as const },
-  { to: "/ingredients", label: "Ingredients" },
-  { to: "/routines", label: "Routines" },
-  { to: "/community", label: "Community" },
-  { to: "/user", label: "User" },
+  { href: "/search", label: "Products" },
+  { href: "/ingredients", label: "Ingredients" },
+  { href: "/routines", label: "Routines" },
+  { href: "/community", label: "Community" },
+  { href: "/user", label: "User" },
 ] as const;
 
 export function SiteNav() {
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
+  const pathname = usePathname();
 
   useEffect(() => {
     lastY.current = window.scrollY;
@@ -44,39 +48,33 @@ export function SiteNav() {
     >
       <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-6 py-5 md:px-14">
         <Link
-          to="/"
+          href="/"
           className="font-serif text-2xl font-semibold tracking-tight text-ink"
         >
           skinsavior
         </Link>
         <nav className="hidden items-center gap-6 lg:flex">
-          {LINKS.map((l) =>
-            "search" in l ? (
+          {LINKS.map((l) => {
+            const active = pathname === l.href;
+            return (
               <Link
-                key={l.to}
-                to={l.to}
-                search={l.search}
-                className="text-sm text-muted-foreground transition-colors hover:text-ink"
-                activeProps={{ className: "text-sm font-semibold text-ink" }}
+                key={l.href}
+                href={l.href}
+                className={
+                  active
+                    ? "text-sm font-semibold text-ink"
+                    : "text-sm text-muted-foreground transition-colors hover:text-ink"
+                }
               >
                 {l.label}
               </Link>
-            ) : (
-              <Link
-                key={l.to}
-                to={l.to}
-                className="text-sm text-muted-foreground transition-colors hover:text-ink"
-                activeProps={{ className: "text-sm font-semibold text-ink" }}
-              >
-                {l.label}
-              </Link>
-            ),
-          )}
+            );
+          })}
         </nav>
         <div className="flex items-center gap-3 md:gap-4">
           <SearchBar />
           <Link
-            to="/quiz"
+            href="/quiz"
             className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
             Get started <span>→</span>
