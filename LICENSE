@@ -1,0 +1,44 @@
+MIT License
+
+Copyright (c) 2026 Abel Gonzalez
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Brand and Visual Assets — Not Covered by the MIT License
+
+The MIT license above applies to the source code of this project only.
+
+It does NOT grant any rights to the project's brand or visual assets, which
+are reserved and remain © 2026 Abel Gonzalez, All Rights Reserved. These
+include, without limitation:
+
+  - The "skinsavior" name, wordmark, and any logos or icons;
+  - Original illustrations, graphics, imagery, and photography;
+  - Any other original visual or brand assets contained in this repository.
+
+You may not use, copy, reproduce, or redistribute these brand or visual assets,
+or any confusingly similar variation of them, whether for commercial or
+non-commercial purposes, without prior written permission. In particular, you
+may not use them in a way that suggests affiliation with, or endorsement by,
+this project or its author.
+
+If you reuse the source code under the MIT license, you must replace these
+brand and visual assets with your own.
