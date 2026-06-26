@@ -31,7 +31,10 @@ export function SearchBar({
   const expanded = open || q.length > 0;
 
   return (
-    <div ref={wrapRef} className={wide ? "relative w-full" : "relative"}>
+    <div
+      ref={wrapRef}
+      className={wide ? "relative flex w-full justify-center" : "relative"}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
