@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SearchBar } from "@/components/SearchBar";
 
 const LINKS = [
   { href: "/search", label: "Products" },
@@ -72,7 +71,6 @@ export function SiteNav() {
           })}
         </nav>
         <div className="flex items-center gap-3 md:gap-4">
-          <SearchBar />
           <Link
             href="/quiz"
             className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"

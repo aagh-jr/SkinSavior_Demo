@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SiteNav } from "@/components/SiteNav";
+import { SearchBar } from "@/components/SearchBar";
 
 export const metadata: Metadata = {
   title: "skinsavior — Your skin, finally explained.",
@@ -13,8 +14,8 @@ function Nav() {
 
 function Hero() {
   return (
-    <section className="mx-auto grid max-w-[1180px] grid-cols-1 items-center gap-12 px-6 pt-16 pb-16 md:grid-cols-[1.08fr_1fr] md:gap-[60px] md:px-14 md:pt-[76px] md:pb-16">
-      <div>
+    <section className="mx-auto flex max-w-[1180px] flex-col items-center px-6 pt-16 pb-16 md:px-14 md:pt-[76px] md:pb-16">
+      <div className="flex w-full flex-col items-center text-center">
         <div className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-border bg-warm-white px-4 py-2">
           <span className="h-2 w-2 rounded-full bg-sage" />
           <span className="text-[13px] font-medium text-muted-foreground">
@@ -22,21 +23,21 @@ function Hero() {
           </span>
         </div>
 
-        <h1 className="font-serif text-5xl font-medium leading-[1.02] tracking-tight text-ink md:text-[66px]">
-          Your skin,
-          <br />
-          finally
-          <br />
-          explained.
+        <h1 className="font-serif text-5xl font-medium leading-[1.02] tracking-tight text-ink text-balance md:text-[66px]">
+          Your skin, finally explained.
         </h1>
 
-        <p className="mt-6 max-w-[450px] text-lg leading-[1.6] text-foreground/75">
+        <div className="mt-8 flex w-full justify-center">
+          <SearchBar />
+        </div>
+
+        <p className="mt-8 max-w-[520px] text-lg leading-[1.6] text-foreground/75 text-pretty">
           Answer a few questions about your skin. We&apos;ll match you with products backed
           by real research — and tell you exactly why each one is right for{" "}
           <em>you</em>.
         </p>
 
-        <div className="mt-8 flex flex-wrap items-center gap-5">
+        <div className="mt-8 flex flex-col items-center gap-3">
           <a
             href="/quiz"
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-4 text-base font-bold text-primary-foreground transition-colors hover:opacity-90"
@@ -48,7 +49,7 @@ function Hero() {
           </span>
         </div>
 
-        <div className="mt-11 flex flex-wrap gap-x-10 gap-y-4 border-t border-border pt-8">
+        <div className="mt-11 flex flex-wrap justify-center gap-x-10 gap-y-4 border-t border-border pt-8">
           {[
             { n: "240k+", l: "skin profiles matched" },
             { n: "31k+", l: "products decoded" },
@@ -62,7 +63,9 @@ function Hero() {
         </div>
       </div>
 
-      <HeroCard />
+      <div className="mt-14 w-full max-w-[420px] text-left">
+        <HeroCard />
+      </div>
     </section>
   );
 }
