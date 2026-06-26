@@ -5,7 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { searchProducts } from "@/lib/products";
 
-export function SearchBar({ initialQuery = "" }: { initialQuery?: string }) {
+export function SearchBar({
+  initialQuery = "",
+  wide = false,
+}: {
+  initialQuery?: string;
+  wide?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState(initialQuery);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -25,7 +31,7 @@ export function SearchBar({ initialQuery = "" }: { initialQuery?: string }) {
   const expanded = open || q.length > 0;
 
   return (
-    <div ref={wrapRef} className="relative">
+    <div ref={wrapRef} className={wide ? "relative w-full" : "relative"}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -34,10 +40,18 @@ export function SearchBar({ initialQuery = "" }: { initialQuery?: string }) {
             setOpen(false);
           }
         }}
-        className="flex items-center gap-2 rounded-full border border-[#e6ddcf] bg-white px-3.5 py-2 transition-all"
-        style={{ width: expanded ? 340 : 240 }}
+        className={`flex items-center rounded-full border border-[#e6ddcf] bg-white transition-all ${
+          wide ? "max-w-full gap-3 px-6 py-4" : "gap-2 px-3.5 py-2"
+        }`}
+        style={
+          wide
+            ? { width: expanded ? 1020 : 720 }
+            : { width: expanded ? 340 : 240 }
+        }
       >
-        <span className="text-sm text-[#b3a690]">⌕</span>
+        <span className={wide ? "text-xl text-[#b3a690]" : "text-sm text-[#b3a690]"}>
+          ⌕
+        </span>
         <input
           ref={inputRef}
           value={q}
@@ -47,7 +61,9 @@ export function SearchBar({ initialQuery = "" }: { initialQuery?: string }) {
           }}
           onFocus={() => setOpen(true)}
           placeholder="Search products & ingredients"
-          className="w-full bg-transparent text-[13px] text-[#2a241d] placeholder:text-[#b3a690] focus:outline-none"
+          className={`w-full bg-transparent text-[#2a241d] placeholder:text-[#b3a690] focus:outline-none ${
+            wide ? "text-base" : "text-[13px]"
+          }`}
         />
         {q && (
           <button
@@ -65,7 +81,11 @@ export function SearchBar({ initialQuery = "" }: { initialQuery?: string }) {
       </form>
 
       {open && q.trim() && (
-        <div className="absolute right-0 mt-2 w-[380px] overflow-hidden rounded-xl border border-[#e6ddcf] bg-white shadow-lg z-30">
+        <div
+          className={`absolute mt-2 overflow-hidden rounded-xl border border-[#e6ddcf] bg-white shadow-lg z-30 ${
+            wide ? "left-0 right-0 w-full" : "right-0 w-[380px]"
+          }`}
+        >
           {results.length === 0 ? (
             <div className="px-4 py-5 text-sm text-[#6b5f4f]">
               No matches for <strong>&quot;{q}&quot;</strong>

@@ -27,44 +27,53 @@ function Hero() {
           Your skin, finally explained.
         </h1>
 
-        <div className="mt-8 flex w-full justify-center">
-          <SearchBar />
-        </div>
-
         <p className="mt-8 max-w-[520px] text-lg leading-[1.6] text-foreground/75 text-pretty">
           Answer a few questions about your skin. We&apos;ll match you with products backed
           by real research — and tell you exactly why each one is right for{" "}
           <em>you</em>.
         </p>
 
-        <div className="mt-8 flex flex-col items-center gap-3">
-          <a
-            href="/quiz"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-4 text-base font-bold text-primary-foreground transition-colors hover:opacity-90"
-          >
-            Take the skin quiz <span className="text-lg">→</span>
-          </a>
-          <span className="text-[13px] text-muted-foreground">
-            ~5 minutes · No account needed to start
-          </span>
-        </div>
-
-        <div className="mt-11 flex flex-wrap justify-center gap-x-10 gap-y-4 border-t border-border pt-8">
-          {[
-            { n: "240k+", l: "skin profiles matched" },
-            { n: "31k+", l: "products decoded" },
-            { n: "12k+", l: "research sources" },
-          ].map((s) => (
-            <div key={s.n}>
-              <div className="font-serif text-3xl font-semibold text-ink">{s.n}</div>
-              <div className="mt-0.5 text-[13px] text-muted-foreground">{s.l}</div>
-            </div>
-          ))}
+        <div className="mt-8 flex w-full max-w-[1020px] justify-center">
+          <SearchBar wide />
         </div>
       </div>
 
-      <div className="mt-14 w-full max-w-[420px] text-left">
+      <div className="mt-12 grid w-full max-w-[1020px] grid-cols-1 items-center gap-10 text-left md:grid-cols-2">
+        <div>
+          <h2 className="font-serif text-3xl font-medium leading-[1.1] tracking-tight text-ink text-balance md:text-4xl">
+            Take the skin quiz. We&apos;ll do the rest.
+          </h2>
+          <p className="mt-4 max-w-[440px] text-lg leading-[1.6] text-foreground/75 text-pretty">
+            A few questions about your skin, your reactions, and your routine — and
+            you&apos;ll get a personal match score on every product we track.
+          </p>
+          <div className="mt-7 flex flex-col items-start gap-3">
+            <a
+              href="/quiz"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-4 text-base font-bold text-primary-foreground transition-colors hover:opacity-90"
+            >
+              Take the skin quiz <span className="text-lg">→</span>
+            </a>
+            <span className="text-[13px] text-muted-foreground">
+              ~5 minutes · No account needed to start
+            </span>
+          </div>
+        </div>
+
         <HeroCard />
+      </div>
+
+      <div className="mt-12 flex w-full max-w-[1020px] flex-wrap justify-center gap-x-10 gap-y-4 border-t border-border pt-8">
+        {[
+          { n: "240k+", l: "skin profiles matched" },
+          { n: "31k+", l: "products decoded" },
+          { n: "12k+", l: "research sources" },
+        ].map((s) => (
+          <div key={s.n} className="text-center">
+            <div className="font-serif text-3xl font-semibold text-ink">{s.n}</div>
+            <div className="mt-0.5 text-[13px] text-muted-foreground">{s.l}</div>
+          </div>
+        ))}
       </div>
     </section>
   );
