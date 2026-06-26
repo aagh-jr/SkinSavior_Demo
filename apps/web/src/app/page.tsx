@@ -32,7 +32,7 @@ function Hero() {
         </div>
       </div>
 
-      <div className="mt-24 grid w-full max-w-[1020px] grid-cols-1 items-center gap-10 text-left md:grid-cols-2">
+      <div className="mt-[108px] grid w-full max-w-[1020px] grid-cols-1 items-center gap-10 text-left md:grid-cols-2">
         <div>
           <h2 className="font-serif text-3xl font-medium leading-[1.1] tracking-tight text-ink text-balance md:text-4xl">
             Take the skin quiz. We&apos;ll do the rest.
