@@ -27,13 +27,7 @@ function Hero() {
           Your skin, finally explained.
         </h1>
 
-        <p className="mt-8 max-w-[520px] text-lg leading-[1.6] text-foreground/75 text-pretty">
-          Answer a few questions about your skin. We&apos;ll match you with products backed
-          by real research — and tell you exactly why each one is right for{" "}
-          <em>you</em>.
-        </p>
-
-        <div className="mt-8 flex w-full max-w-[1020px] justify-center">
+        <div className="mt-6 flex w-full max-w-[1020px] justify-center">
           <SearchBar wide />
         </div>
       </div>
