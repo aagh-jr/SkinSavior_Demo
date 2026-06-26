@@ -12,61 +12,372 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      profiles: {
+      ingredient_clashes: {
         Row: {
-          age_range: string | null
-          answers: Json | null
-          budget: string | null
-          concerns: string[] | null
-          created_at: string
-          display_name: string | null
-          fragrance_pref: string | null
-          goals: string[] | null
           id: string
-          pregnancy_safe: boolean | null
-          routine_complexity: string | null
-          sensitivity: string | null
-          skin_type: string | null
-          sun_exposure: string | null
+          ingredient_a: string
+          ingredient_b: string
+          reason: string
+          severity: string | null
+        }
+        Insert: {
+          id?: string
+          ingredient_a: string
+          ingredient_b: string
+          reason: string
+          severity?: string | null
+        }
+        Update: {
+          id?: string
+          ingredient_a?: string
+          ingredient_b?: string
+          reason?: string
+          severity?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_clashes_ingredient_a_fkey"
+            columns: ["ingredient_a"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_clashes_ingredient_b_fkey"
+            columns: ["ingredient_b"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredients: {
+        Row: {
+          common_name: string | null
+          created_at: string
+          description: string | null
+          functions: string[] | null
+          id: string
+          inci_name: string
+          safety_notes: string | null
           updated_at: string
         }
         Insert: {
-          age_range?: string | null
-          answers?: Json | null
-          budget?: string | null
-          concerns?: string[] | null
+          common_name?: string | null
           created_at?: string
-          display_name?: string | null
-          fragrance_pref?: string | null
-          goals?: string[] | null
-          id: string
-          pregnancy_safe?: boolean | null
-          routine_complexity?: string | null
-          sensitivity?: string | null
-          skin_type?: string | null
-          sun_exposure?: string | null
+          description?: string | null
+          functions?: string[] | null
+          id?: string
+          inci_name: string
+          safety_notes?: string | null
           updated_at?: string
         }
         Update: {
-          age_range?: string | null
-          answers?: Json | null
-          budget?: string | null
-          concerns?: string[] | null
+          common_name?: string | null
           created_at?: string
-          display_name?: string | null
-          fragrance_pref?: string | null
-          goals?: string[] | null
+          description?: string | null
+          functions?: string[] | null
           id?: string
-          pregnancy_safe?: boolean | null
-          routine_complexity?: string | null
-          sensitivity?: string | null
-          skin_type?: string | null
-          sun_exposure?: string | null
+          inci_name?: string
+          safety_notes?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      product_ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_id: string
+          position: number
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          position: number
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          position?: number
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_ingredients_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          profile_id: string
+          rating: number
+          review: string | null
+          skin_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          profile_id: string
+          rating: number
+          review?: string | null
+          skin_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          profile_id?: string
+          rating?: number
+          review?: string | null
+          skin_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_ratings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_ratings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          brand: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          obf_id: string | null
+          product_type: string | null
+          raw_ingredients: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          obf_id?: string | null
+          product_type?: string | null
+          raw_ingredients?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          obf_id?: string | null
+          product_type?: string | null
+          raw_ingredients?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          skin_type: string | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          skin_type?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          skin_type?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      routine_steps: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          product_id: string | null
+          routine_id: string
+          step_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          product_id?: string | null
+          routine_id: string
+          step_order: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          product_id?: string | null
+          routine_id?: string
+          step_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_steps_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_steps_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "skincare_routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_history: {
+        Row: {
+          created_at: string
+          id: string
+          profile_id: string | null
+          query: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_id?: string | null
+          query: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_id?: string | null
+          query?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skincare_routines: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          profile_id: string
+          routine_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          profile_id: string
+          routine_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          profile_id?: string
+          routine_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skincare_routines_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -202,6 +513,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
