@@ -4,20 +4,19 @@ import type { Database } from "@skinsavior/core/supabase";
 import { SiteNav } from "@/components/SiteNav";
 import { createClient } from "@/lib/supabase/server";
 
-// Columns that actually exist on the live `profiles` table.
+// Read public profiles through the curated `public_profiles` view, which
+// exposes ONLY these safe columns. The base `profiles` table is not readable
+// by anonymous visitors — see the public_profiles migration.
 const PROFILE_SELECT = "display_name, username, skin_type, bio, avatar_url";
 
-type ProfileCard = Pick<
-  Database["public"]["Tables"]["profiles"]["Row"],
-  "display_name" | "username" | "skin_type" | "bio" | "avatar_url"
->;
+type ProfileCard = Database["public"]["Views"]["public_profiles"]["Row"];
 
 async function getProfileByUsername(
   username: string,
 ): Promise<ProfileCard | null> {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select(PROFILE_SELECT)
     .eq("username", username)
     .maybeSingle();
