@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteNav } from "@/components/SiteNav";
 import { getProduct, products } from "@/lib/products";
+import { getDbProduct } from "@/lib/products-db";
+import { brandSlug } from "@/lib/brands-db";
 
 export function generateStaticParams() {
   return products.map((p) => ({ slug: p.slug }));
@@ -14,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const p = getProduct(slug);
+  const p = getProduct(slug) ?? (await getDbProduct(slug));
   return { title: p ? p.name : "Product" };
 }
 
@@ -24,7 +26,8 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const p = getProduct(slug);
+  // Static demo products first, then products ingested via /add.
+  const p = getProduct(slug) ?? (await getDbProduct(slug));
   if (!p) notFound();
 
   const related = products.filter((x) => x.slug !== p.slug).slice(0, 3);
@@ -70,9 +73,12 @@ export default async function ProductPage({
 
           <div className="flex-1">
             <div className="flex items-center gap-2.5">
-              <span className="text-[13px] font-semibold uppercase tracking-wider text-[#9a4a2f]">
+              <Link
+                href={`/brands/${brandSlug(p.brand)}`}
+                className="text-[13px] font-semibold uppercase tracking-wider text-[#9a4a2f] hover:underline"
+              >
                 {p.brand}
-              </span>
+              </Link>
               <span className="text-xs text-[#9a8c75]">·</span>
               <span className="text-[13px] text-[#6b5f4f]">{p.origin}</span>
             </div>
@@ -80,18 +86,20 @@ export default async function ProductPage({
               {p.name}
             </h1>
 
-            <div className="mt-5 flex items-center gap-3.5">
-              <div className="flex h-[66px] w-[66px] flex-shrink-0 flex-col items-center justify-center rounded-2xl bg-[#9a4a2f] text-white">
-                <span className="font-serif text-[23px] font-semibold leading-none">{p.match}%</span>
-                <span className="text-[9px] uppercase tracking-widest opacity-85">match</span>
-              </div>
-              <div>
-                <div className="text-base font-bold text-[#1d1812]">Great match for your skin</div>
-                <div className="text-[13px] text-[#6b5f4f]">
-                  Personalized by skinsavior AI to <strong>{p.matchFor}</strong>
+            {p.match > 0 && (
+              <div className="mt-5 flex items-center gap-3.5">
+                <div className="flex h-[66px] w-[66px] flex-shrink-0 flex-col items-center justify-center rounded-2xl bg-[#9a4a2f] text-white">
+                  <span className="font-serif text-[23px] font-semibold leading-none">{p.match}%</span>
+                  <span className="text-[9px] uppercase tracking-widest opacity-85">match</span>
+                </div>
+                <div>
+                  <div className="text-base font-bold text-[#1d1812]">Great match for your skin</div>
+                  <div className="text-[13px] text-[#6b5f4f]">
+                    Personalized by skinsavior AI to <strong>{p.matchFor}</strong>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className="mt-5 flex flex-wrap gap-2">
               {p.badges.map((b) => (
@@ -106,12 +114,18 @@ export default async function ProductPage({
 
             <div className="mt-6 flex items-center gap-3">
               <div className="flex items-baseline gap-1.5">
-                <span className="font-serif text-[28px] font-semibold text-[#1d1812]">{p.price}</span>
-                <span className="text-[13px] text-[#9a8c75]">from {p.retailerCount} retailers</span>
+                {p.price && (
+                  <span className="font-serif text-[28px] font-semibold text-[#1d1812]">{p.price}</span>
+                )}
+                {p.retailerCount > 0 && (
+                  <span className="text-[13px] text-[#9a8c75]">from {p.retailerCount} retailers</span>
+                )}
               </div>
-              <button className="ml-auto rounded-xl bg-[#9a4a2f] px-5 py-3 text-[15px] font-semibold text-white hover:opacity-90">
-                Where to buy ↓
-              </button>
+              {p.retailers.length > 0 && (
+                <button className="ml-auto rounded-xl bg-[#9a4a2f] px-5 py-3 text-[15px] font-semibold text-white hover:opacity-90">
+                  Where to buy ↓
+                </button>
+              )}
               <button className="rounded-xl border border-[#caa37f] px-4 py-3 text-[15px] font-semibold text-[#9a4a2f] hover:bg-[#fff7ea]">
                 ♡ Save
               </button>
@@ -127,6 +141,7 @@ export default async function ProductPage({
 
         {/* FOR YOU + EVIDENCE */}
         <div className="mt-8 grid gap-3.5 md:grid-cols-2">
+          {p.match > 0 && (
           <div className="rounded-xl border border-[#e6d3c4] bg-[#fbf3ec] p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-[52px] w-[52px] flex-shrink-0 flex-col items-center justify-center rounded-xl bg-[#9a4a2f] text-white">
@@ -155,6 +170,7 @@ export default async function ProductPage({
               {p.rank}
             </div>
           </div>
+          )}
           <div className="rounded-xl border border-[#e6ddcf] bg-white p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-xl border border-[#e0d6c4] bg-[#f1ede4]">
@@ -213,6 +229,7 @@ export default async function ProductPage({
         </div>
 
         {/* SAFETY */}
+        {p.safety.length > 0 && (
         <div className="mt-9">
           <h2 className="m-0 font-serif text-[26px] font-medium text-[#1d1812]">
             Safety &amp; allergens
@@ -236,8 +253,10 @@ export default async function ProductPage({
             ))}
           </div>
         </div>
+        )}
 
         {/* WHERE TO BUY */}
+        {p.retailers.length > 0 && (
         <div className="mt-9">
           <h2 className="m-0 font-serif text-[26px] font-medium text-[#1d1812]">Where to buy</h2>
           <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-5">
@@ -258,8 +277,10 @@ export default async function ProductPage({
             ))}
           </div>
         </div>
+        )}
 
         {/* COMMUNITY */}
+        {p.reviewCount > 0 && (
         <div className="mt-10">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -304,6 +325,7 @@ export default async function ProductPage({
             Read all {p.reviewCount.toLocaleString()} reviews
           </button>
         </div>
+        )}
 
         {/* RELATED */}
         <div className="mt-12">
