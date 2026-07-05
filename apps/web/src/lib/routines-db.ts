@@ -354,15 +354,31 @@ async function listStepRows(db: SupabaseClient, routineId: string): Promise<Step
 /** Persist a new ordering; only rows whose position changed are written. */
 async function renumber(db: SupabaseClient, orderedIds: string[], rows: StepRow[]): Promise<void> {
   const current = new Map(rows.map((r) => [r.id, r.step_order]));
-  const writes = [];
-  for (const [i, id] of orderedIds.entries()) {
-    if (current.get(id) !== i) {
-      writes.push(db.from("routine_steps").update({ step_order: i }).eq("id", id));
-    }
-  }
-  const results = await Promise.all(writes);
-  const failed = results.find((r) => r.error);
-  if (failed?.error) throw new Error(`Couldn't reorder steps: ${failed.error.message}`);
+  const changed = orderedIds
+    .map((id, i) => ({ id, i }))
+    .filter(({ id, i }) => current.get(id) !== i);
+  if (changed.length === 0) return;
+
+  // The (routine_id, step_order) unique index means we can't just write the
+  // final positions directly: a swap would momentarily give two rows the same
+  // order and Postgres rejects the write. So we do it in two passes — first
+  // "park" every moving row at a distinct negative offset (which can't collide
+  // with the live 0..n-1 positions), then set the real positions.
+  const park = await Promise.all(
+    changed.map(({ id }, k) =>
+      db.from("routine_steps").update({ step_order: -1 - k }).eq("id", id),
+    ),
+  );
+  const parkErr = park.find((r) => r.error);
+  if (parkErr?.error) throw new Error(`Couldn't reorder steps: ${parkErr.error.message}`);
+
+  const set = await Promise.all(
+    changed.map(({ id, i }) =>
+      db.from("routine_steps").update({ step_order: i }).eq("id", id),
+    ),
+  );
+  const setErr = set.find((r) => r.error);
+  if (setErr?.error) throw new Error(`Couldn't reorder steps: ${setErr.error.message}`);
 }
 
 /** Index at which a step of `category` slots in: end of its category group. */
@@ -454,25 +470,29 @@ export async function updateStep(
   return rows.map(rowToStep);
 }
 
-/** Swap a step with its neighbor (manual override of the auto-order). */
-export async function moveStep(
+/**
+ * Persist an arbitrary drag-and-drop ordering. `orderedIds` must be a
+ * permutation of the routine's current step ids; any unknown or missing id
+ * is rejected so a stale client can't corrupt the ordering.
+ */
+export async function reorderSteps(
   routineId: string,
-  stepId: string,
-  direction: "up" | "down",
+  orderedIds: string[],
 ): Promise<BuilderStep[]> {
   const ctx = await userDb();
   if (!ctx) throw new Error("You need to be signed in to build a routine.");
   const { db } = ctx;
 
   const rows = await listStepRows(db, routineId);
-  const i = rows.findIndex((r) => r.id === stepId);
-  const j = direction === "up" ? i - 1 : i + 1;
-  if (i === -1 || j < 0 || j >= rows.length) return rows.map(rowToStep);
+  const currentIds = new Set(rows.map((r) => r.id));
+  // The proposed order must cover exactly the current steps — no more, no less.
+  const sameSet =
+    orderedIds.length === rows.length &&
+    orderedIds.every((id) => currentIds.has(id)) &&
+    new Set(orderedIds).size === orderedIds.length;
+  if (!sameSet) return rows.map(rowToStep);
 
-  const orderedIds = rows.map((r) => r.id);
-  [orderedIds[i], orderedIds[j]] = [orderedIds[j], orderedIds[i]];
   await renumber(db, orderedIds, rows);
-
   return (await listStepRows(db, routineId)).map(rowToStep);
 }
 

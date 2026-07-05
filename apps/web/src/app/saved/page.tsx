@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
+import { ProductThumb } from "@/components/ProductThumb";
 import { products } from "@/lib/products";
 
 const DEMO_SLUGS = products.map((p) => p.slug);
@@ -54,7 +55,12 @@ export default function SavedPage() {
                   ♥
                 </button>
                 <Link href={`/product/${p.slug}`}>
-                  <div className="aspect-[4/3] bg-[repeating-linear-gradient(45deg,#e7ddcc_0_10px,#efe7d9_10px_20px)]" />
+                  <ProductThumb
+                    category={p.category}
+                    name={p.name}
+                    className="aspect-[4/3] w-full"
+                    iconSize={48}
+                  />
                   <div className="flex flex-col gap-1.5 p-3.5">
                     <div className="text-[10px] uppercase tracking-[0.12em] text-clay">
                       {p.brand} · {p.category}
@@ -65,9 +71,6 @@ export default function SavedPage() {
                     <div className="mt-1.5 flex items-center justify-between">
                       <span className="text-[14px] font-semibold text-ink">
                         {p.price}
-                      </span>
-                      <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-clay">
-                        {p.match}% match
                       </span>
                     </div>
                   </div>

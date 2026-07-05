@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SiteNav } from "@/components/SiteNav";
+import { ProductThumb } from "@/components/ProductThumb";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -252,17 +253,12 @@ function ProductSnapshot() {
 
           <div className="grid gap-10 p-6 md:grid-cols-[340px_1fr] md:p-10">
             <div>
-              <div
-                className="relative aspect-square overflow-hidden rounded-2xl"
-                style={{
-                  background:
-                    "repeating-linear-gradient(45deg,#e7ddcc 0 14px,#efe7d9 14px 28px)",
-                }}
-              >
-                <span className="absolute bottom-4 left-4 rounded-md bg-warm-white/80 px-2 py-1 font-mono text-[11px] tracking-wider text-ink/60">
-                  product shot
-                </span>
-              </div>
+              <ProductThumb
+                category="essence"
+                name="Hydrating essence"
+                className="aspect-square w-full overflow-hidden rounded-2xl"
+                iconSize={88}
+              />
               <div className="mt-2.5 grid grid-cols-3 gap-2">
                 {[0, 1, 2].map((i) => (
                   <div

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { SearchBar } from "@/components/SearchBar";
+import { ProductThumb } from "@/components/ProductThumb";
 import { products } from "@/lib/products";
 import { getHomeRoutine, type BuilderStep } from "@/lib/routines-db";
 import { ROUTINE_CATEGORIES } from "@/lib/routine-categories";
@@ -18,12 +19,11 @@ function ProductCard({ p }: { p: (typeof products)[number] }) {
       href={`/product/${p.slug}`}
       className="group flex w-[260px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[#e6ddcf] bg-white transition-shadow hover:shadow-lg"
     >
-      <div
+      <ProductThumb
+        category={p.category}
+        name={p.name}
         className="aspect-[4/3] w-full"
-        style={{
-          background:
-            "repeating-linear-gradient(45deg,#e7ddcc 0 10px,#efe7d9 10px 20px)",
-        }}
+        iconSize={48}
       />
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="text-[10px] uppercase tracking-[0.14em] text-[#9a4a2f]">
@@ -32,9 +32,6 @@ function ProductCard({ p }: { p: (typeof products)[number] }) {
         <div className="font-serif text-lg leading-tight text-ink">{p.name}</div>
         <div className="mt-auto flex items-center justify-between pt-2">
           <span className="text-sm font-semibold text-ink">{p.price}</span>
-          <span className="rounded-full bg-[#fbf3ec] px-2.5 py-1 text-[11px] font-semibold text-[#9a4a2f]">
-            {p.match}% match
-          </span>
         </div>
       </div>
     </Link>
@@ -50,22 +47,13 @@ function RoutineStepCard({ step }: { step: BuilderStep }) {
   const inner = (
     <>
       <div className="aspect-[4/3] w-full overflow-hidden">
-        {step.productImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={step.productImage}
-            alt={step.productName}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div
-            className="h-full w-full"
-            style={{
-              background:
-                "repeating-linear-gradient(45deg,#e7ddcc 0 10px,#efe7d9 10px 20px)",
-            }}
-          />
-        )}
+        <ProductThumb
+          category={step.category}
+          imageUrl={step.productImage}
+          name={step.productName}
+          className="h-full w-full"
+          iconSize={48}
+        />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="text-[10px] uppercase tracking-[0.14em] text-[#9a4a2f]">

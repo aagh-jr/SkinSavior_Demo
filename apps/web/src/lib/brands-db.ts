@@ -101,12 +101,13 @@ async function loadAllProducts(): Promise<BrandProduct[]> {
     }));
 }
 
-// Group products by case-insensitive brand; pick the most common original
-// casing as the display name.
+// Group products by URL slug (not raw name), so brands whose names differ only
+// by accents/punctuation — which collapse to the same slug — share one page and
+// one unique key. Falls back to the lowercased name if a name has no slug chars.
 function groupByBrand(products: BrandProduct[]): Map<string, BrandProduct[]> {
   const groups = new Map<string, BrandProduct[]>();
   for (const p of products) {
-    const key = p.brand.trim().toLowerCase();
+    const key = brandSlug(p.brand) || p.brand.trim().toLowerCase();
     const arr = groups.get(key);
     if (arr) arr.push(p);
     else groups.set(key, [p]);
@@ -123,7 +124,7 @@ export async function listBrands(): Promise<BrandSummary[]> {
   const products = await loadAllProducts();
   const groups = groupByBrand(products);
   const brands: BrandSummary[] = [];
-  for (const items of groups.values()) {
+  for (const [slug, items] of groups) {
     const name = displayName(items);
     const categories = Array.from(
       new Map(
@@ -134,7 +135,7 @@ export async function listBrands(): Promise<BrandSummary[]> {
       ).values(),
     );
     brands.push({
-      slug: brandSlug(name),
+      slug,
       name,
       origin: mostCommon(items.map((i) => i.origin)),
       productCount: items.length,
@@ -167,14 +168,8 @@ export async function getBrandPage(
   const products = await loadAllProducts();
   const groups = groupByBrand(products);
 
-  // Find the group whose display-name slug matches.
-  let match: BrandProduct[] | null = null;
-  for (const items of groups.values()) {
-    if (brandSlug(displayName(items)) === slug) {
-      match = items;
-      break;
-    }
-  }
+  // Slug is the group key, so this is a direct lookup.
+  const match = groups.get(slug) ?? null;
   if (!match) return null;
 
   const name = displayName(match);
@@ -209,7 +204,7 @@ export async function getBrandPage(
   }
 
   return {
-    slug: brandSlug(name),
+    slug,
     name,
     origin: mostCommon(match.map((i) => i.origin)),
     productCount: match.length,

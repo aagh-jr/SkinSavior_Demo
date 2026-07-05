@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteNav } from "@/components/SiteNav";
+import { ProductThumb } from "@/components/ProductThumb";
 import { getBrandPage, type BrandSort } from "@/lib/brands-db";
 
 const SORTS: { value: BrandSort; label: string }[] = [
@@ -164,22 +165,13 @@ export default async function BrandPage({
                 className="group flex flex-col overflow-hidden rounded-2xl border border-[#e6ddcf] bg-white transition-shadow hover:shadow-lg"
               >
                 <div className="aspect-square w-full overflow-hidden">
-                  {p.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={p.imageUrl}
-                      alt={p.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="h-full w-full"
-                      style={{
-                        background:
-                          "repeating-linear-gradient(45deg,#e7ddcc 0 10px,#efe7d9 10px 20px)",
-                      }}
-                    />
-                  )}
+                  <ProductThumb
+                    category={p.category}
+                    imageUrl={p.imageUrl}
+                    name={p.name}
+                    className="h-full w-full"
+                    iconSize={52}
+                  />
                 </div>
                 <div className="flex flex-1 flex-col gap-1.5 p-4">
                   {p.category ? (

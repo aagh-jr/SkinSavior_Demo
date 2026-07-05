@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { searchProducts } from "@/lib/products";
 import { searchIngredients } from "@/lib/ingredients";
+import { ProductThumb } from "@/components/ProductThumb";
 
 interface DbHit {
   slug: string;
@@ -168,12 +169,11 @@ export function SearchBar({
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 border-b border-[#f0e8db] px-4 py-3 last:border-0 hover:bg-[#fbf3ec]"
                 >
-                  <div
+                  <ProductThumb
+                    category={p.category}
+                    name={p.name}
                     className="h-11 w-11 flex-shrink-0 rounded-lg"
-                    style={{
-                      background:
-                        "repeating-linear-gradient(45deg,#e7ddcc 0 8px,#efe7d9 8px 16px)",
-                    }}
+                    iconSize={22}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-semibold text-[#1d1812]">
@@ -183,9 +183,6 @@ export function SearchBar({
                       {p.brand} · {p.category}
                     </div>
                   </div>
-                  {p.match > 0 && (
-                    <div className="text-xs font-semibold text-[#9a4a2f]">{p.match}%</div>
-                  )}
                 </Link>
               ))}
               <Link
