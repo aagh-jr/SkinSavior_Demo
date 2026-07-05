@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteNav } from "@/components/SiteNav";
+import { ProductThumb } from "@/components/ProductThumb";
 import { getProduct, products } from "@/lib/products";
 import { getDbProduct } from "@/lib/products-db";
 import { brandSlug } from "@/lib/brands-db";
@@ -46,17 +47,12 @@ export default async function ProductPage({
         {/* HERO */}
         <div className="flex flex-col gap-11 md:flex-row md:items-start">
           <div className="w-full flex-shrink-0 md:w-[380px]">
-            <div
-              className="relative flex aspect-square items-end overflow-hidden rounded-2xl p-4"
-              style={{
-                background:
-                  "repeating-linear-gradient(45deg,#e7ddcc 0 14px,#efe7d9 14px 28px)",
-              }}
-            >
-              <span className="rounded-md bg-white/75 px-2 py-1 font-mono text-xs tracking-wide text-[#3c2d19]/60">
-                product shot
-              </span>
-            </div>
+            <ProductThumb
+              category={p.category}
+              name={p.name}
+              className="aspect-square w-full overflow-hidden rounded-2xl"
+              iconSize={96}
+            />
             <div className="mt-2.5 flex gap-2">
               {[0, 1, 2].map((i) => (
                 <div
@@ -85,21 +81,6 @@ export default async function ProductPage({
             <h1 className="mt-2 font-serif text-[42px] font-medium leading-[1.08] tracking-tight text-[#1d1812]">
               {p.name}
             </h1>
-
-            {p.match > 0 && (
-              <div className="mt-5 flex items-center gap-3.5">
-                <div className="flex h-[66px] w-[66px] flex-shrink-0 flex-col items-center justify-center rounded-2xl bg-[#9a4a2f] text-white">
-                  <span className="font-serif text-[23px] font-semibold leading-none">{p.match}%</span>
-                  <span className="text-[9px] uppercase tracking-widest opacity-85">match</span>
-                </div>
-                <div>
-                  <div className="text-base font-bold text-[#1d1812]">Great match for your skin</div>
-                  <div className="text-[13px] text-[#6b5f4f]">
-                    Personalized by skinsavior AI to <strong>{p.matchFor}</strong>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <div className="mt-5 flex flex-wrap gap-2">
               {p.badges.map((b) => (
@@ -139,38 +120,8 @@ export default async function ProductPage({
           {p.description}
         </p>
 
-        {/* FOR YOU + EVIDENCE */}
-        <div className="mt-8 grid gap-3.5 md:grid-cols-2">
-          {p.match > 0 && (
-          <div className="rounded-xl border border-[#e6d3c4] bg-[#fbf3ec] p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-[52px] w-[52px] flex-shrink-0 flex-col items-center justify-center rounded-xl bg-[#9a4a2f] text-white">
-                <span className="font-serif text-lg font-semibold leading-none">{p.match}%</span>
-              </div>
-              <div>
-                <div className="text-[15px] font-bold text-[#1d1812]">For you · great match</div>
-                <div className="text-xs text-[#9a8c75]">
-                  skinsavior AI · from your skin profile &amp; log
-                </div>
-              </div>
-            </div>
-            <div className="mt-3.5 flex flex-col gap-1.5">
-              {p.forYou.good.map((g) => (
-                <div key={g} className="text-[13px] text-[#4a6b3f]">
-                  {g}
-                </div>
-              ))}
-              {p.forYou.warn.map((w) => (
-                <div key={w} className="text-[13px] text-[#9a4a2f]">
-                  {w}
-                </div>
-              ))}
-            </div>
-            <div className="mt-3.5 border-t border-[#ecdfce] pt-3 text-xs text-[#6b5f4f]">
-              {p.rank}
-            </div>
-          </div>
-          )}
+        {/* EVIDENCE */}
+        <div className="mt-8">
           <div className="rounded-xl border border-[#e6ddcf] bg-white p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-xl border border-[#e0d6c4] bg-[#f1ede4]">

@@ -3,7 +3,6 @@ import { Newsreader, Hanken_Grotesk, Space_Grotesk } from "next/font/google";
 
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { DevNavigator } from "@/components/DevNavigator";
 
 const newsreader = Newsreader({
   subsets: ["latin"],
@@ -52,7 +51,6 @@ export default function RootLayout({
     >
       <body>
         <Providers>{children}</Providers>
-        <DevNavigator />
       </body>
     </html>
   );

@@ -17,7 +17,7 @@ import {
   createMyRoutine,
   deleteRoutine,
   deleteStep,
-  moveStep,
+  reorderSteps,
   setPrimaryRoutine,
   updateRoutine,
   updateStep,
@@ -152,18 +152,17 @@ export async function updateStepAction(
   return run(() => updateStep(routineId, stepId, clean));
 }
 
-export async function moveStepAction(
+export async function reorderStepsAction(
   routineId: string,
-  stepId: string,
-  direction: "up" | "down",
+  orderedIds: string[],
 ): Promise<ActionResult> {
   if (typeof routineId !== "string" || !routineId) {
     return { ok: false, error: "Missing routine." };
   }
-  if (direction !== "up" && direction !== "down") {
-    return { ok: false, error: "Invalid direction." };
+  if (!Array.isArray(orderedIds) || orderedIds.some((id) => typeof id !== "string")) {
+    return { ok: false, error: "Invalid order." };
   }
-  return run(() => moveStep(routineId, stepId, direction));
+  return run(() => reorderSteps(routineId, orderedIds));
 }
 
 export async function deleteStepAction(

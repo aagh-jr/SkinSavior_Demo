@@ -13,10 +13,10 @@ export default function LoadingStatePage() {
             skinsavior
           </span>
           <div className="hidden gap-[22px] text-[14px] text-muted-foreground md:flex">
+            <span>Routines</span>
             <span>Products</span>
             <span>Ingredients</span>
-            <span>Routines</span>
-            <span>Community</span>
+            <span>Brands</span>
           </div>
         </div>
         <div className={`h-[38px] w-[38px] rounded-full bg-[#ece2d3] ${pulse}`} />

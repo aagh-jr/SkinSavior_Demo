@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
+import { ProductThumb } from "@/components/ProductThumb";
 import { searchProducts, products } from "@/lib/products";
 import { searchDbProducts, listRecentDbProducts } from "@/lib/products-db";
 
@@ -26,18 +27,28 @@ export default async function SearchPage({
       <SiteNav />
 
       <main className="mx-auto max-w-[1080px] px-6 py-10 md:px-12">
-        <div className="mb-2 text-[13px] text-[#9a8c75]">Products / Search</div>
-        <h1 className="font-serif text-4xl font-medium tracking-tight text-[#1d1812]">
-          {q ? (
-            <>
-              Results for <em>&quot;{q}&quot;</em>
-            </>
-          ) : (
-            <>All products</>
-          )}
-        </h1>
-        <div className="mt-2 text-sm text-[#6b5f4f]">
-          {results.length} {results.length === 1 ? "product" : "products"} found
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="mb-2 text-[13px] text-[#9a8c75]">Products / Search</div>
+            <h1 className="font-serif text-4xl font-medium tracking-tight text-[#1d1812]">
+              {q ? (
+                <>
+                  Results for <em>&quot;{q}&quot;</em>
+                </>
+              ) : (
+                <>All products</>
+              )}
+            </h1>
+            <div className="mt-2 text-sm text-[#6b5f4f]">
+              {results.length} {results.length === 1 ? "product" : "products"} found
+            </div>
+          </div>
+          <Link
+            href="/add"
+            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-[#9a4a2f] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            <span aria-hidden="true">+</span> Add product
+          </Link>
         </div>
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -47,22 +58,13 @@ export default async function SearchPage({
               href={`/product/${p.slug}`}
               className="group overflow-hidden rounded-2xl border border-[#e6ddcf] bg-white transition-colors hover:border-[#caa37f] hover:bg-[#fffaf2]"
             >
-              <div
-                className="relative flex aspect-square items-end p-4"
-                style={{
-                  background:
-                    "repeating-linear-gradient(45deg,#e7ddcc 0 14px,#efe7d9 14px 28px)",
-                }}
-              >
-                <span className="rounded-md bg-white/75 px-2 py-1 font-mono text-[11px] tracking-wide text-[#3c2d19]/60">
-                  product shot
-                </span>
-                {p.match > 0 && (
-                  <div className="absolute right-3 top-3 flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-[#9a4a2f] text-white">
-                    <span className="font-serif text-lg font-semibold leading-none">{p.match}%</span>
-                    <span className="text-[8px] uppercase tracking-widest opacity-85">match</span>
-                  </div>
-                )}
+              <div className="relative aspect-square">
+                <ProductThumb
+                  category={p.category}
+                  name={p.name}
+                  className="absolute inset-0 h-full w-full"
+                  iconSize={56}
+                />
               </div>
               <div className="p-5">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-[#9a4a2f]">

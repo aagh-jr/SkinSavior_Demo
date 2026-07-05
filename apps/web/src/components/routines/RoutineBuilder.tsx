@@ -3,6 +3,28 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  restrictToParentElement,
+  restrictToVerticalAxis,
+} from "@dnd-kit/modifiers";
 import {
   DAY_LABELS,
   ROUTINE_CATEGORIES,
@@ -12,10 +34,11 @@ import {
   type TimeOfDay,
 } from "@/lib/routine-categories";
 import type { BuilderStep, StepPatch } from "@/lib/routines-db";
+import { ProductThumb } from "@/components/ProductThumb";
 import {
   addStepAction,
   deleteStepAction,
-  moveStepAction,
+  reorderStepsAction,
   updateRoutineAction,
   updateStepAction,
   type ActionResult,
@@ -115,6 +138,26 @@ export function RoutineBuilder({
     apply(() => updateStepAction(routineId, stepId, patch), prev);
   };
 
+  // Drag-to-reorder. A small activation distance keeps clicks on the card's
+  // controls from being read as drags; the keyboard sensor makes the grip
+  // handle reorderable with the arrow keys too.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = steps.findIndex((s) => s.id === active.id);
+    const newIndex = steps.findIndex((s) => s.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const prev = steps;
+    const next = arrayMove(steps, oldIndex, newIndex);
+    setSteps(next); // optimistic — snap the card into place immediately
+    apply(() => reorderStepsAction(routineId, next.map((s) => s.id)), prev);
+  };
+
   const toggleEditing = () => {
     if (editing) {
       persistMeta();
@@ -207,25 +250,35 @@ export function RoutineBuilder({
           {steps.length > 0 ? (
             <div className="mb-4 text-[13px] text-muted-foreground">
               {steps.length} {steps.length === 1 ? "step" : "steps"}
-              {editing ? " · auto-ordered cleanser → sunscreen" : ""}
+              {editing ? " · drag the handle to reorder" : ""}
             </div>
           ) : null}
 
-          <ol className="space-y-3">
-            {steps.map((step, i) => (
-              <StepCard
-                key={step.id}
-                step={step}
-                index={i}
-                count={steps.length}
-                editing={editing}
-                busy={pending}
-                onPatch={(patch) => patchStep(step.id, patch)}
-                onMove={(dir) => apply(() => moveStepAction(routineId, step.id, dir))}
-                onDelete={() => apply(() => deleteStepAction(routineId, step.id))}
-              />
-            ))}
-          </ol>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={steps.map((s) => s.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ol className="space-y-3">
+                {steps.map((step, i) => (
+                  <StepCard
+                    key={step.id}
+                    step={step}
+                    index={i}
+                    editing={editing}
+                    busy={pending}
+                    onPatch={(patch) => patchStep(step.id, patch)}
+                    onDelete={() => apply(() => deleteStepAction(routineId, step.id))}
+                  />
+                ))}
+              </ol>
+            </SortableContext>
+          </DndContext>
 
           {editing && !pickerOpen ? (
             <button
@@ -254,22 +307,33 @@ export function RoutineBuilder({
 function StepCard({
   step,
   index,
-  count,
   editing,
   busy,
   onPatch,
-  onMove,
   onDelete,
 }: {
   step: BuilderStep;
   index: number;
-  count: number;
   editing: boolean;
   busy: boolean;
   onPatch: (patch: StepPatch) => void;
-  onMove: (dir: "up" | "down") => void;
   onDelete: () => void;
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: step.id, disabled: !editing });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   const toggleDay = (day: number) => {
     const days = step.customDays.includes(day)
       ? step.customDays.filter((d) => d !== day)
@@ -278,26 +342,26 @@ function StepCard({
   };
 
   return (
-    <li className="rounded-[16px] border border-border bg-white p-4 md:p-5">
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={
+        "rounded-[16px] border bg-white p-4 md:p-5 " +
+        (isDragging
+          ? "relative z-10 border-clay shadow-[0_12px_30px_-12px_rgba(60,45,25,0.45)]"
+          : "border-border")
+      }
+    >
       <div className="flex items-start gap-4">
         {/* Product image on the left, with the step number as a corner badge. */}
         <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-[12px] border border-border md:h-[72px] md:w-[72px]">
-          {step.productImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={step.productImage}
-              alt={step.productName}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div
-              className="h-full w-full"
-              style={{
-                background:
-                  "repeating-linear-gradient(45deg,#e7ddcc 0 10px,#efe7d9 10px 20px)",
-              }}
-            />
-          )}
+          <ProductThumb
+            category={step.category}
+            imageUrl={step.productImage}
+            name={step.productName}
+            className="h-full w-full"
+            iconSize={32}
+          />
           <span className="absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/85 text-[11px] font-semibold text-warm-white">
             {index + 1}
           </span>
@@ -420,21 +484,14 @@ function StepCard({
           <div className="flex flex-shrink-0 items-center gap-1">
             <button
               type="button"
-              aria-label="Move up"
-              disabled={busy || index === 0}
-              onClick={() => onMove("up")}
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[14px] text-muted-foreground transition-colors hover:bg-muted disabled:opacity-30"
+              ref={setActivatorNodeRef}
+              aria-label={`Drag to reorder ${step.productName}`}
+              disabled={busy}
+              {...attributes}
+              {...listeners}
+              className="flex h-8 w-8 touch-none items-center justify-center rounded-[8px] text-muted-foreground transition-colors hover:bg-muted disabled:opacity-30 cursor-grab active:cursor-grabbing"
             >
-              ↑
-            </button>
-            <button
-              type="button"
-              aria-label="Move down"
-              disabled={busy || index === count - 1}
-              onClick={() => onMove("down")}
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[14px] text-muted-foreground transition-colors hover:bg-muted disabled:opacity-30"
-            >
-              ↓
+              <GripVertical size={18} aria-hidden="true" />
             </button>
             <button
               type="button"
