@@ -41,3 +41,9 @@ dist-ssr
 
 # TS incremental build cache
 *.tsbuildinfo
+
+# Supabase CLI local link cache (machine-specific)
+supabase/.temp/
+
+# Local Claude Code settings
+.claude/settings.local.json

@@ -115,6 +115,31 @@ The web app runs at http://localhost:3000.
 | `bun run typecheck` | Type-check all packages |
 | `bun run format`    | Format with Prettier |
 
+### Syncing the database schema
+
+The live Supabase database is the source of truth. When tables are added or
+changed there (e.g. via the Supabase dashboard), pull those changes back into
+the repo so the shared types and migrations stay in sync.
+
+```bash
+# One-time: link this repo to the Supabase project (run from the repo root).
+# Prompts for the project's database password (Dashboard → Project Settings → Database).
+npx supabase login
+npx supabase link --project-ref vltvclhxrjroecjnugpu
+
+# Regenerate the typed schema from the live database (no Docker needed).
+# This is the important one — it keeps packages/core types matching the real tables.
+npx supabase gen types typescript --linked > packages/core/src/supabase/types.ts
+
+# Optional: pull the full schema into a new SQL migration.
+# Requires Docker Desktop running (it uses a local shadow database).
+npx supabase db pull
+```
+
+> If `db pull` complains that the migration history doesn't match, run the
+> `supabase migration repair --status applied <id>` commands it suggests — that
+> only updates the tracking table, it does not touch your data.
+
 ## Status & roadmap
 
 This is an active portfolio project. **Current** vs. **planned** is kept honest below:

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SiteNav } from "@/components/SiteNav";
+import { searchIngredients } from "@/lib/ingredients";
 
 export const metadata: Metadata = {
   title: "Ingredients",
@@ -7,52 +8,14 @@ export const metadata: Metadata = {
     "Decode skincare ingredients. What they do, who they suit, and the research behind them.",
 };
 
-const INGREDIENTS = [
-  {
-    name: "Niacinamide",
-    tag: "Brightening · Barrier",
-    blurb:
-      "A form of vitamin B3 that calms redness, supports the barrier, and visibly evens tone over 8–12 weeks at 2–5%.",
-    grade: "A",
-  },
-  {
-    name: "Vitamin C (L-Ascorbic Acid)",
-    tag: "Antioxidant · Brightening",
-    blurb:
-      "Neutralizes daytime free radicals and fades hyperpigmentation. Best at 10–20% with a low pH — stable formulas matter.",
-    grade: "A",
-  },
-  {
-    name: "Retinol",
-    tag: "Renewal · Anti-aging",
-    blurb:
-      "The most studied anti-aging ingredient. Speeds turnover, improves fine lines and texture. Start low, build slowly.",
-    grade: "A",
-  },
-  {
-    name: "Salicylic Acid",
-    tag: "Acne · Pores",
-    blurb:
-      "Oil-soluble BHA that clears congestion inside pores. Excellent for combination and oily skin at 0.5–2%.",
-    grade: "A",
-  },
-  {
-    name: "Centella Asiatica",
-    tag: "Calming · Sensitive",
-    blurb:
-      "A botanical with real clinical data for reducing redness and supporting wound healing. Great for reactive skin.",
-    grade: "B",
-  },
-  {
-    name: "Hyaluronic Acid",
-    tag: "Hydration",
-    blurb:
-      "A humectant that holds water in the upper skin layers. Layer onto damp skin and seal with a moisturizer.",
-    grade: "B",
-  },
-];
+export default async function IngredientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q = "" } = await searchParams;
+  const ingredients = searchIngredients(q);
 
-export default function IngredientsPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteNav />
@@ -62,12 +25,18 @@ export default function IngredientsPage() {
           The ingredients library
         </h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          What&apos;s actually in your skincare — explained in plain English, graded by the
-          weight of real research.
+          {q.trim()
+            ? `${ingredients.length} ${ingredients.length === 1 ? "ingredient" : "ingredients"} matching “${q.trim()}”.`
+            : "What's actually in your skincare — explained in plain English, graded by the weight of real research."}
         </p>
 
+        {ingredients.length === 0 ? (
+          <div className="mt-10 rounded-2xl border border-dashed border-border bg-warm-white px-6 py-12 text-center text-sm text-muted-foreground">
+            No ingredients matching “{q.trim()}”.
+          </div>
+        ) : (
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
-          {INGREDIENTS.map((i) => (
+          {ingredients.map((i) => (
             <article
               key={i.name}
               className="rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/40"
@@ -87,6 +56,7 @@ export default function IngredientsPage() {
             </article>
           ))}
         </div>
+        )}
       </main>
     </div>
   );

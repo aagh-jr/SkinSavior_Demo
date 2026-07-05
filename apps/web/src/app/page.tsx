@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { SiteNav } from "@/components/SiteNav";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "skinsavior — Your skin, finally explained.",
@@ -426,7 +428,15 @@ function Footer() {
   );
 }
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  // Signed-in users going "home" should land on their personalized home, not
+  // this logged-out marketing screen.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) redirect("/home");
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Nav />

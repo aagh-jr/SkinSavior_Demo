@@ -3,6 +3,8 @@ import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { SearchBar } from "@/components/SearchBar";
 import { products } from "@/lib/products";
+import { getHomeRoutine, type BuilderStep } from "@/lib/routines-db";
+import { ROUTINE_CATEGORIES } from "@/lib/routine-categories";
 
 export const metadata: Metadata = {
   title: "Your home",
@@ -39,22 +41,57 @@ function ProductCard({ p }: { p: (typeof products)[number] }) {
   );
 }
 
-function Marquee({ items }: { items: typeof products }) {
-  // Duplicate for seamless loop (keyframes defined in globals.css)
-  const loop = [...items, ...items];
-  return (
-    <div className="group relative overflow-hidden">
-      <div className="flex w-max gap-5 animate-[marquee_40s_linear_infinite] group-hover:[animation-play-state:paused]">
-        {loop.map((p, i) => (
-          <ProductCard key={`${p.slug}-${i}`} p={p} />
-        ))}
+const CATEGORY_LABELS = new Map(
+  ROUTINE_CATEGORIES.map((c) => [c.value, c.label] as const),
+);
+
+function RoutineStepCard({ step }: { step: BuilderStep }) {
+  const category = CATEGORY_LABELS.get(step.category) ?? step.category;
+  const inner = (
+    <>
+      <div className="aspect-[4/3] w-full overflow-hidden">
+        {step.productImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={step.productImage}
+            alt={step.productName}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div
+            className="h-full w-full"
+            style={{
+              background:
+                "repeating-linear-gradient(45deg,#e7ddcc 0 10px,#efe7d9 10px 20px)",
+            }}
+          />
+        )}
       </div>
-    </div>
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-[#9a4a2f]">
+          {step.productBrand ? `${step.productBrand} · ` : ""}
+          {category}
+        </div>
+        <div className="font-serif text-lg leading-tight text-ink">
+          {step.productName}
+        </div>
+      </div>
+    </>
+  );
+
+  const className =
+    "group flex w-[260px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[#e6ddcf] bg-white transition-shadow hover:shadow-lg";
+  return step.productSlug ? (
+    <Link href={`/product/${step.productSlug}`} className={className}>
+      {inner}
+    </Link>
+  ) : (
+    <div className={className}>{inner}</div>
   );
 }
 
-export default function HomePage() {
-  const routine = products; // user's current routine = all 3 demo products
+export default async function HomePage() {
+  const homeRoutine = await getHomeRoutine();
   const trending = [...products].reverse();
 
   return (
@@ -79,7 +116,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Current routine */}
+      {/* Current routine — the user's primary routine (manually scrollable) */}
       <section className="mx-auto max-w-[1180px] px-6 py-8 md:px-14">
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>
@@ -87,17 +124,37 @@ export default function HomePage() {
               Your current routine
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              3 products · last updated this week
+              {homeRoutine
+                ? `${homeRoutine.name} · ${homeRoutine.steps.length} ${
+                    homeRoutine.steps.length === 1 ? "product" : "products"
+                  }`
+                : "You haven't built a routine yet"}
             </p>
           </div>
           <Link
-            href="/routines"
+            href={homeRoutine ? `/routines/${homeRoutine.id}` : "/routines"}
             className="text-xs font-semibold text-[#9a4a2f] hover:underline"
           >
-            Manage routine →
+            {homeRoutine ? "Manage routine →" : "Build one →"}
           </Link>
         </div>
-        <Marquee items={routine} />
+
+        {homeRoutine && homeRoutine.steps.length > 0 ? (
+          <div className="flex gap-5 overflow-x-auto pb-4 [scrollbar-width:thin]">
+            {homeRoutine.steps.map((step) => (
+              <RoutineStepCard key={step.id} step={step} />
+            ))}
+          </div>
+        ) : (
+          <Link
+            href={homeRoutine ? `/routines/${homeRoutine.id}` : "/routines"}
+            className="flex items-center justify-center rounded-2xl border border-dashed border-[#d8ccba] bg-warm-white px-6 py-12 text-sm font-semibold text-clay transition-colors hover:bg-[#fff7ea]"
+          >
+            {homeRoutine
+              ? "+ Add products to your routine"
+              : "+ Build your first routine"}
+          </Link>
+        )}
       </section>
 
       {/* Trending */}

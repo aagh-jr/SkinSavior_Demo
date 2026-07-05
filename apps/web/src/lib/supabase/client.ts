@@ -1,5 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@skinsavior/core/supabase";
+import { createMockClient, isSupabaseDisabled } from "./mock";
 
 // Browser Supabase client for use in Client Components.
 //
@@ -11,10 +12,11 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export function createClient() {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error(
-      "[supabase] Missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY. See .env.example.",
-    );
+  // TEMPORARY: explicit kill switch, or auto-fallback when Supabase env is
+  // absent (e.g. AI design tools that pull the repo with no .env). Either way
+  // we return a no-op mock so the app renders instead of crashing. See ./mock.
+  if (isSupabaseDisabled() || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return createMockClient() as ReturnType<typeof createBrowserClient<Database>>;
   }
   return createBrowserClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
