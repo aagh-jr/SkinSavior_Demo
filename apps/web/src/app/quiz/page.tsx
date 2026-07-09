@@ -5,6 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import {
+  clearPendingAnswers,
+  persistAnswers,
+  readPendingAnswers,
+  stashPendingAnswers,
+  type QuizAnswers,
+} from "@/lib/quiz-answers";
 
 // ---------- survey definition ----------
 type Choice = { value: string; label: string; hint?: string };
@@ -19,49 +26,18 @@ type Step =
       max?: number;
     };
 
-type Answers = {
-  skin_type?: string;
-  concerns?: string[];
-  goals?: string[];
-  sensitivity?: string;
-  age_range?: string;
-  sun_exposure?: string;
-  routine_complexity?: string;
-  budget?: string;
-  fragrance_pref?: string;
-  pregnancy_safe?: string;
-  reactions?: string;
-  shopping_style?: string;
-};
+type Answers = QuizAnswers;
 
 const STEPS: Step[] = [
   {
     key: "skin_type",
     kind: "single",
-    title: "How does your skin usually feel?",
-    sub: "Mid-afternoon, no products applied.",
+    title: "What kind of skin do you have?",
     choices: [
-      { value: "dry", label: "Tight or flaky" },
-      { value: "normal", label: "Comfortable, balanced" },
-      { value: "combo", label: "Oily T-zone, drier cheeks" },
-      { value: "oily", label: "Shiny all over" },
-    ],
-  },
-  {
-    key: "concerns",
-    kind: "multi",
-    max: 3,
-    title: "What do you want to work on?",
-    sub: "Pick up to three.",
-    choices: [
-      { value: "acne", label: "Breakouts" },
-      { value: "redness", label: "Redness & sensitivity" },
-      { value: "texture", label: "Texture & pores" },
-      { value: "dullness", label: "Dullness & tone" },
-      { value: "fine_lines", label: "Fine lines" },
-      { value: "dark_spots", label: "Dark spots" },
-      { value: "dehydration", label: "Dehydration" },
-      { value: "barrier", label: "Damaged barrier" },
+      { value: "dry", label: "Dry (tight or flaky)" },
+      { value: "normal", label: "Normal (comfortable, balanced)" },
+      { value: "combination", label: "Combo (oily T-zone, drier cheeks)" },
+      { value: "oily", label: "Oily (shiny all over)" },
     ],
   },
   {
@@ -78,13 +54,13 @@ const STEPS: Step[] = [
     key: "age_range",
     kind: "single",
     title: "What's your age range?",
-    sub: "Some actives behave differently across decades.",
     choices: [
-      { value: "under_20", label: "Under 20" },
-      { value: "20_29", label: "20 – 29" },
-      { value: "30_39", label: "30 – 39" },
-      { value: "40_49", label: "40 – 49" },
-      { value: "50_plus", label: "50+" },
+      { value: "under_18", label: "Under 18" },
+      { value: "18_24", label: "18 – 24" },
+      { value: "25_34", label: "25 – 34" },
+      { value: "35_44", label: "35 – 44" },
+      { value: "45_54", label: "45 – 54" },
+      { value: "55_plus", label: "55+" },
     ],
   },
   {
@@ -100,7 +76,7 @@ const STEPS: Step[] = [
   {
     key: "routine_complexity",
     kind: "single",
-    title: "How involved a routine do you actually want?",
+    title: "How long do you want your routine to be?",
     choices: [
       { value: "minimal", label: "Three steps, tops" },
       { value: "balanced", label: "A solid 5–6 step routine" },
@@ -108,28 +84,10 @@ const STEPS: Step[] = [
     ],
   },
   {
-    key: "fragrance_pref",
-    kind: "single",
-    title: "Fragrance — friend or foe?",
-    choices: [
-      { value: "avoid", label: "Avoid completely" },
-      { value: "mild", label: "Mild scent is fine" },
-      { value: "love", label: "I like a scented routine" },
-    ],
-  },
-  {
-    key: "pregnancy_safe",
-    kind: "single",
-    title: "Should we filter for pregnancy-safe products?",
-    choices: [
-      { value: "yes", label: "Yes, please" },
-      { value: "no", label: "Not needed" },
-    ],
-  },
-  {
     key: "budget",
-    kind: "single",
-    title: "What's your usual price ceiling per product?",
+    kind: "multi",
+    title: "What's your usual price range per product?",
+    sub: "Pick all that apply.",
     choices: [
       { value: "drugstore", label: "Under $20" },
       { value: "mid", label: "$20 – $50" },
@@ -139,40 +97,15 @@ const STEPS: Step[] = [
   },
   {
     key: "reactions",
-    kind: "single",
+    kind: "multi",
     title: "Any ingredient you've reacted to before?",
+    sub: "Pick all that apply.",
     choices: [
       { value: "fragrance", label: "Fragrance" },
       { value: "alcohol", label: "Drying alcohols" },
       { value: "actives", label: "Retinoids or acids" },
       { value: "essential_oils", label: "Essential oils" },
       { value: "none", label: "Nothing I know of" },
-    ],
-  },
-  {
-    key: "goals",
-    kind: "multi",
-    max: 2,
-    title: "What does success look like in 90 days?",
-    sub: "Pick up to two.",
-    choices: [
-      { value: "clear_skin", label: "Clearer skin" },
-      { value: "glow", label: "More glow" },
-      { value: "calm", label: "Calmer, less reactive" },
-      { value: "smooth", label: "Smoother texture" },
-      { value: "even_tone", label: "Even tone" },
-      { value: "stronger_barrier", label: "Stronger barrier" },
-    ],
-  },
-  {
-    key: "shopping_style",
-    kind: "single",
-    title: "How do you usually pick skincare?",
-    choices: [
-      { value: "research", label: "I research everything" },
-      { value: "reviews", label: "I follow reviews" },
-      { value: "creators", label: "I follow creators" },
-      { value: "vibes", label: "Honestly? Vibes." },
     ],
   },
 ];
@@ -190,7 +123,12 @@ export default function QuizPage() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session && phase === "account") {
-        void persistAnswers(answers).then(() => setPhase("done"));
+        void persistAnswers(answers).then((ok) => {
+          if (ok) {
+            clearPendingAnswers();
+            setPhase("done");
+          }
+        });
       }
     });
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -254,6 +192,7 @@ export default function QuizPage() {
             canBack={stepIdx > 0}
             canContinue={canContinue}
             isLast={stepIdx === TOTAL - 1}
+            onSkip={stepIdx === 0 ? () => setPhase("account") : undefined}
           />
         )}
         {phase === "account" && (
@@ -282,6 +221,7 @@ function QuestionView({
   canBack,
   canContinue,
   isLast,
+  onSkip,
 }: {
   step: Step;
   value: string | string[] | undefined;
@@ -291,6 +231,7 @@ function QuestionView({
   canBack: boolean;
   canContinue: boolean;
   isLast: boolean;
+  onSkip?: () => void;
 }) {
   const multi = step.kind === "multi";
   const selected = useMemo(
@@ -369,34 +310,23 @@ function QuestionView({
           {isLast ? "See my results" : "Continue"} <span>→</span>
         </button>
       </div>
+
+      {onSkip && (
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={onSkip}
+            className="text-[13px] text-muted-foreground underline-offset-4 transition-colors hover:text-ink hover:underline"
+          >
+            Skip the survey for now
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 // ---------- account step ----------
-async function persistAnswers(answers: Answers) {
-  const { data: sess } = await supabase.auth.getSession();
-  if (!sess.session) return;
-  const userId = sess.session.user.id;
-  const update = {
-    id: userId,
-    skin_type: answers.skin_type ?? null,
-    concerns: answers.concerns ?? [],
-    goals: answers.goals ?? [],
-    age_range: answers.age_range ?? null,
-    sensitivity: answers.sensitivity ?? null,
-    sun_exposure: answers.sun_exposure ?? null,
-    routine_complexity: answers.routine_complexity ?? null,
-    budget: answers.budget ?? null,
-    fragrance_pref: answers.fragrance_pref ?? null,
-    pregnancy_safe: answers.pregnancy_safe === "yes",
-    answers: answers as Record<string, unknown>,
-  };
-  await supabase
-    .from("profiles")
-    .upsert(update as never, { onConflict: "id" });
-}
-
 function AccountStep({
   answers,
   onSuccess,
@@ -411,25 +341,25 @@ function AccountStep({
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState<null | "email" | "google" | "apple">(null);
+  const [awaitingConfirmFor, setAwaitingConfirmFor] = useState<string | null>(null);
 
-  // Stash answers so OAuth round-trip can persist them on return
+  // Stash answers so the OAuth or email-confirmation round trip can
+  // persist them on return (localStorage survives the new tab).
   useEffect(() => {
-    try {
-      sessionStorage.setItem("skinsavior:pendingAnswers", JSON.stringify(answers));
-    } catch {
-      /* ignore */
-    }
+    stashPendingAnswers(answers);
   }, [answers]);
 
-  // After OAuth returns, persist
+  // Once a session appears (OAuth return, sign-in, or signup without
+  // email confirmation), persist and finish.
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
-        const raw = sessionStorage.getItem("skinsavior:pendingAnswers");
-        const a = raw ? (JSON.parse(raw) as Answers) : answers;
-        void persistAnswers(a).then(() => {
-          sessionStorage.removeItem("skinsavior:pendingAnswers");
-          onSuccess();
+        const a = readPendingAnswers() ?? answers;
+        void persistAnswers(a).then((ok) => {
+          if (ok) {
+            clearPendingAnswers();
+            onSuccess();
+          }
         });
       }
     });
@@ -442,7 +372,7 @@ function AccountStep({
     setLoading("email");
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
@@ -451,6 +381,14 @@ function AccountStep({
           },
         });
         if (error) throw error;
+        if (!data.session) {
+          // Email confirmation is on: no session until the link is
+          // clicked. Answers stay stashed; PendingAnswersFlush saves
+          // them after the user confirms and lands back in the app.
+          setAwaitingConfirmFor(email.trim());
+          setLoading(null);
+          return;
+        }
         toast.success("Account created — saving your skin profile…");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -482,6 +420,35 @@ function AccountStep({
       return;
     }
     // On success the browser is redirected to the provider.
+  }
+
+  if (awaitingConfirmFor) {
+    return (
+      <div>
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sage-bg text-2xl text-sage">
+          ✉️
+        </div>
+        <h1 className="mt-6 font-serif text-3xl font-medium leading-[1.15] tracking-tight text-ink md:text-[40px]">
+          Check your inbox.
+        </h1>
+        <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+          We sent a confirmation link to{" "}
+          <span className="font-semibold text-ink">{awaitingConfirmFor}</span>.
+          Click it to activate your account — your survey answers are saved on
+          this device and will attach to your profile automatically.
+        </p>
+        <p className="mt-3 max-w-lg text-[13px] text-muted-foreground">
+          Nothing arriving? Check spam, or go back to try a different email.
+        </p>
+        <button
+          type="button"
+          onClick={() => setAwaitingConfirmFor(null)}
+          className="mt-8 rounded-full px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-ink"
+        >
+          ← Use a different email
+        </button>
+      </div>
+    );
   }
 
   return (

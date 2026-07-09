@@ -239,32 +239,53 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age_range: string | null
+          answers: Json | null
           avatar_url: string | null
           bio: string | null
+          budget: string[] | null
           created_at: string
           display_name: string | null
           id: string
+          reactions: string[] | null
+          routine_complexity: string | null
+          sensitivity: string | null
           skin_type: string | null
+          sun_exposure: string | null
           updated_at: string
           username: string | null
         }
         Insert: {
+          age_range?: string | null
+          answers?: Json | null
           avatar_url?: string | null
           bio?: string | null
+          budget?: string[] | null
           created_at?: string
           display_name?: string | null
           id: string
+          reactions?: string[] | null
+          routine_complexity?: string | null
+          sensitivity?: string | null
           skin_type?: string | null
+          sun_exposure?: string | null
           updated_at?: string
           username?: string | null
         }
         Update: {
+          age_range?: string | null
+          answers?: Json | null
           avatar_url?: string | null
           bio?: string | null
+          budget?: string[] | null
           created_at?: string
           display_name?: string | null
           id?: string
+          reactions?: string[] | null
+          routine_complexity?: string | null
+          sensitivity?: string | null
           skin_type?: string | null
+          sun_exposure?: string | null
           updated_at?: string
           username?: string | null
         }
