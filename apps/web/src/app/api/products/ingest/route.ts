@@ -25,6 +25,7 @@ const EXTRACTION_SYSTEM = `You extract structured skincare product data from web
 
 Rules:
 - Only extract what the page actually says. Never invent ingredients, prices, or percentages.
+- "origin" is the one exception: fill it with the brand's country of origin from your own knowledge of the brand, even when the page doesn't state it. Use a canonical English country name (e.g. "South Korea", "United States", "France"). Use null only if you don't recognize the brand well enough to be confident. Every other field must come strictly from the page.
 - The ingredient list must be the full INCI list in printed order. If the page shows only "key ingredients", extract those and set confidence to "low".
 - "claims" are the brand's marketing statements, verbatim. Do not evaluate or soften them — they are stored as unevaluated claims.
 - The description must be neutral and factual: what the product is and what its formulation centers on. No superlatives.

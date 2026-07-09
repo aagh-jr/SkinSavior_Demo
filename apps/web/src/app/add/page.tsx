@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
+import { ScientistAvatar } from "@/components/ScientistAvatar";
 
 type RowStatus =
   | { state: "pending" }
@@ -73,13 +74,21 @@ export default function AddProductPage() {
             placeholder={"https://example.com/products/vitamin-c-serum\nOne URL per line for multiple products"}
             className="w-full rounded-xl border border-border bg-card p-4 text-sm text-ink outline-none focus:border-primary/60"
           />
-          <button
-            type="submit"
-            disabled={running || !input.trim()}
-            className="mt-4 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
-          >
-            {running ? "Analyzing…" : "Analyze link(s)"}
-          </button>
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={running || !input.trim()}
+              className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              {running ? "Analyzing…" : "Analyze link(s)"}
+            </button>
+            <ScientistAvatar talking={running} />
+            {running && (
+              <span className="text-sm text-muted-foreground">
+                reading the label, decoding ingredients…
+              </span>
+            )}
+          </div>
         </form>
 
         {rows.length > 0 && (
