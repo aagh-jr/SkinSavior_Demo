@@ -41,7 +41,12 @@ export const productExtractionSchema = z.object({
   category: z
     .string()
     .describe("One of: Cleanser, Toner, Essence, Serum, Moisturizer, Sunscreen, Mask, Exfoliant, Oil, Other"),
-  origin: z.string().nullable().describe("Country of the brand if stated"),
+  origin: z
+    .string()
+    .nullable()
+    .describe(
+      "The brand's country of origin as a canonical English country name (e.g. 'South Korea', 'United States', 'France', 'Japan'). Determine it from your own knowledge of the brand, not only from what the page states. Use null only if you don't recognize the brand well enough to be confident.",
+    ),
   description: z
     .string()
     .describe("Two neutral factual sentences. No marketing superlatives."),

@@ -4,8 +4,9 @@ import { notFound } from "next/navigation";
 import { SiteNav } from "@/components/SiteNav";
 import { ProductThumb } from "@/components/ProductThumb";
 import { getProduct, products } from "@/lib/products";
-import { getDbProduct } from "@/lib/products-db";
+import { getDbProduct, getProductResearchIngredients } from "@/lib/products-db";
 import { brandSlug } from "@/lib/brands-db";
+import { ProductResearch } from "@/components/research/ProductResearch";
 
 export function generateStaticParams() {
   return products.map((p) => ({ slug: p.slug }));
@@ -31,6 +32,7 @@ export default async function ProductPage({
   const p = getProduct(slug) ?? (await getDbProduct(slug));
   if (!p) notFound();
 
+  const researchIngredients = await getProductResearchIngredients(slug);
   const related = products.filter((x) => x.slug !== p.slug).slice(0, 3);
 
   return (
@@ -276,6 +278,23 @@ export default async function ProductPage({
             Read all {p.reviewCount.toLocaleString()} reviews
           </button>
         </div>
+        )}
+
+        {/* RESEARCH — top papers for the product's most-researched ingredients. */}
+        {researchIngredients.length > 0 && (
+          <div className="mt-9">
+            <h2 className="m-0 font-serif text-[26px] font-medium text-[#1d1812]">
+              The research
+            </h2>
+            <div className="mt-1 text-[13px] text-[#9a8c75]">
+              Top PubMed papers
+              {researchIngredients.length > 1 ? " — pick an ingredient" : ""}. Titles link to the
+              source.
+            </div>
+            <div className="mt-4">
+              <ProductResearch ingredients={researchIngredients} />
+            </div>
+          </div>
         )}
 
         {/* RELATED */}

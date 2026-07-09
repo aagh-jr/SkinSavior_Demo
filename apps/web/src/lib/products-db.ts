@@ -11,7 +11,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Product, ProductIngredient } from "@skinsavior/core/types";
 import type { ProductExtraction } from "@skinsavior/core/schemas";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isResearched } from "@skinsavior/core/research";
 import { slugify } from "@/lib/ingest";
+import { normalizeCategory } from "@/lib/brands-db";
+
+/** How many products the browse/search explorer loads per page. */
+export const PRODUCTS_PAGE_SIZE = 50;
 
 const db = supabaseAdmin as unknown as SupabaseClient;
 
@@ -95,6 +100,53 @@ export async function getDbProduct(slug: string): Promise<Product | null> {
     reviewCount: 0,
     reviews: [],
   };
+}
+
+export interface ResearchIngredient {
+  ingredientId: string;
+  /** Display label for the toggle pill. */
+  label: string;
+}
+
+/**
+ * The product's ingredients that are in the research pilot allowlist, in
+ * printed order, deduped. Drives the product-page research toggle; empty when
+ * the product has none (e.g. legacy seed products), so the page hides the
+ * section. Static demo products (not in the DB) resolve to [] here.
+ */
+export async function getProductResearchIngredients(
+  slug: string,
+): Promise<ResearchIngredient[]> {
+  const { data: product } = await db
+    .from("products")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle<{ id: string }>();
+  if (!product) return [];
+
+  const { data: joins } = await db
+    .from("product_ingredients")
+    .select("position, ingredient_id, ingredients(inci_name, common_name)")
+    .eq("product_id", product.id)
+    .order("position");
+
+  const rows = (joins ?? []) as unknown as {
+    ingredient_id: string;
+    ingredients: { inci_name: string; common_name: string | null } | null;
+  }[];
+
+  const seen = new Set<string>();
+  const result: ResearchIngredient[] = [];
+  for (const j of rows) {
+    if (!j.ingredients || seen.has(j.ingredient_id)) continue;
+    if (!isResearched(j.ingredients.inci_name)) continue;
+    seen.add(j.ingredient_id);
+    result.push({
+      ingredientId: j.ingredient_id,
+      label: capitalize((j.ingredients.common_name?.trim() || j.ingredients.inci_name).trim()),
+    });
+  }
+  return result;
 }
 
 /** Shape a bare catalog row into a Product card (no ingredient fetch). */
@@ -186,6 +238,128 @@ export async function listRecentDbProducts(limit = 24): Promise<Product[]> {
   return ((data ?? []) as ProductRow[]).map(rowToCard);
 }
 
+export interface ProductCategory {
+  key: string;
+  label: string;
+  /** Raw `products.category` values that normalize to this key. */
+  rawValues: string[];
+  count: number;
+}
+
+/**
+ * Distinct product types for the browse filter chips, grouped by normalized
+ * key (so "sunscreens" / "Sunscreen" become one "Sunscreens" chip). Sorted by
+ * how many products they cover.
+ */
+export async function listProductCategories(): Promise<ProductCategory[]> {
+  const { data } = await db.from("products").select("category");
+  const rows = (data ?? []) as { category: string | null }[];
+
+  const groups = new Map<
+    string,
+    { label: string; rawValues: Set<string>; count: number }
+  >();
+  for (const r of rows) {
+    const norm = normalizeCategory(r.category);
+    if (!norm || !r.category) continue;
+    const g = groups.get(norm.key) ?? {
+      label: norm.label,
+      rawValues: new Set<string>(),
+      count: 0,
+    };
+    g.rawValues.add(r.category);
+    g.count++;
+    groups.set(norm.key, g);
+  }
+
+  return [...groups]
+    .map(([key, g]) => ({
+      key,
+      label: g.label,
+      rawValues: [...g.rawValues],
+      count: g.count,
+    }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+export interface ProductCardRow {
+  slug: string;
+  name: string;
+  brand: string;
+  origin: string | null;
+  category: string | null;
+  price: string | null;
+  image_url: string | null;
+}
+
+export interface ProductsPage {
+  rows: ProductCardRow[];
+  total: number;
+  hasMore: boolean;
+}
+
+/**
+ * One page of catalog products, newest first, with an optional text search
+ * (name / brand / ingredient name) and an optional set of raw category values
+ * to filter by. `total` is the count matching the filters.
+ */
+export async function listDbProductsPage({
+  q = "",
+  rawCategories = null,
+  offset = 0,
+  limit = PRODUCTS_PAGE_SIZE,
+}: {
+  q?: string;
+  rawCategories?: string[] | null;
+  offset?: number;
+  limit?: number;
+}): Promise<ProductsPage> {
+  let query = db
+    .from("products")
+    .select("slug, name, brand, origin, category, price, image_url", {
+      count: "exact",
+    });
+
+  const needle = q.trim();
+  if (needle) {
+    const safe = needle.replace(/[%,()]/g, " ").trim();
+    const ors = [`name.ilike.%${safe}%`, `brand.ilike.%${safe}%`];
+
+    // Preserve ingredient→product search: match products that contain an
+    // ingredient whose INCI name matches the query.
+    const { data: ings } = await db
+      .from("ingredients")
+      .select("id")
+      .ilike("inci_name", `%${safe}%`)
+      .limit(5);
+    if (ings?.length) {
+      const { data: joins } = await db
+        .from("product_ingredients")
+        .select("product_id")
+        .in("ingredient_id", (ings as { id: string }[]).map((i) => i.id))
+        .limit(500);
+      const ids = [
+        ...new Set(((joins ?? []) as { product_id: string }[]).map((j) => j.product_id)),
+      ];
+      if (ids.length) ors.push(`id.in.(${ids.join(",")})`);
+    }
+    query = query.or(ors.join(","));
+  }
+
+  if (rawCategories && rawCategories.length) {
+    query = query.in("category", rawCategories);
+  }
+
+  const { data, count, error } = await query
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) return { rows: [], total: 0, hasMore: false };
+
+  const rows = (data ?? []) as ProductCardRow[];
+  const total = count ?? rows.length;
+  return { rows, total, hasMore: offset + rows.length < total };
+}
+
 /** Look up an existing product by a canonicalized source URL. */
 export async function findProductByUrl(url: string): Promise<{ slug: string } | null> {
   const { data } = await db
@@ -232,6 +406,11 @@ export async function insertExtractedProduct(
     if (attempt > 20) throw new Error("Couldn't allocate a unique slug.");
   }
 
+  // Country of origin: Claude fills this from its knowledge of the brand. Reuse
+  // an origin already on record for this brand so a brand doesn't drift between
+  // spellings ("Korea" vs "South Korea") across its products.
+  const origin = await resolveBrandOrigin(extraction.brand, extraction.origin);
+
   const { data: product, error: productError } = await db
     .from("products")
     .insert({
@@ -239,7 +418,7 @@ export async function insertExtractedProduct(
       name: extraction.name,
       brand: extraction.brand,
       category: extraction.category,
-      origin: extraction.origin,
+      origin,
       description: extraction.description,
       price: extraction.price,
       claims: extraction.claims,
@@ -254,31 +433,15 @@ export async function insertExtractedProduct(
   }
   const productId = (product as { id: string }).id;
 
-  // Upsert ingredients by normalized name, then link them in order.
+  // Link each extracted ingredient in printed order, creating any the catalog
+  // doesn't have yet. This is the step that grows the ingredient DB as new
+  // products are ingested.
   for (let i = 0; i < extraction.ingredients.length; i++) {
     const ing = extraction.ingredients[i];
-    const normalized = ing.inci_name.trim().toLowerCase();
-    if (!normalized) continue;
-
-    let ingredientId: string | undefined;
-    const { data: existing } = await db
-      .from("ingredients")
-      .select("id")
-      .eq("normalized_name", normalized)
-      .maybeSingle();
-    if (existing) {
-      ingredientId = (existing as { id: string }).id;
-    } else {
-      const { data: created } = await db
-        .from("ingredients")
-        .insert({
-          inci_name: ing.inci_name.trim(),
-          ingredient_function: ing.ingredient_function,
-        })
-        .select("id")
-        .single();
-      ingredientId = (created as { id: string } | null)?.id;
-    }
+    const ingredientId = await getOrCreateIngredientId(
+      ing.inci_name,
+      ing.ingredient_function,
+    );
     if (!ingredientId) continue;
 
     await db.from("product_ingredients").upsert(
@@ -295,6 +458,105 @@ export async function insertExtractedProduct(
 
   await addProductSource(productId, sourceUrl);
   return slug;
+}
+
+/**
+ * Resolve an ingredient row id by its normalized INCI name, inserting a new
+ * `ingredients` row when the catalog doesn't have it yet. This is what appends
+ * newly-seen ingredients to the DB during ingest.
+ *
+ * `normalized_name` is a generated column (`lower(btrim(inci_name))`) with a
+ * unique index, so a concurrent ingest can win the insert race between our
+ * existence check and our insert. We treat that unique violation as "already
+ * there" and re-read the row rather than silently dropping the ingredient from
+ * the product's list.
+ */
+async function getOrCreateIngredientId(
+  inciName: string,
+  ingredientFunction: string | null,
+): Promise<string | undefined> {
+  const inci = inciName.trim();
+  const normalized = inci.toLowerCase();
+  if (!normalized) return undefined;
+
+  const { data: existing } = await db
+    .from("ingredients")
+    .select("id")
+    .eq("normalized_name", normalized)
+    .maybeSingle();
+  if (existing) return (existing as { id: string }).id;
+
+  const { data: created, error } = await db
+    .from("ingredients")
+    .insert({ inci_name: inci, ingredient_function: ingredientFunction })
+    .select("id")
+    .single();
+  if (created) return (created as { id: string }).id;
+
+  // Insert failed — most likely a concurrent ingest inserted the same
+  // normalized name first. Re-read it so the product still links the ingredient.
+  if (error) {
+    const { data: raced } = await db
+      .from("ingredients")
+      .select("id")
+      .eq("normalized_name", normalized)
+      .maybeSingle();
+    return (raced as { id: string } | null)?.id;
+  }
+  return undefined;
+}
+
+// Common country-name variants → the canonical label we store, so filters and
+// brand pages don't fragment the same country across spellings.
+const COUNTRY_ALIASES: Record<string, string> = {
+  "korea": "South Korea",
+  "republic of korea": "South Korea",
+  "korea, republic of": "South Korea",
+  "s. korea": "South Korea",
+  "usa": "United States",
+  "u.s.": "United States",
+  "u.s.a.": "United States",
+  "us": "United States",
+  "united states of america": "United States",
+  "america": "United States",
+  "uk": "United Kingdom",
+  "u.k.": "United Kingdom",
+  "england": "United Kingdom",
+  "great britain": "United Kingdom",
+};
+
+/** Canonicalize a country name; null/blank → null. */
+function normalizeCountry(raw: string | null | undefined): string | null {
+  const s = raw?.trim();
+  if (!s) return null;
+  return COUNTRY_ALIASES[s.toLowerCase()] ?? s;
+}
+
+/**
+ * Decide the origin to store for a newly-ingested product. Prefer a country
+ * already recorded for this brand (keeps a brand consistent across its
+ * products); otherwise fall back to the one Claude inferred for this product.
+ */
+async function resolveBrandOrigin(
+  brand: string,
+  extractedOrigin: string | null,
+): Promise<string | null> {
+  const trimmed = brand.trim();
+  if (trimmed) {
+    // `ilike` with the literal brand — escape LIKE wildcards so a brand with
+    // '%' or '_' still matches itself rather than acting as a pattern.
+    const pattern = trimmed.replace(/[\\%_]/g, "\\$&");
+    const { data } = await db
+      .from("products")
+      .select("origin")
+      .ilike("brand", pattern)
+      .not("origin", "is", null)
+      .limit(1)
+      .maybeSingle();
+    const existing = (data as { origin: string } | null)?.origin;
+    if (existing) return normalizeCountry(existing);
+  }
+  return normalizeCountry(extractedOrigin);
 }
 
 function capitalize(s: string): string {

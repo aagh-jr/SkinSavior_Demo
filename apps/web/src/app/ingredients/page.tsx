@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SiteNav } from "@/components/SiteNav";
-import { searchIngredients } from "@/lib/ingredients";
+import { IngredientsExplorer } from "@/components/ingredients/IngredientsExplorer";
+import { listIngredients } from "@/lib/ingredients-db";
 
 export const metadata: Metadata = {
   title: "Ingredients",
@@ -14,7 +15,7 @@ export default async function IngredientsPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q = "" } = await searchParams;
-  const ingredients = searchIngredients(q);
+  const initialPage = await listIngredients({ q, offset: 0 });
 
   return (
     <div className="min-h-screen bg-background">
@@ -25,38 +26,11 @@ export default async function IngredientsPage({
           The ingredients library
         </h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          {q.trim()
-            ? `${ingredients.length} ${ingredients.length === 1 ? "ingredient" : "ingredients"} matching “${q.trim()}”.`
-            : "What's actually in your skincare — explained in plain English, graded by the weight of real research."}
+          What&apos;s actually in your skincare — {initialPage.total.toLocaleString()}{" "}
+          ingredients drawn from the catalog. Filter by what they do, or search by name.
         </p>
 
-        {ingredients.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-dashed border-border bg-warm-white px-6 py-12 text-center text-sm text-muted-foreground">
-            No ingredients matching “{q.trim()}”.
-          </div>
-        ) : (
-        <div className="mt-10 grid gap-4 sm:grid-cols-2">
-          {ingredients.map((i) => (
-            <article
-              key={i.name}
-              className="rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/40"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-serif text-xl font-semibold text-ink">{i.name}</h2>
-                  <div className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
-                    {i.tag}
-                  </div>
-                </div>
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-muted font-serif text-lg font-semibold text-ink">
-                  {i.grade}
-                </div>
-              </div>
-              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{i.blurb}</p>
-            </article>
-          ))}
-        </div>
-        )}
+        <IngredientsExplorer initialPage={initialPage} initialQ={q} />
       </main>
     </div>
   );
