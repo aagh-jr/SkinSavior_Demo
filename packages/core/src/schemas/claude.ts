@@ -2,6 +2,8 @@
 // `zodOutputFormat` helper; the rest of the package stays on classic zod v3.
 import { z } from "zod/v4";
 
+import { CLAIM_BADGE_SLUGS } from "../research/claim-badges";
+
 /**
  * Claude structured-output schemas shared by web and mobile.
  *
@@ -106,7 +108,90 @@ export const compatibilityAnalysisSchema = z.object({
 export type CompatibilityAnalysis = z.infer<typeof compatibilityAnalysisSchema>;
 
 // ---------------------------------------------------------------------------
-// 3. Skin-log summarization (rolling per-user context block)
+// 3. Evidence Explainer study extraction (Stage-1 ingestion)
+// ---------------------------------------------------------------------------
+
+/**
+ * A claim is sorted into a badge from the fixed vocabulary
+ * (research/claim-badges.ts) — the model picks a bucket, it never writes claim
+ * text or decides the compliance type; both live on the badge in code.
+ */
+export const studyClaimSchema = z
+  .enum(CLAIM_BADGE_SLUGS)
+  .describe(
+    "The badge (fixed benefit bucket) this paper's finding belongs to. Pick by meaning, not wording; file disease findings (acne, rosacea, eczema, other conditions) under the studied-for-* badges.",
+  );
+
+export const studyExtractionSchema = z.object({
+  is_relevant: z
+    .boolean()
+    .describe(
+      "False if the abstract is not a usable study of this ingredient's effect on skin (e.g. a review of an unrelated topic, an editorial, or a different active).",
+    ),
+  design_level: z
+    .enum(["1", "2", "3", "4", "5"])
+    .describe(
+      "CEBM 2011 design level. 1 = systematic review/meta-analysis of RCTs; 2 = individual randomized trial; 3 = non-randomized cohort/controlled study; 4 = case series/case-control; 5 = mechanism only (in vitro, ex vivo, animal). Use the PubMed publication types as a strong hint.",
+    ),
+  sample_size: z
+    .number()
+    .int()
+    .nullable()
+    .describe("Number of human participants if stated, else null. Never guess."),
+  duration_weeks: z
+    .number()
+    .int()
+    .nullable()
+    .describe("Study duration in weeks if stated, else null."),
+  population: z
+    .string()
+    .nullable()
+    .describe("Who was studied, e.g. 'women with melasma', else null."),
+  concentration: z
+    .string()
+    .nullable()
+    .describe("Concentration of the active as tested, e.g. '5%', else null."),
+  vehicle: z
+    .string()
+    .nullable()
+    .describe("Formulation it was delivered in, e.g. 'cream', 'serum', else null."),
+  outcome_measured: z
+    .string()
+    .nullable()
+    .describe(
+      "What was measured — a visible skin outcome ('clinical wrinkle grading') or a lab biomarker ('procollagen mRNA'). Be specific; this drives the indirectness downgrade.",
+    ),
+  effect_direction: z
+    .enum(["positive", "null", "negative"])
+    .nullable()
+    .describe(
+      "Direction of the main finding for the claim: positive = benefit, null = no significant effect, negative = worsened. null the enum only if the abstract states no direction.",
+    ),
+  effect_size: z
+    .string()
+    .nullable()
+    .describe("Magnitude as reported, e.g. 'significant vs vehicle', 'large', else null."),
+  funding_source: z
+    .string()
+    .nullable()
+    .describe("Funder if stated, e.g. a company name or 'academic', else null."),
+  conflict_flag: z
+    .boolean()
+    .describe("True if industry-funded or a conflict of interest is declared or evident."),
+  extraction_confidence: z
+    .enum(["high", "low"])
+    .describe("Low when key fields had to be left null or the abstract was ambiguous."),
+  claims: z
+    .array(studyClaimSchema)
+    .describe(
+      "The badges this paper bears on — usually one. Empty only if is_relevant is false.",
+    ),
+});
+
+export type StudyExtraction = z.infer<typeof studyExtractionSchema>;
+
+// ---------------------------------------------------------------------------
+// 4. Skin-log summarization (rolling per-user context block)
 // ---------------------------------------------------------------------------
 
 export const skinProfileSummarySchema = z.object({
