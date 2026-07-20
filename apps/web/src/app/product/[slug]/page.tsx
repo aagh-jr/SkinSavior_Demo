@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { rollupEvidence, type Certainty } from "@skinsavior/core/research";
 import { SiteNav } from "@/components/SiteNav";
 import { ProductThumb } from "@/components/ProductThumb";
 import { getProduct, products } from "@/lib/products";
 import { getDbProduct, getProductResearchIngredients } from "@/lib/products-db";
+import { listClaimsForIngredients } from "@/lib/claims-db";
 import { brandSlug } from "@/lib/brands-db";
 import { ProductResearch } from "@/components/research/ProductResearch";
+import { EvidenceExplainer } from "@/components/research/EvidenceExplainer";
 
 export function generateStaticParams() {
   return products.map((p) => ({ slug: p.slug }));
@@ -33,6 +36,22 @@ export default async function ProductPage({
   if (!p) notFound();
 
   const researchIngredients = await getProductResearchIngredients(slug);
+  // Graded evidence for this product's researched actives, strongest first.
+  const claimsByIngredient = await listClaimsForIngredients(
+    researchIngredients.map((r) => r.ingredientId),
+  );
+  const evidenceClaims = [...claimsByIngredient.values()]
+    .flat()
+    .sort((a, b) => b.notches - a.notches);
+  // Deterministic product-level rollup — a statement about the evidence, in the
+  // same colour language as the per-claim meter (sage strong, clay thin).
+  const rollup = rollupEvidence(evidenceClaims.map((c) => c.certainty));
+  const rollupColor: Record<Certainty, string> = {
+    strong: "#5a7a4a",
+    moderate: "#5a7a4a",
+    limited: "#9a4a2f",
+    very_limited: "#9a8c75",
+  };
   const related = products.filter((x) => x.slug !== p.slug).slice(0, 3);
 
   return (
@@ -122,24 +141,46 @@ export default async function ProductPage({
           {p.description}
         </p>
 
-        {/* EVIDENCE */}
-        <div className="mt-8">
-          <div className="rounded-xl border border-[#e6ddcf] bg-white p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-xl border border-[#e0d6c4] bg-[#f1ede4]">
-                <span className="font-serif text-[21px] font-semibold text-[#5a7a4a]">
-                  {p.evidenceGrade}
-                </span>
+        {/* EVIDENCE — real per-claim grades when we have them; otherwise the
+            legacy single-grade placeholder (static demo products). */}
+        {evidenceClaims.length > 0 ? (
+          <div className="mt-8">
+            <div className="mb-4">
+              <h2 className="m-0 font-serif text-[26px] font-medium text-[#1d1812]">
+                Evidence &amp; efficacy
+              </h2>
+              <div className="mt-0.5 text-[13px] text-[#9a8c75]">
+                How much research backs each active — objective, same for everyone.
               </div>
-              <div>
-                <div className="text-[15px] font-bold text-[#1d1812]">Evidence &amp; efficacy</div>
-                <div className="text-xs text-[#9a8c75]">objective · same for everyone</div>
-              </div>
+              {rollup && (
+                <div
+                  className="mt-1.5 text-[14px] font-semibold"
+                  style={{ color: rollupColor[rollup.best] }}
+                >
+                  {rollup.headline}
+                </div>
+              )}
             </div>
-            <p className="mt-3.5 text-[13px] leading-relaxed text-[#6b5f4f]">{p.evidenceText}</p>
-            <div className="mt-3 text-[13px] font-semibold text-[#9a4a2f]">See sources →</div>
+            <EvidenceExplainer claims={evidenceClaims} showIngredient />
           </div>
-        </div>
+        ) : (
+          <div className="mt-8">
+            <div className="rounded-xl border border-[#e6ddcf] bg-white p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-xl border border-[#e0d6c4] bg-[#f1ede4]">
+                  <span className="font-serif text-[21px] font-semibold text-[#5a7a4a]">
+                    {p.evidenceGrade}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-[15px] font-bold text-[#1d1812]">Evidence &amp; efficacy</div>
+                  <div className="text-xs text-[#9a8c75]">objective · same for everyone</div>
+                </div>
+              </div>
+              <p className="mt-3.5 text-[13px] leading-relaxed text-[#6b5f4f]">{p.evidenceText}</p>
+            </div>
+          </div>
+        )}
 
         {/* INGREDIENTS */}
         <div className="mt-9">

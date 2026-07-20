@@ -1,0 +1,177 @@
+{
+  "_note": "Hand-entered pilot seed for the Evidence Explainer grading engine. Each study's design_level (CEBM 2011) and conflict_flag were classified by hand from the abstract; funding_source/conflict_flag reflect the paper's declared funding. Treat as pilot data pending human verification (verified_by is null). `ingredient` matches ingredients.normalized_name (see packages/core/src/research/allowlist.ts); `badge_slug` matches the fixed vocabulary in packages/core/src/research/claim-badges.ts, which also owns the claim_type.",
+  "claims": [
+    {
+      "ingredient": "niacinamide",
+      "badge_slug": "evens-tone",
+      "_expected": "strong",
+      "studies": [
+        {
+          "paper_ref": "12100180",
+          "title": "The effect of niacinamide on reducing cutaneous pigmentation and suppression of melanosome transfer",
+          "design_level": "2",
+          "sample_size": 18,
+          "duration_weeks": 8,
+          "population": "Healthy adults, split-face vehicle-controlled",
+          "concentration": "5%",
+          "vehicle": "moisturizer",
+          "outcome_measured": "visible pigmentation (clinical and image analysis)",
+          "effect_direction": "positive",
+          "effect_size": "moderate reduction in hyperpigmentation",
+          "funding_source": "Procter & Gamble",
+          "conflict_flag": true,
+          "extraction_confidence": "high"
+        },
+        {
+          "paper_ref": "16029672",
+          "title": "Niacinamide: a B vitamin that improves aging facial skin appearance",
+          "design_level": "2",
+          "sample_size": 50,
+          "duration_weeks": 12,
+          "population": "Women with photodamaged facial skin, double-blind split-face",
+          "concentration": "5%",
+          "vehicle": "moisturizer",
+          "outcome_measured": "visible skin tone, spots and blotchiness",
+          "effect_direction": "positive",
+          "effect_size": "significant improvement vs vehicle",
+          "funding_source": "not stated",
+          "conflict_flag": false,
+          "extraction_confidence": "high"
+        },
+        {
+          "paper_ref": "21822427",
+          "title": "A double-blind, randomized clinical trial of niacinamide 4% versus hydroquinone 4% in the treatment of melasma",
+          "design_level": "2",
+          "sample_size": 27,
+          "duration_weeks": 8,
+          "population": "Adults with melasma, randomized split-face",
+          "concentration": "4%",
+          "vehicle": "cream",
+          "outcome_measured": "visible melasma (MASI, colorimetry)",
+          "effect_direction": "positive",
+          "effect_size": "comparable to hydroquinone with fewer side effects",
+          "funding_source": "academic",
+          "conflict_flag": false,
+          "extraction_confidence": "high"
+        }
+      ]
+    },
+    {
+      "ingredient": "niacinamide",
+      "badge_slug": "minimizes-pores",
+      "_expected": "moderate (sponsorship downgrade)",
+      "studies": [
+        {
+          "paper_ref": "16029672-pores",
+          "title": "Niacinamide: a B vitamin that improves aging facial skin appearance (pore-size endpoint)",
+          "design_level": "2",
+          "sample_size": 50,
+          "duration_weeks": 12,
+          "population": "Women with photodamaged facial skin, double-blind split-face",
+          "concentration": "5%",
+          "vehicle": "moisturizer",
+          "outcome_measured": "visible pore appearance",
+          "effect_direction": "positive",
+          "effect_size": "significant improvement vs vehicle",
+          "funding_source": "Procter & Gamble",
+          "conflict_flag": true,
+          "extraction_confidence": "low"
+        },
+        {
+          "paper_ref": "16766489",
+          "title": "The effect of 2% niacinamide on facial sebum production",
+          "design_level": "2",
+          "sample_size": 50,
+          "duration_weeks": 6,
+          "population": "Adults, randomized controlled",
+          "concentration": "2%",
+          "vehicle": "moisturizer",
+          "outcome_measured": "sebum excretion rate and visible oiliness",
+          "effect_direction": "positive",
+          "effect_size": "significant reduction in sebum",
+          "funding_source": "industry",
+          "conflict_flag": true,
+          "extraction_confidence": "low"
+        }
+      ]
+    },
+    {
+      "ingredient": "retinol",
+      "badge_slug": "smooths-wrinkles",
+      "_expected": "moderate (indirectness)",
+      "studies": [
+        {
+          "paper_ref": "17515510",
+          "title": "Improvement of naturally aged skin with vitamin A (retinol)",
+          "design_level": "2",
+          "sample_size": 36,
+          "duration_weeks": 24,
+          "population": "Elderly adults, randomized double-blind vehicle-controlled (upper inner arm)",
+          "concentration": "0.4%",
+          "vehicle": "lotion",
+          "outcome_measured": "visible fine wrinkles (clinical grading)",
+          "effect_direction": "positive",
+          "effect_size": "significant reduction in fine wrinkles",
+          "funding_source": "academic (NIH)",
+          "conflict_flag": false,
+          "extraction_confidence": "high"
+        },
+        {
+          "paper_ref": "26695748",
+          "title": "A comparative study of the effects of retinol and retinoic acid on histological, molecular, and clinical properties of human skin",
+          "design_level": "2",
+          "sample_size": 33,
+          "duration_weeks": 12,
+          "population": "Adults, randomized",
+          "concentration": "1.0%",
+          "vehicle": "cream",
+          "outcome_measured": "procollagen I gene expression (biomarker assay)",
+          "effect_direction": "positive",
+          "effect_size": "increased procollagen expression",
+          "funding_source": "not stated",
+          "conflict_flag": false,
+          "extraction_confidence": "high"
+        }
+      ]
+    },
+    {
+      "ingredient": "ascorbic acid",
+      "badge_slug": "supports-collagen",
+      "_expected": "very_limited (Level-5 floor)",
+      "studies": [
+        {
+          "paper_ref": "11407971",
+          "title": "Topically applied vitamin C enhances the mRNA level of collagens I and III, their processing enzymes and tissue inhibitor of matrix metalloproteinase 1 in the human dermis",
+          "design_level": "5",
+          "sample_size": 10,
+          "duration_weeks": null,
+          "population": "Human skin biopsies (ex vivo mRNA analysis)",
+          "concentration": "5%",
+          "vehicle": "cream",
+          "outcome_measured": "collagen mRNA levels (gene expression biomarker)",
+          "effect_direction": "positive",
+          "effect_size": "increased collagen I/III mRNA",
+          "funding_source": "academic",
+          "conflict_flag": false,
+          "extraction_confidence": "high"
+        },
+        {
+          "paper_ref": "3372624",
+          "title": "Ascorbic acid specifically increases type I and type III procollagen messenger RNA levels in human skin fibroblasts",
+          "design_level": "5",
+          "sample_size": null,
+          "duration_weeks": null,
+          "population": "Human skin fibroblast cell culture (in vitro)",
+          "concentration": "n/a",
+          "vehicle": null,
+          "outcome_measured": "procollagen mRNA in fibroblast assay",
+          "effect_direction": "positive",
+          "effect_size": "several-fold mRNA increase",
+          "funding_source": "academic",
+          "conflict_flag": false,
+          "extraction_confidence": "high"
+        }
+      ]
+    }
+  ]
+}

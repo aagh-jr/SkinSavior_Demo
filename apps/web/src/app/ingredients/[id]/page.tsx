@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { isResearched } from "@skinsavior/core/research";
 import { SiteNav } from "@/components/SiteNav";
 import { IngredientResearch } from "@/components/research/IngredientResearch";
+import { EvidenceExplainer } from "@/components/research/EvidenceExplainer";
 import { getIngredient } from "@/lib/ingredients-db";
+import { listClaimsForIngredient } from "@/lib/claims-db";
 
 function titleCase(s: string): string {
   return s.replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
@@ -33,6 +35,7 @@ export default async function IngredientPage({
   const inci = titleCase(ing.inci_name);
   const functions = ing.functions ?? [];
   const researched = isResearched(ing.inci_name);
+  const claims = await listClaimsForIngredient(id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -74,6 +77,19 @@ export default async function IngredientPage({
               {ing.safety_notes.trim()}
             </p>
           </div>
+        )}
+
+        {/* EVIDENCE — computed grades for this ingredient's benefit claims. */}
+        {claims.length > 0 && (
+          <section className="mt-12">
+            <h2 className="font-serif text-2xl font-medium text-ink">What the evidence says</h2>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              How much research backs each benefit. Tap a card for the reasoning and the studies.
+            </p>
+            <div className="mt-5">
+              <EvidenceExplainer claims={claims} />
+            </div>
+          </section>
         )}
 
         {/* RESEARCH — only for ingredients in the research pilot. */}
