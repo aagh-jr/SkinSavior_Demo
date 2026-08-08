@@ -58,6 +58,13 @@ export default function DemoSplash() {
           Enter <span className="text-lg">→</span>
         </button>
       </form>
+
+      <a
+        href="/landing"
+        className="mt-6 text-sm font-medium text-muted-foreground underline underline-offset-4 transition-colors hover:text-ink"
+      >
+        View the marketing page
+      </a>
     </div>
   );
 }
