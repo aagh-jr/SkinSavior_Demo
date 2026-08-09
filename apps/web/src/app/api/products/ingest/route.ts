@@ -4,6 +4,8 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { productExtractionSchema } from "@skinsavior/core/schemas";
 import { canonicalizeUrl, fetchPageText } from "@/lib/ingest";
+import { createClient } from "@/lib/supabase/server";
+import { checkIngestRateLimit } from "@/lib/rate-limit";
 import {
   addProductSource,
   findProductByUrl,
@@ -36,6 +38,39 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: "ANTHROPIC_API_KEY is not configured on the server." },
       { status: 503 },
+    );
+  }
+
+  // Ingest is a paid AI call, so it's gated to signed-in users — anonymous
+  // visitors can browse the encyclopedia but can't spend the Anthropic budget.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json(
+      { error: "Please sign in to add a product." },
+      { status: 401 },
+    );
+  }
+
+  // Per-user throttle (3/min, 40/day) so no single account can drain the bill.
+  const rl = await checkIngestRateLimit(user.id);
+  if (!rl.ok) {
+    const retryAfter = rl.resetAt
+      ? Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000))
+      : undefined;
+    return NextResponse.json(
+      {
+        error:
+          rl.scope === "day"
+            ? "You've reached today's limit for adding products. Please try again tomorrow."
+            : "You're adding products too quickly. Please wait a moment and try again.",
+      },
+      {
+        status: 429,
+        headers: retryAfter ? { "Retry-After": String(retryAfter) } : undefined,
+      },
     );
   }
 
