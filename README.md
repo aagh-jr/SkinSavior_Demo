@@ -23,7 +23,10 @@
 
 skinsavior helps people understand skincare products instead of guessing in the beauty aisle:
 
-- A multi-step **skin quiz** captures skin type, concerns, goals, sensitivity, and budget.
+- A 13-question **skin quiz** profiles skin along four independent axes — oiliness,
+  pigmentation, aging, and sensitivity — rather than one self-labeled bucket, plus a
+  burn/tan phototype question and the safety fields standard on dermatology intake
+  forms (prescription retinoids, pregnancy/breastfeeding, known reactions).
 - The answers are saved to a per-user **profile** (authenticated, row-level secured).
 - Product pages present an **evidence grade**, ingredient breakdown, safety flags, and a personalized "for you" view.
 - Browse by **products, ingredients, routines, and community**, with global search.
@@ -75,9 +78,37 @@ skinsavior/
 ├─ packages/
 │  ├─ core/       # Shared Supabase client, types, Zod schemas, query client
 │  └─ ui/         # Shared design tokens
+├─ scripts/       # Data pipeline: catalog seeding, research + evidence grading
 ├─ supabase/      # SQL migrations, config
 └─ turbo.json     # Turborepo task pipeline
 ```
+
+### Seeding the product catalog
+
+`scripts/fetch_popular_products.py` populates the catalog from two free,
+deterministic sources — no LLM and no paid API:
+
+| Source | Provides |
+|---|---|
+| Brand Shopify storefronts (`/search/suggest.json`) | studio product photo, current price |
+| schema.org JSON-LD on brand pages | same, for non-Shopify brands |
+| INCIDecoder | full INCI list in concentration order |
+
+Edit `scripts/popular_catalog.py` to add products or brand domains. Writes need
+the `service_role` key, since RLS makes the catalog tables read-only for `anon`:
+
+```bash
+pip install requests
+export SUPABASE_SERVICE_KEY=eyJ...          # set SUPABASE_SERVICE_KEY=... on Windows cmd
+
+python scripts/fetch_popular_products.py --dry-run --limit 5   # scrape only, no writes
+python scripts/fetch_popular_products.py                        # full run
+python scripts/fetch_popular_products.py --only cerave          # one brand/product
+```
+
+Re-running is safe. Products already in the catalog are enriched rather than
+duplicated, and an existing photo is only replaced when a brand studio shot is
+found.
 
 ## Getting started
 
@@ -149,15 +180,34 @@ This is an active portfolio project. **Current** vs. **planned** is kept honest 
 - [x] Next.js 15 web app (9 routes) + Expo mobile app
 - [x] Supabase Auth + Postgres with RLS policies and trigger functions
 - [x] End-to-end skin quiz → authenticated profile persistence
+- [x] 13-question quiz profiling four independent skin axes + safety fields
+      (prescription retinoids, pregnancy, known reactions)
 - [x] Product / ingredient / routine / community browsing with global search
+- [x] URL product-profile builder (paste a product URL → structured profile),
+      `POST /api/products/ingest`, UI at `/add` — needs `ANTHROPIC_API_KEY`
+- [x] Real product catalog: ~730 products with INCI lists, seeded from Open
+      Beauty Facts + a curated 125-product popular list
+      (`scripts/fetch_popular_products.py`)
+- [x] Evidence Explainer — per-claim certainty grades computed from CEBM study
+      levels, plus cached PubMed research per ingredient
 
 **Planned (not yet implemented)**
-- [ ] RAG-based ingredient analysis with Claude (currently a typed stub + static data)
-- [ ] URL product-profile builder (paste a product URL → structured profile)
-- [ ] Product database + vector search (pgvector) to replace the static demo catalog
+- [ ] Deterministic match scoring — quiz profile × product ingredients, with the
+      per-signal reasons stored so a score is explainable ("why 91?")
+- [ ] Routine compatibility analysis — `ingredient_interactions` knowledge base
+      + photosensitivity/AM-PM usage rules, with Claude explaining retrieved
+      rows rather than inventing interactions
+- [ ] Quiz → routine handoff, so new users land in the routine builder pre-seeded
+      from their `current_routine` answers (the compatibility features need this
+      data to run on)
+- [ ] Vector search (pgvector) for catalog dedupe and fuzzy ingredient matching
 - [ ] Test suite (Vitest + Playwright) and CI
 
-> Product data is currently static demo content; match scores and AI analysis are illustrative until the pipeline above lands.
+> **Data status.** `/search` and `/ingredients` read the live Supabase catalog
+> (~730 products, ~2.3k ingredients). The home page, `/saved`, and the nav
+> search bar still render a 3-product static demo file (`lib/products.ts`), and
+> the match scores shown there are hardcoded placeholders — the scoring engine
+> above is not built yet.
 
 ## License
 
