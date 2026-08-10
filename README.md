@@ -211,7 +211,8 @@ This is an active portfolio project. **Current** vs. **planned** is kept honest 
 
 ## License
 
-The **source code** is licensed under the [MIT License](LICENSE) © 2026 Abel Gonzalez.
+The **source code** is licensed under the [MIT License](LICENSE)
+© 2026 Abel Gonzalez and Justin Shim.
 
 The **brand and visual assets** are **not** covered by the MIT license and are
 reserved, All Rights Reserved — including the "skinsavior" name, logo/icons, and
