@@ -28,6 +28,15 @@ type Step =
 
 type Answers = QuizAnswers;
 
+// Survey design note: the first four questions score the four independent
+// axes of the Baumann Skin Type Indicator (oily/dry, sensitive/resistant,
+// pigmented/non-pigmented, wrinkle-prone/tight) instead of collapsing skin
+// into one self-labeled bucket. Sun reaction is a simplified Fitzpatrick
+// phototype proxy (burn/tan behavior, not just how much sun someone gets).
+// Medications and pregnancy status follow standard dermatology-intake
+// practice for ingredient-safety flags (retinoids, isotretinoin, salicylic
+// acid) and are explicitly skippable — "prefer not to say" is always a
+// valid answer so no one is forced to disclose health information.
 const STEPS: Step[] = [
   {
     key: "skin_type",
@@ -41,13 +50,55 @@ const STEPS: Step[] = [
     ],
   },
   {
+    key: "pigmentation",
+    kind: "single",
+    title: "Do you deal with dark spots or uneven tone?",
+    choices: [
+      { value: "none", label: "No — my tone is pretty even" },
+      { value: "occasional_marks", label: "Occasional marks that fade after a breakout" },
+      { value: "persistent_spots", label: "Persistent dark spots, sun spots, or melasma" },
+    ],
+  },
+  {
+    key: "aging_concern",
+    kind: "single",
+    title: "How would you describe fine lines & firmness?",
+    choices: [
+      { value: "smooth", label: "Smooth and tight, no real concerns" },
+      { value: "fine_lines", label: "A few fine lines starting to show" },
+      { value: "visible_wrinkles", label: "Visible wrinkles or loss of firmness" },
+    ],
+  },
+  {
     key: "sensitivity",
     kind: "single",
-    title: "How reactive is your skin?",
+    title: "When you try a new skincare product, what usually happens?",
     choices: [
-      { value: "low", label: "Pretty bulletproof" },
-      { value: "medium", label: "Occasional flare-ups" },
-      { value: "high", label: "Reacts to most new things" },
+      { value: "low", label: "Nothing — I can use almost anything" },
+      { value: "medium", label: "Occasional redness, stinging, or breakouts" },
+      { value: "high", label: "I react to most new products (redness, burning, itching)" },
+    ],
+  },
+  {
+    key: "sun_reaction",
+    kind: "single",
+    title: "What happens when your skin gets unprotected sun?",
+    sub: "Helps calibrate SPF & active-ingredient recommendations",
+    choices: [
+      { value: "always_burns", label: "Always burns, rarely or never tans" },
+      { value: "burns_then_tans", label: "Burns first, then tans" },
+      { value: "tans_easily", label: "Tans easily, rarely burns" },
+      { value: "never_burns", label: "Never burns, tans deeply" },
+    ],
+  },
+  {
+    key: "sun_exposure",
+    kind: "single",
+    title: "How much sun does your skin actually see day to day?",
+    choices: [
+      { value: "low", label: "Mostly indoors" },
+      { value: "medium", label: "Daily walks & windows" },
+      { value: "high", label: "Outdoors most days" },
     ],
   },
   {
@@ -64,13 +115,56 @@ const STEPS: Step[] = [
     ],
   },
   {
-    key: "sun_exposure",
-    kind: "single",
-    title: "How much sun does your skin actually see?",
+    key: "current_routine",
+    kind: "multi",
+    title: "What's already in your routine?",
+    sub: "Pick all that apply — helps us avoid recommending things you already use.",
     choices: [
-      { value: "low", label: "Mostly indoors" },
-      { value: "medium", label: "Daily walks & windows" },
-      { value: "high", label: "Outdoors most days" },
+      { value: "cleanser", label: "Cleanser" },
+      { value: "toner", label: "Toner" },
+      { value: "serum", label: "Serum" },
+      { value: "moisturizer", label: "Moisturizer" },
+      { value: "spf", label: "Sunscreen" },
+      { value: "retinoid", label: "Retinol / retinoid" },
+      { value: "exfoliant", label: "Exfoliant (AHA/BHA)" },
+      { value: "none", label: "Nothing yet — starting fresh" },
+    ],
+  },
+  {
+    key: "reactions",
+    kind: "multi",
+    title: "Any ingredient you've reacted to before?",
+    sub: "Pick all that apply.",
+    choices: [
+      { value: "fragrance", label: "Fragrance" },
+      { value: "alcohol", label: "Drying alcohols" },
+      { value: "actives", label: "Retinoids or acids" },
+      { value: "essential_oils", label: "Essential oils" },
+      { value: "none", label: "Nothing I know of" },
+    ],
+  },
+  {
+    key: "medications",
+    kind: "multi",
+    title: "Are you currently using any prescription skin treatments?",
+    sub: "These interact with common actives — helps us flag real clashes, not guesses. Pick all that apply.",
+    choices: [
+      { value: "retinoid_rx", label: "Prescription retinoid (tretinoin, adapalene, etc.)" },
+      { value: "isotretinoin", label: "Isotretinoin (Accutane), currently or in the last 6 months" },
+      { value: "other_topical_rx", label: "Other prescription topical" },
+      { value: "none", label: "None of these" },
+      { value: "prefer_not_to_say", label: "Prefer not to say" },
+    ],
+  },
+  {
+    key: "pregnancy_status",
+    kind: "single",
+    title: "Are you currently pregnant or breastfeeding?",
+    sub: "Some actives (retinoids, high-dose salicylic acid) carry specific guidance here — this only affects your safety flags.",
+    choices: [
+      { value: "pregnant_or_breastfeeding", label: "Yes" },
+      { value: "not_applicable", label: "No" },
+      { value: "prefer_not_to_say", label: "Prefer not to say" },
     ],
   },
   {
@@ -93,19 +187,6 @@ const STEPS: Step[] = [
       { value: "mid", label: "$20 – $50" },
       { value: "prestige", label: "$50 – $100" },
       { value: "luxury", label: "$100+" },
-    ],
-  },
-  {
-    key: "reactions",
-    kind: "multi",
-    title: "Any ingredient you've reacted to before?",
-    sub: "Pick all that apply.",
-    choices: [
-      { value: "fragrance", label: "Fragrance" },
-      { value: "alcohol", label: "Drying alcohols" },
-      { value: "actives", label: "Retinoids or acids" },
-      { value: "essential_oils", label: "Essential oils" },
-      { value: "none", label: "Nothing I know of" },
     ],
   },
 ];

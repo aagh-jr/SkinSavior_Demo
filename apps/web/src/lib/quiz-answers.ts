@@ -5,15 +5,28 @@ import { supabase } from "@/lib/supabase/client";
 // sessionStorage) so they survive the email-confirmation round trip,
 // which usually lands in a fresh tab.
 export type QuizAnswers = {
+  // Baumann axis 1: oily <-> dry
   skin_type?: string;
+  // Baumann axis 2: sensitive <-> resistant (behavior-based question, but
+  // still stored as a low/medium/high bucket in the existing column)
   sensitivity?: string;
-  age_range?: string;
+  // Baumann axis 3: pigmented <-> non-pigmented
+  pigmentation?: string;
+  // Baumann axis 4: wrinkle-prone <-> tight
+  aging_concern?: string;
+  // Fitzpatrick-lite phototype proxy (burn/tan behavior, not just exposure)
+  sun_reaction?: string;
   sun_exposure?: string;
+  age_range?: string;
+  // Safety-relevant fields standard on dermatology intake forms
+  medications?: string[];
+  pregnancy_status?: string;
+  current_routine?: string[];
+  reactions?: string[];
   routine_complexity?: string;
   budget?: string[];
-  reactions?: string[];
-  // Legacy keys from the retired 12-question survey may still appear in
-  // old stashes (concerns, goals, fragrance_pref, pregnancy_safe, …).
+  // Legacy keys from retired survey versions may still appear in old
+  // stashes (concerns, goals, fragrance_pref, pregnancy_safe, …).
   [key: string]: string | string[] | undefined;
 };
 
@@ -66,8 +79,14 @@ export async function persistAnswers(answers: QuizAnswers): Promise<boolean> {
     id: userId,
     skin_type: answers.skin_type ?? null,
     sensitivity: answers.sensitivity ?? null,
+    pigmentation: answers.pigmentation ?? null,
+    aging_concern: answers.aging_concern ?? null,
+    sun_reaction: answers.sun_reaction ?? null,
     age_range: answers.age_range ?? null,
     sun_exposure: answers.sun_exposure ?? null,
+    medications: toArray(answers.medications),
+    pregnancy_status: answers.pregnancy_status ?? null,
+    current_routine: toArray(answers.current_routine),
     routine_complexity: answers.routine_complexity ?? null,
     budget: toArray(answers.budget),
     reactions: toArray(answers.reactions),

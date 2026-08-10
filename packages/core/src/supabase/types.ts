@@ -240,52 +240,70 @@ export type Database = {
       profiles: {
         Row: {
           age_range: string | null
+          aging_concern: string | null
           answers: Json | null
           avatar_url: string | null
           bio: string | null
           budget: string[] | null
           created_at: string
+          current_routine: string[] | null
           display_name: string | null
           id: string
+          medications: string[] | null
+          pigmentation: string | null
+          pregnancy_status: string | null
           reactions: string[] | null
           routine_complexity: string | null
           sensitivity: string | null
           skin_type: string | null
           sun_exposure: string | null
+          sun_reaction: string | null
           updated_at: string
           username: string | null
         }
         Insert: {
           age_range?: string | null
+          aging_concern?: string | null
           answers?: Json | null
           avatar_url?: string | null
           bio?: string | null
           budget?: string[] | null
           created_at?: string
+          current_routine?: string[] | null
           display_name?: string | null
           id: string
+          medications?: string[] | null
+          pigmentation?: string | null
+          pregnancy_status?: string | null
           reactions?: string[] | null
           routine_complexity?: string | null
           sensitivity?: string | null
           skin_type?: string | null
           sun_exposure?: string | null
+          sun_reaction?: string | null
           updated_at?: string
           username?: string | null
         }
         Update: {
           age_range?: string | null
+          aging_concern?: string | null
           answers?: Json | null
           avatar_url?: string | null
           bio?: string | null
           budget?: string[] | null
           created_at?: string
+          current_routine?: string[] | null
           display_name?: string | null
           id?: string
+          medications?: string[] | null
+          pigmentation?: string | null
+          pregnancy_status?: string | null
           reactions?: string[] | null
           routine_complexity?: string | null
           sensitivity?: string | null
           skin_type?: string | null
           sun_exposure?: string | null
+          sun_reaction?: string | null
           updated_at?: string
           username?: string | null
         }
