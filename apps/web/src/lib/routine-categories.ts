@@ -81,9 +81,10 @@ export function coarseToCanonical(
   productName?: string | null,
 ): RoutineCategory {
   // 'Balm' covers both lip balms and face/body occlusives, so only the
-  // product name separates them. Mirrors the SQL's leading lip check.
-  const name = (productName ?? "").trim().toLowerCase();
-  if (/(^|\s)lip[\s-]/.test(name)) return "lip_balm";
+  // product name separates them. Whole-word match, mirroring the SQL regex —
+  // a looser test catches "Lipid" and "Lollipop".
+  const name = (productName ?? "").trim();
+  if (/(^|[^a-z])lip([^a-z]|$)/i.test(name)) return "lip_balm";
 
   switch ((coarse ?? "").trim().toLowerCase()) {
     case "cleanser":

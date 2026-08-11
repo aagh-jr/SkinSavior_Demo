@@ -1,29 +1,28 @@
--- Normalize product categories so per-category ranking is possible.
+-- Fix false lip_balm matches in canonical_category.
 --
--- `products.category` holds two naming schemes that never got reconciled:
---   Open Beauty Facts seed rows  -> lowercase plural ('sunscreens', 'cleansers')
---   curated/ingested rows        -> title singular ('Sunscreen', 'Cleanser')
--- 21 distinct values across 732 products. Ranking "best serums for you" today
--- matches only the 23 rows spelled 'Serum' and silently misses the rest.
+-- The previous expression used LIKE '%lip_%', but in SQL LIKE the underscore
+-- is a SINGLE-CHARACTER WILDCARD, not a literal. So it matched "lip" followed
+-- by any character and swept in products that merely contain the letters:
 --
--- Rather than rewriting `category` (which would destroy the source value —
--- 'face-creams' vs 'moisturizers' is a real distinction worth keeping), this
--- adds a GENERATED column holding the canonical value. Generated means it
--- cannot drift: any future INSERT or UPDATE recomputes it, so ingest code and
--- manual edits stay consistent for free.
+--   SkinCeuticals Triple Lipid Restore 2:4:2   ("Lipid")     -> moisturizer
+--   Sence Sweet Lollipop Face Sheet Mask       ("Lollipop")  -> mask
 --
--- The vocabulary matches ROUTINE_CATEGORIES in
--- apps/web/src/lib/routine-categories.ts. Keep the two in sync — the TS
--- coarseToCanonical() covers the same mappings for values computed app-side.
+-- Replaced with a POSIX regex requiring a word boundary on both sides, so
+-- "Lip Sleeping Mask" still matches while "Lipid" and "Lollipop" do not.
+-- (~* is IMMUTABLE, so it is valid inside a generated column.)
+--
+-- A generated column's expression can't be altered in place, so the column is
+-- dropped and re-added. Nothing is lost: every value is derived from
+-- `category` and `name`, both untouched.
+
+drop index if exists products_canonical_category_idx;
+alter table public.products drop column if exists canonical_category;
 
 alter table public.products
-  add column if not exists canonical_category text
+  add column canonical_category text
   generated always as (
     case
-      -- Lip products first: 'Balm' covers both lip balms and body/face
-      -- occlusives, so the name is the only thing that separates them.
-      -- Whole-word match — a LIKE '%lip_%' here would treat _ as a wildcard
-      -- and wrongly catch "Lipid" and "Lollipop" (fixed in 20260810010000).
+      -- "lip" as a whole word only.
       when coalesce(name, '') ~* '(^|[^[:alpha:]])lip([^[:alpha:]]|$)'
         then 'lip_balm'
 
@@ -58,7 +57,7 @@ alter table public.products
 
 comment on column public.products.canonical_category is
   'Normalized category from the ROUTINE_CATEGORIES vocabulary. Generated from
-   `category` (plus a lip-product name check), so it cannot drift. `category`
+   `category` (plus a whole-word lip check), so it cannot drift. `category`
    keeps the original source value.';
 
 create index if not exists products_canonical_category_idx
