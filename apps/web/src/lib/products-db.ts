@@ -79,6 +79,7 @@ export async function getDbProduct(slug: string): Promise<Product | null> {
     brand: row.brand,
     origin: row.origin ?? "",
     category: row.category ?? "Other",
+    imageUrl: row.image_url,
     breadcrumb: `Products / ${row.category ?? "All"}`,
     tagline: row.category ?? "",
     description: row.description ?? "",
@@ -157,6 +158,7 @@ function rowToCard(row: ProductRow): Product {
     brand: row.brand,
     origin: row.origin ?? "",
     category: row.category ?? "Other",
+    imageUrl: row.image_url,
     breadcrumb: `Products / ${row.category ?? "All"}`,
     tagline: row.category ?? "",
     description: row.description ?? "",
@@ -386,6 +388,76 @@ export async function findSimilarProduct(
 
 export async function addProductSource(productId: string, url: string): Promise<void> {
   await db.from("product_sources").insert({ product_id: productId, url });
+}
+
+// Formula-based dedupe. Marketing titles vary wildly across retailers (the same
+// medicube sunscreen is "Collagen Glow Sunscreen SPF50+" on one site and "No
+// Cast Just Glow Collagen Sunscreen" on another), but the INCI list is the same
+// physical product. So we key duplicate detection on brand + ingredient set
+// rather than the name.
+
+/** Below this many ingredients on either side, the fingerprint is too coarse
+ *  to trust — fall back to name matching instead. */
+const FINGERPRINT_MIN_INGREDIENTS = 5;
+/** Jaccard overlap of the two ingredient sets at/above which they're treated as
+ *  the same product. High enough that different products of the same brand
+ *  (which share only common bases like water/glycerin) don't collide, low
+ *  enough to tolerate a minor reformulation or one-off parsing difference. */
+const FINGERPRINT_MATCH_THRESHOLD = 0.85;
+
+type FingerprintCandidate = {
+  id: string;
+  slug: string;
+  product_ingredients: { ingredients: { normalized_name: string } | null }[] | null;
+};
+
+/** Normalize an INCI name to the same key as ingredients.normalized_name
+ *  (the DB column is `lower(btrim(inci_name))`). */
+function normalizeInci(name: string): string {
+  return name.toLowerCase().trim();
+}
+
+/**
+ * Find an existing product that is the same physical product as the given
+ * extraction, matched on brand + ingredient formula. Returns the best match
+ * whose ingredient set overlaps above the threshold, or null when the
+ * extraction has too few ingredients to fingerprint (caller should then fall
+ * back to name-based matching).
+ */
+export async function findProductByIngredientFingerprint(
+  brand: string,
+  inciNames: string[],
+): Promise<{ id: string; slug: string; overlap: number } | null> {
+  const newSet = new Set(inciNames.map(normalizeInci).filter(Boolean));
+  if (newSet.size < FINGERPRINT_MIN_INGREDIENTS) return null;
+
+  // Only same-brand products are candidates. Brand is stable across retailers,
+  // so this both cuts the comparison set down and prevents cross-brand merges.
+  const { data, error } = await db
+    .from("products")
+    .select("id, slug, product_ingredients(ingredients(normalized_name))")
+    .ilike("brand", brand.trim());
+  if (error || !data?.length) return null;
+
+  let best: { id: string; slug: string; overlap: number } | null = null;
+  for (const c of data as unknown as FingerprintCandidate[]) {
+    const candSet = new Set(
+      (c.product_ingredients ?? [])
+        .map((j) => j.ingredients?.normalized_name)
+        .filter((n): n is string => Boolean(n)),
+    );
+    if (candSet.size < FINGERPRINT_MIN_INGREDIENTS) continue;
+
+    let intersection = 0;
+    for (const n of newSet) if (candSet.has(n)) intersection++;
+    const union = newSet.size + candSet.size - intersection;
+    const overlap = union === 0 ? 0 : intersection / union;
+    if (overlap > (best?.overlap ?? 0)) {
+      best = { id: c.id, slug: c.slug, overlap };
+    }
+  }
+
+  return best && best.overlap >= FINGERPRINT_MATCH_THRESHOLD ? best : null;
 }
 
 /** Insert an extracted product with its ingredients; returns the new slug. */

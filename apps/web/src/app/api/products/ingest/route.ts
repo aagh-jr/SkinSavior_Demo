@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkIngestRateLimit } from "@/lib/rate-limit";
 import {
   addProductSource,
+  findProductByIngredientFingerprint,
   findProductByUrl,
   findSimilarProduct,
   insertExtractedProduct,
@@ -131,7 +132,21 @@ export async function POST(req: Request) {
     );
   }
 
-  // 4. Fuzzy-dedupe: same product already in the catalog under another URL.
+  // 4a. Formula-dedupe (strongest): same brand + matching INCI list. Retailer
+  //     titles vary wildly for the same product, but the ingredient list does
+  //     not — so this catches duplicates that name matching misses. Skipped
+  //     automatically when the page had too few ingredients to fingerprint.
+  const byFormula = await findProductByIngredientFingerprint(
+    extraction.brand,
+    extraction.ingredients.map((i) => i.inci_name),
+  );
+  if (byFormula) {
+    await addProductSource(byFormula.id, url);
+    return NextResponse.json({ status: "existing", slug: byFormula.slug });
+  }
+
+  // 4b. Fallback name-fuzzy dedupe for pages with no/short ingredient lists,
+  //     where the formula fingerprint isn't available.
   const similar = await findSimilarProduct(extraction.brand, extraction.name);
   if (similar && similar.sim >= DUPLICATE_SIMILARITY) {
     await addProductSource(similar.id, url);

@@ -57,6 +57,7 @@ export default function SavedPage() {
                 <Link href={`/product/${p.slug}`}>
                   <ProductThumb
                     category={p.category}
+                    imageUrl={p.imageUrl}
                     name={p.name}
                     className="aspect-[4/3] w-full"
                     iconSize={48}

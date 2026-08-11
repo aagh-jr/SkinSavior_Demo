@@ -15,6 +15,7 @@ export async function GET(request: Request) {
     name: p.name,
     brand: p.brand,
     category: p.category ?? "Other",
+    imageUrl: p.image_url,
   }));
   return NextResponse.json({ results });
 }

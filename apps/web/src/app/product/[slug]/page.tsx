@@ -70,22 +70,14 @@ export default async function ProductPage({
           <div className="w-full flex-shrink-0 md:w-[380px]">
             <ProductThumb
               category={p.category}
+              imageUrl={p.imageUrl}
               name={p.name}
               className="aspect-square w-full overflow-hidden rounded-2xl"
               iconSize={96}
             />
-            <div className="mt-2.5 flex gap-2">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-square flex-1 rounded-lg"
-                  style={{
-                    background:
-                      "repeating-linear-gradient(45deg,#e7ddcc 0 8px,#efe7d9 8px 16px)",
-                  }}
-                />
-              ))}
-            </div>
+            {/* Thumbnail strip intentionally omitted: products carry a single
+                photo. Reintroduce this driven by a real image gallery only when
+                a product can have more than one image. */}
           </div>
 
           <div className="flex-1">
