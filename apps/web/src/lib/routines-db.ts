@@ -475,14 +475,23 @@ export async function setStepProduct(
 
   const { data: product } = await db
     .from("products")
-    .select("id")
+    .select("id, category, name")
     .eq("id", productId)
     .maybeSingle();
   if (!product) throw new Error("That product doesn't exist in the catalog.");
+  const p = product as { category: string | null; name: string | null };
 
+  // Re-derive the category from the product actually chosen. The slot's label
+  // was only a guess from the quiz — if someone drops a sunscreen into the
+  // "cleanser" slot, the compatibility checks need the real category to reason
+  // about. Their time_of_day and frequency choices are left untouched.
   const { error } = await db
     .from("routine_steps")
-    .update({ product_id: productId, note: null })
+    .update({
+      product_id: productId,
+      note: null,
+      category: coarseToCanonical(p.category, p.name),
+    })
     .eq("id", stepId)
     .eq("routine_id", routineId);
   if (error) throw new Error(`Couldn't add the product: ${error.message}`);
@@ -501,11 +510,12 @@ export async function addStep(
 
   const { data: product } = await db
     .from("products")
-    .select("id, category")
+    .select("id, category, name")
     .eq("id", productId)
     .maybeSingle();
   if (!product) throw new Error("That product doesn't exist in the catalog.");
-  const category = coarseToCanonical((product as { category: string | null }).category);
+  const p = product as { category: string | null; name: string | null };
+  const category = coarseToCanonical(p.category, p.name);
 
   const rows = await listStepRows(db, routineId);
   const { data: inserted, error } = await db

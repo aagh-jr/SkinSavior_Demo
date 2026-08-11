@@ -65,29 +65,78 @@ export function categoryRank(cat: string): number {
   return i === -1 ? ROUTINE_CATEGORIES.length - 1 : i;
 }
 
-/** Default a catalog product's coarse category to a canonical routine category. */
-export function coarseToCanonical(coarse: string | null): RoutineCategory {
+/**
+ * Default a catalog product's coarse category to a canonical routine category.
+ *
+ * MUST stay in sync with the `products.canonical_category` generated column
+ * (migration 20260810000000). `products.category` carries two naming schemes —
+ * lowercase-plural from Open Beauty Facts ('sunscreens') and title-singular
+ * from curated imports ('Sunscreen') — so both spellings are handled here.
+ *
+ * Prefer reading `products.canonical_category` where it's available; this
+ * function is for values computed app-side before a row exists.
+ */
+export function coarseToCanonical(
+  coarse: string | null,
+  productName?: string | null,
+): RoutineCategory {
+  // 'Balm' covers both lip balms and face/body occlusives, so only the
+  // product name separates them. Mirrors the SQL's leading lip check.
+  const name = (productName ?? "").trim().toLowerCase();
+  if (/(^|\s)lip[\s-]/.test(name)) return "lip_balm";
+
   switch ((coarse ?? "").trim().toLowerCase()) {
     case "cleanser":
     case "cleansers":
       return "cleanser";
+    case "oil cleanser":
+    case "cleansing oil":
+    case "cleansing balm":
+      return "oil_cleanser";
     case "sunscreen":
     case "sunscreens":
+    case "spf":
       return "sunscreen";
     case "face-masks":
+    case "face masks":
     case "mask":
     case "masks":
       return "mask";
     case "moisturizer":
     case "moisturizers":
     case "face-creams":
+    case "face creams":
+    case "cream":
+    case "balm":
       return "moisturizer";
     case "serum":
     case "serums":
       return "serum";
+    case "essence":
+    case "essences":
+    case "ampoule":
+    case "ampoules":
+      return "essence";
     case "toner":
     case "toners":
       return "toner";
+    case "exfoliant":
+    case "exfoliants":
+    case "peeling":
+    case "peel":
+      return "exfoliant";
+    case "eye cream":
+    case "eye-cream":
+    case "eye creams":
+      return "eye_cream";
+    case "treatment":
+    case "treatments":
+    case "spot treatment":
+      return "spot_treatment";
+    case "oil":
+    case "oils":
+    case "face oil":
+      return "face_oil";
     default:
       return "other";
   }
