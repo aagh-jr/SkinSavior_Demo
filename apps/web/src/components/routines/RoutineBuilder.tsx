@@ -108,6 +108,12 @@ export function RoutineBuilder({
   const savedDescription = useRef(initialDescription ?? "");
   const router = useRouter();
 
+  // A rejected server action (stale action id after a redeploy, a network
+  // blip, an unexpected 500) would otherwise propagate out of the transition
+  // and trip the app-level error boundary — a full-page crash for what should
+  // be a recoverable inline error. Keep the message friendly and actionable.
+  const REJECTED = "Something went wrong — refresh the page and try again.";
+
   const persistMeta = () => {
     const trimmedName = name.trim() || "Untitled routine";
     if (trimmedName !== savedName.current || description !== savedDescription.current) {
@@ -115,9 +121,13 @@ export function RoutineBuilder({
       savedName.current = trimmedName;
       savedDescription.current = description;
       startTransition(async () => {
-        const res = await updateRoutineAction(routineId, patch);
-        if (res.ok) router.refresh();
-        else setError(res.error);
+        try {
+          const res = await updateRoutineAction(routineId, patch);
+          if (res.ok) router.refresh();
+          else setError(res.error);
+        } catch {
+          setError(REJECTED);
+        }
       });
     }
   };
@@ -125,11 +135,16 @@ export function RoutineBuilder({
   const apply = (action: () => Promise<ActionResult>, revertTo?: BuilderStep[]) => {
     setError(null);
     startTransition(async () => {
-      const res = await action();
-      if (res.ok) setSteps(res.steps);
-      else {
+      try {
+        const res = await action();
+        if (res.ok) setSteps(res.steps);
+        else {
+          if (revertTo) setSteps(revertTo);
+          setError(res.error);
+        }
+      } catch {
         if (revertTo) setSteps(revertTo);
-        setError(res.error);
+        setError(REJECTED);
       }
     });
   };

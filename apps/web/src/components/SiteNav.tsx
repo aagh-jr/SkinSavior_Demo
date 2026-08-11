@@ -114,7 +114,7 @@ export function SiteNav() {
     >
       <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-6 py-5 md:px-14">
         <Link
-          href="/"
+          href="/home"
           className="font-serif text-2xl font-semibold tracking-tight text-ink"
         >
           skinsavior

@@ -12,6 +12,7 @@ interface DbHit {
   name: string;
   brand: string;
   category: string;
+  imageUrl?: string | null;
 }
 
 type Mode = "products" | "ingredients";
@@ -171,6 +172,7 @@ export function SearchBar({
                 >
                   <ProductThumb
                     category={p.category}
+                    imageUrl={p.imageUrl}
                     name={p.name}
                     className="h-11 w-11 flex-shrink-0 rounded-lg"
                     iconSize={22}

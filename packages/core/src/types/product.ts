@@ -47,6 +47,9 @@ export interface Product {
   brand: string;
   origin: string;
   category: string;
+  /** Product photo URL. Optional: static demo products and unenriched
+   * catalog rows have none, in which case the category icon is shown. */
+  imageUrl?: string | null;
   breadcrumb: string;
   tagline: string;
   description: string;

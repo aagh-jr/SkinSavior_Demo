@@ -21,6 +21,7 @@ function ProductCard({ p }: { p: (typeof products)[number] }) {
     >
       <ProductThumb
         category={p.category}
+        imageUrl={p.imageUrl}
         name={p.name}
         className="aspect-[4/3] w-full"
         iconSize={48}
