@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import { seedRoutineFromQuizAction } from "@/app/routines/actions";
 import {
   clearPendingAnswers,
   persistAnswers,
@@ -281,7 +282,17 @@ export default function QuizPage() {
             answers={answers}
             onSuccess={() => {
               setPhase("done");
-              setTimeout(() => router.push("/"), 1800);
+              // Hand off into the routine builder rather than the home page.
+              // The builder is seeded from the current_routine answer just
+              // saved, so the user lands on labelled empty slots instead of a
+              // blank page — and routine data is what the compatibility
+              // checks need to run on at all.
+              void seedRoutineFromQuizAction().then((res) => {
+                setTimeout(
+                  () => router.push(res.ok ? `/routines/${res.id}` : "/"),
+                  1400,
+                );
+              });
             }}
             onBack={() => setStepIdx(TOTAL - 1)}
           />
@@ -668,7 +679,8 @@ function DoneView() {
         Your skin profile is saved.
       </h1>
       <p className="mt-3 text-[15px] text-muted-foreground">
-        We&apos;re matching you to products now. Taking you home…
+        Next: your routine. We&apos;ve started it with the steps you told us you
+        already use — add the products you own so we can check them for clashes.
       </p>
     </div>
   );

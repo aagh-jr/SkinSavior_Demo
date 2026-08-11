@@ -92,3 +92,117 @@ export function coarseToCanonical(coarse: string | null): RoutineCategory {
       return "other";
   }
 }
+
+/**
+ * A placeholder slot seeded into a new routine from the quiz's
+ * `current_routine` answer — an empty step the user fills with a real product.
+ *
+ * `timeOfDay` is a sensible default, not a rule: sunscreen is AM-only, and
+ * photosensitising actives (retinoids, exfoliants) default to PM. Getting
+ * these right at seed time means the compatibility checks have correct
+ * timing to reason about even before the user edits anything.
+ */
+export interface SeedSlot {
+  category: RoutineCategory;
+  label: string;
+  timeOfDay: TimeOfDay;
+}
+
+/** Quiz `current_routine` value -> the slot it should seed. */
+const QUIZ_SLOTS: Record<string, SeedSlot> = {
+  cleanser:    { category: "cleanser",    label: "Cleanser",          timeOfDay: "both" },
+  toner:       { category: "toner",       label: "Toner",             timeOfDay: "both" },
+  serum:       { category: "serum",       label: "Serum",             timeOfDay: "both" },
+  moisturizer: { category: "moisturizer", label: "Moisturizer",       timeOfDay: "both" },
+  spf:         { category: "sunscreen",   label: "Sunscreen",         timeOfDay: "am" },
+  retinoid:    { category: "serum",       label: "Retinol / retinoid", timeOfDay: "pm" },
+  exfoliant:   { category: "exfoliant",   label: "Exfoliant (AHA/BHA)", timeOfDay: "pm" },
+};
+
+/**
+ * Turn the quiz's `current_routine` answer into ordered placeholder slots.
+ *
+ * Returning slots in `categoryRank` order means the seeded routine already
+ * reads in the order it's applied (cleanser -> ... -> sunscreen). "none"
+ * and unknown values are ignored, so a user starting fresh gets an empty
+ * routine rather than a wrong one.
+ */
+export function quizAnswerToSeedSlots(currentRoutine: string[] | null): SeedSlot[] {
+  if (!currentRoutine?.length) return [];
+  const slots: SeedSlot[] = [];
+  for (const answer of currentRoutine) {
+    const slot = QUIZ_SLOTS[answer];
+    // Same category can legitimately appear twice (a plain serum AND a
+    // retinoid) — dedupe on the label, not the category.
+    if (slot && !slots.some((s) => s.label === slot.label)) slots.push(slot);
+  }
+  return slots.sort((a, b) => categoryRank(a.category) - categoryRank(b.category));
+}
+
+// ---------------------------------------------------------------------------
+// Quiz -> routine seeding
+//
+// The quiz asks which product types someone already uses (profiles.
+// current_routine). Those answers seed labeled but empty steps in the routine
+// builder, so a new user fills in blanks ("which cleanser?") instead of facing
+// an empty page. Steps are created with product_id NULL; the user attaches the
+// real product afterwards.
+// ---------------------------------------------------------------------------
+
+/** current_routine answer value -> the routine category it seeds. */
+const QUIZ_ANSWER_TO_CATEGORY: Record<string, RoutineCategory> = {
+  cleanser: "cleanser",
+  toner: "toner",
+  serum: "serum",
+  moisturizer: "moisturizer",
+  spf: "sunscreen",
+  retinoid: "serum",
+  exfoliant: "exfoliant",
+};
+
+/**
+ * Default time of day for a seeded step.
+ *
+ * Sunscreen is morning-only and exfoliants/retinoids are evening-only —
+ * both because they are photosensitising or should not be layered under sun
+ * exposure. Seeding those defaults means a new routine starts out schedulable
+ * rather than needing correction, and gives the compatibility checks
+ * meaningful AM/PM data from day one.
+ */
+export function defaultTimeOfDay(category: RoutineCategory): TimeOfDay {
+  switch (category) {
+    case "sunscreen":
+      return "am";
+    case "exfoliant":
+    case "spot_treatment":
+      return "pm";
+    default:
+      return "both";
+  }
+}
+
+/** Frequency an exfoliant should start at — daily is too aggressive. */
+export function defaultFrequency(category: RoutineCategory): RoutineFrequency {
+  return category === "exfoliant" ? "2x_week" : "daily";
+}
+
+/**
+ * Map the quiz's `current_routine` answers to the categories to seed, in
+ * canonical routine order. "none" (starting fresh) yields an empty list —
+ * the caller decides what a blank routine looks like.
+ */
+export function quizAnswersToCategories(answers: string[] | null): RoutineCategory[] {
+  if (!answers?.length) return [];
+  const seen = new Set<RoutineCategory>();
+  for (const a of answers) {
+    const cat = QUIZ_ANSWER_TO_CATEGORY[a?.trim().toLowerCase()];
+    if (cat) seen.add(cat);
+  }
+  return [...seen].sort((a, b) => categoryRank(a) - categoryRank(b));
+}
+
+/** Placeholder label stored on a seeded step until a product is attached. */
+export function seededStepLabel(category: RoutineCategory): string {
+  const found = ROUTINE_CATEGORIES.find((c) => c.value === category);
+  return found ? found.label : "Product";
+}

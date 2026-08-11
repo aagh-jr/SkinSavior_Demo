@@ -37,6 +37,7 @@ import type { BuilderStep, StepPatch } from "@/lib/routines-db";
 import { ProductThumb } from "@/components/ProductThumb";
 import {
   addStepAction,
+  setStepProductAction,
   deleteStepAction,
   reorderStepsAction,
   updateRoutineAction,
@@ -93,6 +94,9 @@ export function RoutineBuilder({
   const [steps, setSteps] = useState(initialSteps);
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // When set, the picker fills this quiz-seeded placeholder slot in place
+  // instead of appending a new step.
+  const [fillingStepId, setFillingStepId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -274,6 +278,10 @@ export function RoutineBuilder({
                     busy={pending}
                     onPatch={(patch) => patchStep(step.id, patch)}
                     onDelete={() => apply(() => deleteStepAction(routineId, step.id))}
+                    onChooseProduct={() => {
+                      setFillingStepId(step.id);
+                      setPickerOpen(true);
+                    }}
                   />
                 ))}
               </ol>
@@ -283,7 +291,10 @@ export function RoutineBuilder({
           {editing && !pickerOpen ? (
             <button
               type="button"
-              onClick={() => setPickerOpen(true)}
+              onClick={() => {
+                setFillingStepId(null);
+                setPickerOpen(true);
+              }}
               className="mt-4 w-full rounded-[14px] border border-dashed border-[#d8ccba] bg-warm-white px-4 py-3.5 text-[14px] font-semibold text-clay transition-colors hover:bg-[#fff7ea]"
             >
               + Add product
@@ -296,8 +307,17 @@ export function RoutineBuilder({
         <ProductPicker
           existingIds={new Set(steps.map((s) => s.productId).filter((x): x is string => !!x))}
           busy={pending}
-          onAdd={(hit) => apply(() => addStepAction(routineId, hit.id))}
-          onClose={() => setPickerOpen(false)}
+          onAdd={(hit) =>
+            apply(() =>
+              fillingStepId
+                ? setStepProductAction(routineId, fillingStepId, hit.id)
+                : addStepAction(routineId, hit.id),
+            )
+          }
+          onClose={() => {
+            setPickerOpen(false);
+            setFillingStepId(null);
+          }}
         />
       ) : null}
     </div>
@@ -311,6 +331,7 @@ function StepCard({
   busy,
   onPatch,
   onDelete,
+  onChooseProduct,
 }: {
   step: BuilderStep;
   index: number;
@@ -318,7 +339,10 @@ function StepCard({
   busy: boolean;
   onPatch: (patch: StepPatch) => void;
   onDelete: () => void;
+  onChooseProduct: () => void;
 }) {
+  // Quiz-seeded placeholder: the slot exists, no product attached yet.
+  const isEmptySlot = !step.productId;
   const {
     attributes,
     listeners,
@@ -346,10 +370,12 @@ function StepCard({
       ref={setNodeRef}
       style={style}
       className={
-        "rounded-[16px] border bg-white p-4 md:p-5 " +
+        "rounded-[16px] border p-4 md:p-5 " +
         (isDragging
-          ? "relative z-10 border-clay shadow-[0_12px_30px_-12px_rgba(60,45,25,0.45)]"
-          : "border-border")
+          ? "relative z-10 border-clay bg-white shadow-[0_12px_30px_-12px_rgba(60,45,25,0.45)]"
+          : isEmptySlot
+            ? "border-dashed border-[#d8ccba] bg-warm-white"
+            : "border-border bg-white")
       }
     >
       <div className="flex items-start gap-4">
@@ -386,7 +412,23 @@ function StepCard({
                 {step.productBrand}
               </span>
             ) : null}
+            {isEmptySlot ? (
+              <span className="rounded-full bg-[#f0e6d6] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-clay">
+                Not picked yet
+              </span>
+            ) : null}
           </div>
+
+          {isEmptySlot ? (
+            <button
+              type="button"
+              onClick={onChooseProduct}
+              disabled={busy}
+              className="mt-2 rounded-[9px] border border-clay/40 bg-white px-3 py-1.5 text-[13px] font-semibold text-clay transition-colors hover:bg-[#fff7ea] disabled:opacity-50"
+            >
+              Choose your {step.productName.toLowerCase()} →
+            </button>
+          ) : null}
 
           {editing ? (
             <>

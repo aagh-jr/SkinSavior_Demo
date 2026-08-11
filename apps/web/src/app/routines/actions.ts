@@ -18,6 +18,8 @@ import {
   deleteRoutine,
   deleteStep,
   reorderSteps,
+  seedRoutineFromQuiz,
+  setStepProduct,
   setPrimaryRoutine,
   updateRoutine,
   updateStep,
@@ -53,6 +55,29 @@ export async function createRoutineAction(
     return { ok: true, id };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Couldn't create routine." };
+  }
+}
+
+/** Fill a quiz-seeded placeholder slot with a real catalog product. */
+export async function setStepProductAction(
+  routineId: string,
+  stepId: string,
+  productId: string,
+): Promise<ActionResult> {
+  return run(() => setStepProduct(routineId, stepId, productId));
+}
+
+/**
+ * Post-quiz handoff: create the user's first routine pre-filled with empty
+ * slots for the categories they said they already use.
+ */
+export async function seedRoutineFromQuizAction(): Promise<CreateRoutineResult> {
+  try {
+    const id = await seedRoutineFromQuiz();
+    if (!id) return { ok: false, error: "You need to be signed in." };
+    return { ok: true, id };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Couldn't build your routine." };
   }
 }
 

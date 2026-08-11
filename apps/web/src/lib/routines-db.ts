@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   categoryRank,
   coarseToCanonical,
+  quizAnswerToSeedSlots,
   type RoutineCategory,
   type RoutineFrequency,
   type TimeOfDay,
@@ -209,6 +210,64 @@ export async function createMyRoutine(name?: string): Promise<string> {
   return (data as { id: string }).id;
 }
 
+/**
+ * Create the user's first routine, pre-seeded from their quiz answers.
+ *
+ * The quiz already asks which product categories they use; turning those into
+ * labelled empty slots makes the builder a fill-in-the-blank rather than a
+ * blank page, which is the difference between users finishing a routine and
+ * abandoning it. Routine data is also what the compatibility checks run on,
+ * so this is the step that makes those features possible at all.
+ *
+ * Placeholder steps carry product_id = null and the label in `note`
+ * (rowToStep already falls back to note for the display name).
+ *
+ * Returns the new routine id. If the user already has routines we return the
+ * most recent instead of stacking duplicates — this runs right after signup,
+ * which is retry-prone (email confirmation, OAuth round trips).
+ */
+export async function seedRoutineFromQuiz(): Promise<string | null> {
+  const ctx = await userDb();
+  if (!ctx) return null;
+  const { db, userId } = ctx;
+
+  const existing = await db
+    .from("skincare_routines")
+    .select("id")
+    .eq("profile_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (existing.data?.length) return (existing.data[0] as { id: string }).id;
+
+  const profile = await db
+    .from("profiles")
+    .select("current_routine")
+    .eq("id", userId)
+    .maybeSingle();
+  const answers =
+    (profile.data as { current_routine: string[] | null } | null)?.current_routine ?? null;
+  const slots = quizAnswerToSeedSlots(answers);
+
+  const routineId = await createMyRoutine("My routine");
+  if (!slots.length) return routineId;
+
+  const { error } = await db.from("routine_steps").insert(
+    slots.map((slot, i) => ({
+      routine_id: routineId,
+      product_id: null,
+      step_order: i,
+      category: slot.category,
+      time_of_day: slot.timeOfDay,
+      note: slot.label,
+    })),
+  );
+  // A seeding failure shouldn't cost the user their routine — they can still
+  // add steps by hand.
+  if (error) console.error("Couldn't seed routine slots:", error.message);
+
+  return routineId;
+}
+
 /** A single routine the user owns (null if missing or not theirs). */
 export async function getRoutine(
   routineId: string,
@@ -396,6 +455,42 @@ export async function getRoutineSteps(routineId: string): Promise<BuilderStep[]>
 }
 
 /** Add a catalog product as a step, auto-slotted by category. */
+/**
+ * Attach a product to an existing placeholder step, in place.
+ *
+ * Quiz-seeded slots start with product_id = null and the category label in
+ * `note`. Filling one has to UPDATE that row rather than insert a new step,
+ * otherwise the user ends up with the placeholder plus a duplicate. The
+ * placeholder label is cleared once a real product supplies the name; the
+ * user's chosen time_of_day and frequency are deliberately preserved.
+ */
+export async function setStepProduct(
+  routineId: string,
+  stepId: string,
+  productId: string,
+): Promise<BuilderStep[]> {
+  const ctx = await userDb();
+  if (!ctx) throw new Error("You need to be signed in to build a routine.");
+  const { db } = ctx;
+
+  const { data: product } = await db
+    .from("products")
+    .select("id")
+    .eq("id", productId)
+    .maybeSingle();
+  if (!product) throw new Error("That product doesn't exist in the catalog.");
+
+  const { error } = await db
+    .from("routine_steps")
+    .update({ product_id: productId, note: null })
+    .eq("id", stepId)
+    .eq("routine_id", routineId);
+  if (error) throw new Error(`Couldn't add the product: ${error.message}`);
+
+  const rows = await listStepRows(db, routineId);
+  return rows.map(rowToStep);
+}
+
 export async function addStep(
   routineId: string,
   productId: string,
