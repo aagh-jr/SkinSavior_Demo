@@ -7,6 +7,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { supabase } from "@/lib/supabase/client";
 
 const LINKS = [
+  { href: "/for-you", label: "For you" },
   { href: "/routines", label: "Routines" },
   { href: "/search", label: "Products" },
   { href: "/ingredients", label: "Ingredients" },
