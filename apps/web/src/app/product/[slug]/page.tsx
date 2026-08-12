@@ -8,6 +8,8 @@ import { getProduct, products } from "@/lib/products";
 import { getDbProduct, getProductResearchIngredients } from "@/lib/products-db";
 import { listClaimsForIngredients } from "@/lib/claims-db";
 import { brandSlug } from "@/lib/brands-db";
+import { MatchScore } from "@/components/products/MatchScore";
+import { scoreProductForMe } from "@/lib/match-db";
 import { ProductResearch } from "@/components/research/ProductResearch";
 import { EvidenceExplainer } from "@/components/research/EvidenceExplainer";
 
@@ -34,6 +36,9 @@ export default async function ProductPage({
   // Static demo products first, then products ingested via /add.
   const p = getProduct(slug) ?? (await getDbProduct(slug));
   if (!p) notFound();
+
+  // Null when signed out or the quiz isn't taken — the panel prompts instead.
+  const matchResult = await scoreProductForMe(slug);
 
   const researchIngredients = await getProductResearchIngredients(slug);
   // Graded evidence for this product's researched actives, strongest first.
@@ -132,6 +137,15 @@ export default async function ProductPage({
         <p className="m-0 max-w-[780px] font-serif text-[22px] leading-[1.55] text-[#3a3228]">
           {p.description}
         </p>
+
+        {/* FOR YOUR SKIN — deterministic match score with the reasons behind
+            it, plus any safety block. Rendered here (not further down) because
+            a "not recommended while pregnant" warning has to be visible
+            without scrolling. Null result = signed out or quiz not taken, and
+            the panel prompts instead of inventing a number. */}
+        <div className="mt-8">
+          <MatchScore result={matchResult} />
+        </div>
 
         {/* EVIDENCE — real per-claim grades when we have them; otherwise the
             legacy single-grade placeholder (static demo products). */}
