@@ -11,7 +11,8 @@
     "./schemas": "./src/schemas/index.ts",
     "./types": "./src/types/index.ts",
     "./query": "./src/query/index.ts",
-    "./research": "./src/research/index.ts"
+    "./research": "./src/research/index.ts",
+    "./scoring": "./src/scoring/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
