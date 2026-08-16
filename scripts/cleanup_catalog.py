@@ -86,6 +86,36 @@ NOT_SKINCARE = re.compile(
 )
 
 
+def bundle_titles_by_brand() -> dict:
+    """
+    Titles each brand's storefront marks as a multi-product set.
+
+    Bundles can't be found from our own rows: we don't store Shopify's
+    product_type (ours holds a derived category), and the title alone is
+    unreliable in both directions — "The Glow Ritual" is a bundle with no
+    set-like word, while "Effaclar Duo" is an ordinary product with one. So
+    ask the source, which says it plainly.
+    """
+    from import_brand_catalogs import BRAND_DOMAINS, BRAND_NAMES, fetch_catalog, is_bundle
+
+    out: dict[str, set] = {}
+    for key, domain in BRAND_DOMAINS.items():
+        catalog = fetch_catalog(domain)
+        if not catalog:
+            print(f"  (couldn't reach {domain} — skipping {key})")
+            continue
+        brand = BRAND_NAMES.get(key, key)
+        titles = {
+            re.sub(r"[^a-z0-9]+", " ", (p.get("title") or "").lower()).strip()
+            for p in catalog
+            if is_bundle(p)
+        }
+        titles.discard("")
+        if titles:
+            out[brand.lower()] = titles
+    return out
+
+
 def load_products(key: str) -> list:
     headers = {"apikey": key, "Authorization": f"Bearer {key}"}
     base = f"{SUPABASE_URL}/rest/v1"
@@ -113,6 +143,8 @@ def main():
                     help="also remove colour cosmetics (concealer, BB cream, nail, ...)")
     ap.add_argument("--not-skincare", action="store_true",
                     help="also remove accessories, hair, body and deodorant")
+    ap.add_argument("--bundles", action="store_true",
+                    help="also remove multi-product sets (re-checks brand storefronts)")
     args = ap.parse_args()
 
     if args.delete and not SERVICE_KEY:
@@ -143,6 +175,23 @@ def main():
                 targets.append(row)
                 reason[row["id"]] = label
 
+    # Bundles are matched against the brand storefronts, not by name — our
+    # rows don't carry Shopify's product_type, and names are unreliable here.
+    if args.bundles:
+        print("Checking brand storefronts for multi-product sets…")
+        by_brand = bundle_titles_by_brand()
+        for row in rows:
+            if row["id"] in reason:
+                continue
+            titles = by_brand.get((row.get("brand") or "").strip().lower())
+            if not titles:
+                continue
+            name = re.sub(r"[^a-z0-9]+", " ", (row.get("name") or "").lower()).strip()
+            if name in titles:
+                targets.append(row)
+                reason[row["id"]] = "bundle"
+        print()
+
     print(f"{len(rows)} products scanned — {len(targets)} to remove\n")
     for t in targets:
         print(f"  [{reason[t['id']]:<12}] {t['brand'][:18]:<18} {t['name'][:48]}")
@@ -157,6 +206,8 @@ def main():
             print("Add --makeup to include colour cosmetics.")
         if not args.not_skincare:
             print("Add --not-skincare to include accessories, hair, body and deodorant.")
+        if not args.bundles:
+            print("Add --bundles to include multi-product sets.")
         return
 
     headers = {"apikey": key, "Authorization": f"Bearer {key}", "Prefer": "return=minimal"}

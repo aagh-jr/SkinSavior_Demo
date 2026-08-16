@@ -154,17 +154,31 @@ SKIP_TAGGED = re.compile(r"^\s*[\[\(][^\]\)]{2,20}[\]\)]", re.I)
 # Shopify's product_type and tags say it plainly — the Glow Ritual is typed
 # "Virtual Bundle", while a genuinely multi-active single product like
 # "Deliverance 3-in-1 Repair Serum" is typed "Skincare".
-BUNDLE_META = re.compile(r"\b(bundle|bundles|virtual bundle|gift set|\bsets?\b|\bkits?\b)\b", re.I)
+# product_type ONLY — tags are not usable for this. Brands tag a product with
+# every collection it appears in, so The INKEY List's ordinary Retinal Serum
+# carries 'skincare sets', 'anti ageing sets' and 'skincare gift sets' merely
+# for being purchasable in one. Matching those deleted real products.
+BUNDLE_TYPE = re.compile(r"^\s*(virtual\s+)?(bundle|set|kit|gift set)s?\s*$", re.I)
+
+# A whole tag equal to one of these — not a substring of a longer phrase.
+BUNDLE_TAGS = {"bundle", "bundles", "kit", "kits", "gift set", "gift sets"}
 
 
 def is_bundle(product: dict) -> bool:
-    """A listing that ships several distinct products under one entry."""
-    haystack = " ".join([
-        str(product.get("product_type") or ""),
-        " ".join(product.get("tags") or []) if isinstance(product.get("tags"), list)
-        else str(product.get("tags") or ""),
-    ])
-    return bool(BUNDLE_META.search(haystack))
+    """
+    A listing that ships several distinct products under one entry.
+
+    Judged from Shopify's own typing rather than the title, which lies in both
+    directions: "The Glow Ritual" is a bundle with no set-like word, while
+    "Effaclar Duo" and "Deliverance 3-in-1 Repair Serum" are single products
+    that read like sets.
+    """
+    if BUNDLE_TYPE.match(str(product.get("product_type") or "")):
+        return True
+    tags = product.get("tags")
+    if isinstance(tags, list):
+        return any(str(t).strip().lower() in BUNDLE_TAGS for t in tags)
+    return False
 
 # Filename markers for images that are NOT a clean product shot. Shopify's
 # position-1 image is whatever the brand most recently promoted, so it is
