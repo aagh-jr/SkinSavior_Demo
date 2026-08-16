@@ -71,8 +71,27 @@ export function MatchScore({ result }: { result: MatchResult | null }) {
           className="flex h-[72px] w-[72px] flex-shrink-0 flex-col items-center justify-center rounded-full border-[3px]"
           style={{ borderColor: tone.ring, background: tone.bg }}
         >
-          <span className="font-serif text-[26px] leading-none text-[#1d1812]">{score}</span>
-          <span className="text-[10px] uppercase tracking-[0.1em] text-[#7a6a58]">match</span>
+          {/* A blocked product must NOT show a match number. The score answers
+              "does this target your concerns?" and the block answers "should
+              you use it?" — both true at once, but showing a large 96 beside
+              "Not recommended for you" reads as self-contradiction and costs
+              more trust than the number is worth. The ingredient reasons below
+              still explain what it would have matched. */}
+          {blocked ? (
+            <>
+              <span aria-hidden className="text-[24px] leading-none text-[#9a4a2f]">
+                ✕
+              </span>
+              <span className="mt-1 text-[9px] uppercase tracking-[0.1em] text-[#9a4a2f]">
+                not for you
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="font-serif text-[26px] leading-none text-[#1d1812]">{score}</span>
+              <span className="text-[10px] uppercase tracking-[0.1em] text-[#7a6a58]">match</span>
+            </>
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
@@ -81,7 +100,7 @@ export function MatchScore({ result }: { result: MatchResult | null }) {
           </h2>
           <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">
             {blocked
-              ? "We'd steer you away from this one — the reason is above."
+              ? "We'd steer you away from this one, so we're not scoring it — the reason is above."
               : reasons.length === 0
                 ? "Nothing in this formula speaks to the concerns you told us about, either way."
                 : "Here's exactly what moved this score, and why."}
@@ -91,14 +110,25 @@ export function MatchScore({ result }: { result: MatchResult | null }) {
 
       {reasons.length > 0 && (
         <ul className="mt-5 space-y-2.5 border-t border-border pt-5">
+          {/* Framed explicitly when blocked. Left unlabelled, a green "+18
+              brightening" under a safety warning reads as the product arguing
+              back. It IS worth showing — it tells the user what to look for in
+              a safe alternative — but as context, not endorsement. */}
+          {blocked && (
+            <li className="mb-1 text-[13px] text-muted-foreground">
+              What it would have matched, if it weren&apos;t for the above:
+            </li>
+          )}
           {reasons.map((r) => (
             <li key={r.code} className="flex items-start gap-3">
               <span
                 className="mt-0.5 inline-flex h-6 min-w-[38px] flex-shrink-0 items-center justify-center rounded-full px-2 font-mono text-[12px] font-semibold"
                 style={
-                  r.direction === "up"
-                    ? { background: "#f1f5ee", color: "#5a7a4a" }
-                    : { background: "#fdf1ec", color: "#9a4a2f" }
+                  blocked
+                    ? { background: "#f3efe8", color: "#9a8c75" }
+                    : r.direction === "up"
+                      ? { background: "#f1f5ee", color: "#5a7a4a" }
+                      : { background: "#fdf1ec", color: "#9a4a2f" }
                 }
               >
                 {r.points > 0 ? `+${r.points}` : r.points}
