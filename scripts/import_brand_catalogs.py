@@ -145,6 +145,27 @@ SKIP_TITLE = re.compile(
 # Bracketed channel/promo tags: "[Amazon] ...", "[FreeGift] ...", "(Event)".
 SKIP_TAGGED = re.compile(r"^\s*[\[\(][^\]\)]{2,20}[\]\)]", re.I)
 
+# Multi-product sets, detected from METADATA rather than the title.
+#
+# The title is unreliable in both directions: Dieux's "The Glow Ritual" is
+# three products in one listing and contains no set-like word, while La
+# Roche-Posay's "Effaclar Duo" and Summer Fridays' "Midnight Ritual ... Serum"
+# are ordinary single products that a keyword filter would wrongly delete.
+# Shopify's product_type and tags say it plainly — the Glow Ritual is typed
+# "Virtual Bundle", while a genuinely multi-active single product like
+# "Deliverance 3-in-1 Repair Serum" is typed "Skincare".
+BUNDLE_META = re.compile(r"\b(bundle|bundles|virtual bundle|gift set|\bsets?\b|\bkits?\b)\b", re.I)
+
+
+def is_bundle(product: dict) -> bool:
+    """A listing that ships several distinct products under one entry."""
+    haystack = " ".join([
+        str(product.get("product_type") or ""),
+        " ".join(product.get("tags") or []) if isinstance(product.get("tags"), list)
+        else str(product.get("tags") or ""),
+    ])
+    return bool(BUNDLE_META.search(haystack))
+
 # Filename markers for images that are NOT a clean product shot. Shopify's
 # position-1 image is whatever the brand most recently promoted, so it is
 # regularly a campaign graphic, a collab lockup, a before/after composite or a
@@ -429,7 +450,7 @@ def main():
                     or SKIP_TAGGED.match(title)):
                 skipped_filter += 1
                 continue
-            if not p.get("images"):
+            if not p.get("images") or is_bundle(p):
                 skipped_filter += 1
                 continue
             # NB: not `key` — that's the brand loop variable, and shadowing it
