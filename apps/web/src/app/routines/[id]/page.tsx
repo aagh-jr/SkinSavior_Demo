@@ -3,8 +3,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { SiteNav } from "@/components/SiteNav";
 import { RoutineBuilder } from "@/components/routines/RoutineBuilder";
+import { RoutineCompatibility } from "@/components/routines/RoutineCompatibility";
 import { createClient } from "@/lib/supabase/server";
 import { getRoutine, getRoutineSteps } from "@/lib/routines-db";
+import { analyzeMyRoutine } from "@/lib/compatibility-db";
 
 export const metadata: Metadata = {
   title: "Routine",
@@ -29,6 +31,9 @@ export default async function RoutinePage({
   if (!routine) notFound();
 
   const steps = await getRoutineSteps(id);
+  // Null until at least one real product is attached — an "all clear" on a
+  // routine of empty placeholder slots would be a false reassurance.
+  const compatibility = await analyzeMyRoutine(id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -47,6 +52,8 @@ export default async function RoutinePage({
           initialDescription={routine.description}
           initialSteps={steps}
         />
+
+        <RoutineCompatibility report={compatibility} />
       </main>
     </div>
   );
