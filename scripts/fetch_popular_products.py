@@ -222,7 +222,10 @@ def scrape_incidecoder(query: str) -> dict:
     """Search INCIDecoder, open the top product hit, return its INCI list."""
     search_html = fetch("https://incidecoder.com/search?query=" + urllib.parse.quote(query))
     if not search_html:
-        return {}
+        # Request FAILED (throttled, timeout, reset) — not the same as "this
+        # product isn't indexed". Callers that conflate the two silently drop
+        # products that do exist, so mark it and let them retry.
+        return {"_fetch_failed": True}
 
     links = [
         l for l in re.findall(r'href="(/products/[^"#?]+)"', search_html)
@@ -233,7 +236,7 @@ def scrape_incidecoder(query: str) -> dict:
 
     page = fetch("https://incidecoder.com" + links[0])
     if not page:
-        return {}
+        return {"_fetch_failed": True}
 
     # Each INCI entry is a link to its ingredient page; order is the INCI order.
     ordered, seen = [], set()

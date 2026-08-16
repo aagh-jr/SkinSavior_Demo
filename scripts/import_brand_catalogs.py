@@ -62,6 +62,39 @@ UA = (
     "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 )
 
+# Canonical brand names.
+#
+# Shopify's `vendor` field is free text and frequently carries storefront
+# cruft — COSRX ships "COSRX official", others use "<Brand> US" or "<Brand>
+# Global". That extra word breaks the INCIDecoder search: querying
+# "COSRX official BHA Blackhead Power Liquid" finds nothing while
+# "COSRX BHA Blackhead Power Liquid" returns the product. This is also what
+# users see as the brand, so it needs to be right regardless.
+BRAND_NAMES = {
+    "cosrx": "COSRX",
+    "beautyofjoseon": "Beauty of Joseon",
+    "anua": "Anua",
+    "skin1004": "SKIN1004",
+    "torriden": "Torriden",
+    "axisy": "Axis-Y",
+    "mixsoon": "mixsoon",
+    "medicube": "medicube",
+    "tirtir": "TIRTIR",
+    "innisfree": "Innisfree",
+    "glowrecipe": "Glow Recipe",
+    "summerfridays": "Summer Fridays",
+    "farmacy": "Farmacy",
+    "tatcha": "Tatcha",
+    "sundayriley": "Sunday Riley",
+    "versed": "Versed",
+    "bubble": "Bubble",
+    "naturium": "Naturium",
+    "byoma": "BYOMA",
+    "inkeylist": "The INKEY List",
+    "dieux": "Dieux",
+    "kosas": "Kosas",
+}
+
 # Verified Shopify storefronts. Keys double as the --brands filter.
 BRAND_DOMAINS = {
     "cosrx": "cosrx.com",
@@ -109,7 +142,75 @@ SKIP_TITLE = re.compile(
 # Body/hair products — out of scope for a face-focused index.
 SKIP_BODY = re.compile(r"\b(body wash|body lotion|body scrub|shampoo|conditioner|hand cream|foot)\b", re.I)
 
-SLEEP_INCI = 1.15  # INCIDecoder politeness
+# INCIDecoder politeness. Raised from 1.15s after a real import run: at that
+# rate the site began refusing requests partway through, and because a refused
+# request looked identical to "product not indexed", valid products were being
+# dropped. Slower is cheaper than a catalogue full of false misses.
+SLEEP_INCI = 2.0
+
+# Backoff schedule when a request is refused outright. Generous on purpose —
+# throttling clears with time, and giving up early loses real products.
+INCI_BACKOFF = (5.0, 15.0, 40.0)
+
+
+def search_terms(brand: str, title: str) -> list[str]:
+    """
+    Queries to try against INCIDecoder, best first.
+
+    Titles sometimes already contain the brand ("COSRX Azelaic Acid 20 B5"),
+    so prefixing it again produces a doubled query that matches nothing. And
+    when brand + title misses, the title alone often hits — INCIDecoder's
+    naming doesn't always agree with the brand's storefront.
+    """
+    title = title.strip()
+    brand = brand.strip()
+    terms = []
+    if brand and not title.lower().startswith(brand.lower()):
+        terms.append(f"{brand} {title}")
+    terms.append(title)
+    # Parenthetical suffixes ("(SPF50+ PA++++)") are marketing, and rarely
+    # part of how INCIDecoder titles the product.
+    bare = re.sub(r"\s*[\(\[][^)\]]*[\)\]]", "", title).strip()
+    if bare and bare != title:
+        terms.append(f"{brand} {bare}".strip())
+    seen, out = set(), []
+    for t in terms:
+        k = t.lower()
+        if k not in seen:
+            seen.add(k)
+            out.append(t)
+    return out
+
+
+def lookup_inci(brand: str, title: str) -> dict:
+    """
+    INCIDecoder lookup that tells throttling apart from a genuine miss, and
+    tries more than one phrasing before giving up.
+
+    scrape_incidecoder() flags a failed request with `_fetch_failed`; an empty
+    result WITHOUT that flag means that query found nothing, which retrying
+    won't change — but a DIFFERENT query might still hit.
+    """
+    last: dict = {}
+    for term in search_terms(brand, title):
+        result = scrape_incidecoder(term)
+        time.sleep(SLEEP_INCI)
+
+        for wait in INCI_BACKOFF:
+            if not result.get("_fetch_failed"):
+                break
+            time.sleep(wait)
+            result = scrape_incidecoder(term)
+            time.sleep(SLEEP_INCI)
+
+        if result.get("ingredients"):
+            return result
+        last = result
+        if result.get("_fetch_failed"):
+            # Still blocked after full backoff; further phrasings won't fare
+            # better and would just prolong the throttle.
+            return result
+    return last
 
 
 def make_session() -> requests.Session:
@@ -222,7 +323,7 @@ def main():
         preflight(SERVICE_KEY)
         db = Db(SERVICE_KEY)
 
-    added = enriched = skipped_noinci = skipped_filter = failed = 0
+    added = enriched = skipped_noinci = skipped_filter = failed = throttled = 0
 
     for key in keys:
         domain = BRAND_DOMAINS[key]
@@ -263,21 +364,19 @@ def main():
 
         for p in candidates:
             title = p["title"].strip()
-            brand = (p.get("vendor") or key).strip()
+            # Canonical name, NOT Shopify's vendor field — see BRAND_NAMES.
+            brand = BRAND_NAMES.get(key) or (p.get("vendor") or key).strip()
             label = f"{brand} {title}"
 
-            # scrape_incidecoder() returns {} for BOTH "no such product" and
-            # "the request failed", and INCIDecoder throttles — which is why
-            # identical queries were returning different answers, silently
-            # dropping products that do exist. One backed-off retry before
-            # believing an empty result.
-            inci = scrape_incidecoder(label)
-            time.sleep(SLEEP_INCI)
-            if not inci.get("ingredients"):
-                time.sleep(3.0)
-                inci = scrape_incidecoder(label)
-                time.sleep(SLEEP_INCI)
+            inci = lookup_inci(brand, title)
             ingredients = inci.get("ingredients", [])
+            if inci.get("_fetch_failed"):
+                # Exhausted the backoff and INCIDecoder is still refusing. Do
+                # NOT record this as "no ingredients" — that's the silent data
+                # loss this whole retry path exists to prevent.
+                throttled += 1
+                print(f"   THROTTLED  {title[:48]}  (skipped, retry this brand later)")
+                continue
 
             if not ingredients and not args.allow_missing_inci:
                 skipped_noinci += 1
@@ -351,6 +450,10 @@ def main():
     verb = "would add" if args.dry_run else "added"
     print(f"{verb}: {added} | enriched: {enriched} | no INCI: {skipped_noinci} "
           f"| filtered out: {skipped_filter} | failed: {failed}")
+    if throttled:
+        print(f"\nTHROTTLED: {throttled} product(s) were refused by INCIDecoder "
+              "and skipped.")
+        print("These are NOT confirmed missing — re-run this brand later to pick them up.")
 
 
 if __name__ == "__main__":
