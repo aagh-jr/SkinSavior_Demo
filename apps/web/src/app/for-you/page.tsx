@@ -11,6 +11,19 @@ export const metadata: Metadata = {
 };
 
 /**
+ * Never cached.
+ *
+ * The ranking is a function of the viewer's quiz profile AND the live
+ * ingredient data, so a cached render is wrong for the next visitor and goes
+ * stale the moment either changes. That is not cosmetic: a cached page served
+ * a product at rank 3 with a 97 that, recomputed, scored 96 and was BLOCKED
+ * twice — for lactic acid against a declared isotretinoin course and for
+ * flagged essential oils. A safety exclusion that a cache can hide is not an
+ * exclusion.
+ */
+export const dynamic = "force-dynamic";
+
+/**
  * Selectable categories, in the order a routine is applied.
  *
  * Deliberately not every canonical category — eye_cream (2 products) and

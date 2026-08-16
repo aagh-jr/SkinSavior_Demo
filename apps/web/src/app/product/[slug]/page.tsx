@@ -15,6 +15,14 @@ import { scoreProductForMe } from "@/lib/match-db";
 import { ProductResearch } from "@/components/research/ProductResearch";
 import { EvidenceExplainer } from "@/components/research/EvidenceExplainer";
 
+/**
+ * Never cached — the page renders per-viewer content: the match score, its
+ * safety blocks, and the save-to-shelf state. A cached copy would show one
+ * user's result to everyone, and a safety block that a cache can hide is not
+ * a block.
+ */
+export const dynamic = "force-dynamic";
+
 export function generateStaticParams() {
   return products.map((p) => ({ slug: p.slug }));
 }
