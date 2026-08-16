@@ -6,13 +6,17 @@ import { usePathname, useRouter } from "next/navigation";
 import { SearchBar } from "@/components/SearchBar";
 import { supabase } from "@/lib/supabase/client";
 
+// Browse destinations. "My shelf" is deliberately NOT here — it's personal
+// rather than catalogue, so it sits apart on the right (see SHELF_LINK).
 const LINKS = [
   { href: "/for-you", label: "For you" },
-  { href: "/routines", label: "Routines" },
   { href: "/search", label: "Products" },
   { href: "/ingredients", label: "Ingredients" },
   { href: "/brands", label: "Brands" },
 ] as const;
+
+/** The user's own stuff: products in use, saved products, routines. */
+const SHELF_LINK = { href: "/shelf", label: "My shelf" } as const;
 
 // "loading" until we know the session, so we don't flash the wrong CTA.
 type AuthState = "loading" | "in" | "out";
@@ -137,6 +141,21 @@ export function SiteNav() {
               </Link>
             );
           })}
+          {/* Separated from the browse links: this is the user's own shelf,
+              not another way to browse the catalogue. */}
+          {auth === "in" && (
+            <Link
+              href={SHELF_LINK.href}
+              className={
+                "border-l border-border pl-6 " +
+                (pathname === SHELF_LINK.href
+                  ? "text-sm font-semibold text-ink"
+                  : "text-sm text-muted-foreground transition-colors hover:text-ink")
+              }
+            >
+              {SHELF_LINK.label}
+            </Link>
+          )}
         </nav>
         <div className="flex items-center gap-3 md:gap-4">
           <SearchBar />

@@ -9,6 +9,8 @@ import { getDbProduct, getProductResearchIngredients } from "@/lib/products-db";
 import { listClaimsForIngredients } from "@/lib/claims-db";
 import { brandSlug } from "@/lib/brands-db";
 import { MatchScore } from "@/components/products/MatchScore";
+import { SaveButton } from "@/components/products/SaveButton";
+import { getSaveStateBySlug } from "@/lib/shelf-db";
 import { scoreProductForMe } from "@/lib/match-db";
 import { ProductResearch } from "@/components/research/ProductResearch";
 import { EvidenceExplainer } from "@/components/research/EvidenceExplainer";
@@ -39,6 +41,7 @@ export default async function ProductPage({
 
   // Null when signed out or the quiz isn't taken — the panel prompts instead.
   const matchResult = await scoreProductForMe(slug);
+  const saveState = await getSaveStateBySlug(slug);
 
   const researchIngredients = await getProductResearchIngredients(slug);
   // Graded evidence for this product's researched actives, strongest first.
@@ -125,9 +128,16 @@ export default async function ProductPage({
                   Where to buy ↓
                 </button>
               )}
-              <button className="rounded-xl border border-[#caa37f] px-4 py-3 text-[15px] font-semibold text-[#9a4a2f] hover:bg-[#fff7ea]">
-                ♡ Save
-              </button>
+              {/* Was a decorative button that did nothing; now backed by
+                  saved_products. Hidden when signed out or for the static demo
+                  products, which have no catalogue row to save. */}
+              {saveState.productId && (
+                <SaveButton
+                  productId={saveState.productId}
+                  initialSaved={saveState.saved}
+                  signedIn={saveState.signedIn}
+                />
+              )}
             </div>
           </div>
         </div>
