@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { fetchIngredientsPage } from "@/app/ingredients/actions";
-import { INGREDIENT_FILTERS } from "@/lib/ingredient-filters";
+import { FILTER_GROUPS, INGREDIENT_FILTERS } from "@/lib/ingredient-filters";
 import type { IngredientPage, IngredientRow } from "@/lib/ingredients-db";
 
 function titleCase(s: string): string {
@@ -60,6 +60,10 @@ export function IngredientsExplorer({
   initialQ: string;
 }) {
   const [filter, setFilter] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const activeFilter = filter
+    ? INGREDIENT_FILTERS.find((f) => f.key === filter) ?? null
+    : null;
   const [q, setQ] = useState(initialQ);
   const [debouncedQ, setDebouncedQ] = useState(initialQ);
   const [rows, setRows] = useState<IngredientRow[]>(initialPage.rows);
@@ -126,22 +130,74 @@ export function IngredientsExplorer({
         />
       </div>
 
-      {/* Filter chips */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <FilterChip
-          active={filter === null}
-          onClick={() => setFilter(null)}
-          label="All"
-        />
-        {INGREDIENT_FILTERS.map((f) => (
-          <FilterChip
-            key={f.key}
-            active={filter === f.key}
-            onClick={() => setFilter(f.key)}
-            label={f.label}
-          />
-        ))}
+      {/* Filter — collapsed, matching the products page. Thirteen chips in a
+          permanent row buried the ingredients themselves and gave formulation
+          helpers the same weight as the actives people come here to read
+          about. The active filter stays visible as a removable pill so a
+          narrowed list is never mistaken for the whole library. */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setFilterOpen((o) => !o)}
+          aria-expanded={filterOpen}
+          className={
+            "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[13px] font-medium transition-colors " +
+            (filterOpen || filter
+              ? "border-primary text-ink"
+              : "border-border text-muted-foreground hover:border-primary/40 hover:text-ink")
+          }
+        >
+          <span aria-hidden>⌄</span>
+          Filter by function
+        </button>
+
+        {activeFilter && (
+          <button
+            type="button"
+            onClick={() => setFilter(null)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-primary px-3.5 py-2 text-[13px] font-medium text-primary-foreground"
+            aria-label={`Remove ${activeFilter.label} filter`}
+          >
+            {activeFilter.label}
+            <span aria-hidden>×</span>
+          </button>
+        )}
       </div>
+
+      {filterOpen && (
+        <div className="mt-3 space-y-4 rounded-2xl border border-border bg-warm-white p-4">
+          {FILTER_GROUPS.map((group) => (
+            <div key={group.key}>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                {group.label}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {group.key === "effect" && (
+                  <FilterChip
+                    active={filter === null}
+                    onClick={() => {
+                      setFilter(null);
+                      setFilterOpen(false);
+                    }}
+                    label="All"
+                  />
+                )}
+                {INGREDIENT_FILTERS.filter((f) => f.group === group.key).map((f) => (
+                  <FilterChip
+                    key={f.key}
+                    active={filter === f.key}
+                    onClick={() => {
+                      setFilter(f.key);
+                      setFilterOpen(false);
+                    }}
+                    label={f.label}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Result count */}
       <p className="mt-6 text-[13px] text-muted-foreground">
