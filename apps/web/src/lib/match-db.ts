@@ -180,27 +180,41 @@ export async function rankCategoryForMe(
   }[];
   if (!rows.length) return { ranked: [], total: 0, blockedCount: 0 };
 
-  // One query for every ingredient link in the category, then grouped in
-  // memory — a per-product query would be N round trips for 231 moisturizers.
-  const { data: joins } = await db
-    .from("product_ingredients")
-    .select("product_id, position, ingredients(inci_name, functions)")
-    .in(
-      "product_id",
-      rows.map((r) => r.id),
-    )
-    .order("position");
-
+  // Ingredient links for the whole category, PAGINATED.
+  //
+  // PostgREST caps a response at 1000 rows. A category is far larger than
+  // that — 127 serums at ~40 ingredients each is ~5000 links — so a single
+  // request returned only each product's first few ingredients. That failed
+  // silently and in the worst direction: a product whose blocking ingredient
+  // sits deep in the INCI list (essential oils are typically last) came back
+  // looking safe, so safety exclusions were being dropped from the ranking
+  // entirely. Anything that reads a whole category has to page.
+  const PAGE = 1000;
+  const productIds = rows.map((r) => r.id);
   const byProduct = new Map<string, ScorableProduct["ingredients"]>();
-  for (const j of (joins ?? []) as unknown as (IngredientJoinRow & { product_id: string })[]) {
-    if (!j.ingredients) continue;
-    const list = byProduct.get(j.product_id) ?? [];
-    list.push({
-      inciName: j.ingredients.inci_name,
-      position: j.position,
-      functions: j.ingredients.functions,
-    });
-    byProduct.set(j.product_id, list);
+
+  for (let offset = 0; ; offset += PAGE) {
+    const { data: joins, error } = await db
+      .from("product_ingredients")
+      .select("product_id, position, ingredients(inci_name, functions)")
+      .in("product_id", productIds)
+      .order("product_id")
+      .order("position")
+      .range(offset, offset + PAGE - 1);
+
+    if (error) break;
+    const page = (joins ?? []) as unknown as (IngredientJoinRow & { product_id: string })[];
+    for (const j of page) {
+      if (!j.ingredients) continue;
+      const list = byProduct.get(j.product_id) ?? [];
+      list.push({
+        inciName: j.ingredients.inci_name,
+        position: j.position,
+        functions: j.ingredients.functions,
+      });
+      byProduct.set(j.product_id, list);
+    }
+    if (page.length < PAGE) break;
   }
 
   const scorable = rows.map((r) => ({
