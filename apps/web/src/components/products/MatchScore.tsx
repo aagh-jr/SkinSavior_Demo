@@ -47,66 +47,63 @@ export function MatchScore({ result }: { result: MatchResult | null }) {
 
   return (
     <section className="rounded-[18px] border border-border bg-white p-6">
-      {/* Safety first, always — independent of score and rank. */}
-      {blockReasons.map((r) => (
+      {/* BLOCKED: one warning panel carrying every reason. Previously each
+          reason rendered its own box with its own "NOT RECOMMENDED FOR YOU"
+          heading, so a product failing two checks shouted the same headline
+          twice. The heading is the verdict — it belongs once. */}
+      {blocked ? (
         <div
-          key={r.code}
-          className="mb-5 rounded-[14px] border border-[#e5c4b6] bg-[#fdf1ec] p-4"
+          className="rounded-[14px] border border-[#e5c4b6] bg-[#fdf1ec] p-5"
           role="alert"
         >
-          <p className="m-0 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-[#9a4a2f]">
-            Not recommended for you
-          </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-[#1d1812]">{r.text}</p>
-          {r.ingredients.length > 0 && (
-            <p className="mt-2 text-[13px] text-[#7a6a58]">
-              Because of: {r.ingredients.join(", ")}
-            </p>
-          )}
-        </div>
-      ))}
+          <div className="flex items-center gap-2.5">
+            <span
+              aria-hidden
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#9a4a2f] text-[15px] leading-none text-white"
+            >
+              ✕
+            </span>
+            <h2 className="m-0 font-serif text-[20px] font-medium text-[#9a4a2f]">
+              Not recommended for you
+            </h2>
+          </div>
 
-      <div className="flex items-start gap-5">
-        <div
-          className="flex h-[72px] w-[72px] flex-shrink-0 flex-col items-center justify-center rounded-full border-[3px]"
-          style={{ borderColor: tone.ring, background: tone.bg }}
-        >
-          {/* A blocked product must NOT show a match number. The score answers
-              "does this target your concerns?" and the block answers "should
-              you use it?" — both true at once, but showing a large 96 beside
-              "Not recommended for you" reads as self-contradiction and costs
-              more trust than the number is worth. The ingredient reasons below
-              still explain what it would have matched. */}
-          {blocked ? (
-            <>
-              <span aria-hidden className="text-[24px] leading-none text-[#9a4a2f]">
-                ✕
-              </span>
-              <span className="mt-1 text-[9px] uppercase tracking-[0.1em] text-[#9a4a2f]">
-                not for you
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="font-serif text-[26px] leading-none text-[#1d1812]">{score}</span>
-              <span className="text-[10px] uppercase tracking-[0.1em] text-[#7a6a58]">match</span>
-            </>
-          )}
+          <ul className="mt-3.5 list-none space-y-3.5 p-0">
+            {blockReasons.map((r) => (
+              <li key={r.code} className="border-l-2 border-[#e5c4b6] pl-3.5">
+                <p className="m-0 text-[15px] leading-relaxed text-[#1d1812]">{r.text}</p>
+                {r.ingredients.length > 0 && (
+                  <p className="mt-1.5 text-[13px] text-[#7a6a58]">
+                    Because of: {r.ingredients.join(", ")}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
+      ) : (
+        /* NOT BLOCKED: the score, with its headline. */
+        <div className="flex items-start gap-5">
+          <div
+            className="flex h-[72px] w-[72px] flex-shrink-0 flex-col items-center justify-center rounded-full border-[3px]"
+            style={{ borderColor: tone.ring, background: tone.bg }}
+          >
+            <span className="font-serif text-[26px] leading-none text-[#1d1812]">{score}</span>
+            <span className="text-[10px] uppercase tracking-[0.1em] text-[#7a6a58]">match</span>
+          </div>
 
-        <div className="min-w-0 flex-1">
-          <h2 className="m-0 font-serif text-[22px] font-medium text-[#1d1812]">
-            For your skin
-          </h2>
-          <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">
-            {blocked
-              ? "We'd steer you away from this one, so we're not scoring it — the reason is above."
-              : reasons.length === 0
+          <div className="min-w-0 flex-1">
+            <h2 className="m-0 font-serif text-[22px] font-medium text-[#1d1812]">
+              For your skin
+            </h2>
+            <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">
+              {reasons.length === 0
                 ? "Nothing in this formula speaks to the concerns you told us about, either way."
                 : "Here's exactly what moved this score, and why."}
-          </p>
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {reasons.length > 0 && (
         <ul className="mt-5 space-y-2.5 border-t border-border pt-5">
@@ -144,10 +141,13 @@ export function MatchScore({ result }: { result: MatchResult | null }) {
         </ul>
       )}
 
+      {/* The footnote has to match what's above it — claiming "the same
+          answers always produce the same score" on a panel showing no score
+          is the kind of small contradiction that makes the rest look careless. */}
       <p className="mt-5 border-t border-border pt-4 text-[12px] leading-relaxed text-[#7a6a58]">
-        Scored from your quiz answers and this product&apos;s ingredient list.
-        The same answers always produce the same score — no AI guesswork. This
-        is information to weigh, not medical advice.
+        {blocked
+          ? "Based on your quiz answers and this product's ingredient list, checked against documented ingredient guidance. Information to weigh, not medical advice — if you're unsure, ask your doctor."
+          : "Scored from your quiz answers and this product's ingredient list. The same answers always produce the same score — no AI guesswork. This is information to weigh, not medical advice."}
       </p>
     </section>
   );
