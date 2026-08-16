@@ -520,13 +520,23 @@ def main():
             slug = slugify(label)
             try:
                 existing = db.find_product(slug, brand, title)
+                # Db.resolve_ingredients() — batched. The old per-name
+                # Db.ingredient_id() was removed when batching landed, and
+                # because this loop swallowed every exception the resulting
+                # AttributeError was invisible: products were written with
+                # their ingredient TEXT but zero links, so 60% of the
+                # catalogue silently became unscoreable. Never bare-except
+                # around a call whose failure looks like "no data".
                 ing_ids = []
                 if ingredients:
-                    for name in ingredients:
-                        try:
-                            ing_ids.append(db.ingredient_id(name))
-                        except Exception:
-                            pass
+                    resolved = db.resolve_ingredients(ingredients)
+                    ing_ids = [
+                        resolved[k]
+                        for k in (n.strip().lower() for n in ingredients)
+                        if k in resolved
+                    ]
+                    if not ing_ids:
+                        print(f"         WARNING: {len(ingredients)} ingredients resolved to 0 links")
 
                 if existing:
                     patch = {"category": guess_category(p), "product_type": guess_category(p)}
