@@ -29,10 +29,17 @@ Usage
 """
 
 import argparse
+import io
 import os
 import re
 import sys
 import urllib.parse
+
+# Catalogue names carry characters the Windows console codepage can't encode
+# (zero-width joiners, accented French labels from the Open Beauty Facts seed).
+# Without this the script dies mid-listing on a printing error rather than
+# anything to do with the data.
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fetch_popular_products import SESSION, SUPABASE_URL, preflight  # noqa: E402
@@ -64,6 +71,20 @@ MAKEUP = re.compile(
     re.I,
 )
 
+# Physical objects and out-of-scope categories, not skincare formulations.
+# Brand stores sell these alongside their products: "Dieux Squeeze Key" is a
+# tube squeezer, "Bojagi" a wrapping cloth, "Bubble Charms" merch. Hair, body
+# and deodorant are real formulations but out of scope for a face index.
+NOT_SKINCARE = re.compile(
+    r"\b(squeeze key|spatula|hair clip|clips?|headband|scrunchie|charms?|"
+    r"applicator|sponge|puff|roller|gua sha|device|lamp|mirror|tote|"
+    r"keychain|bojagi|cloth|towel|case|holder|stand|tray|dish|"
+    r"shampoo|conditioner|hair (bonding|treatment|mask|oil|serum)|"
+    r"body (wash|lotion|scrub|oil|polish|butter|skin)|deodorant|"
+    r"hand cream|foot)\b",
+    re.I,
+)
+
 
 def load_products(key: str) -> list:
     headers = {"apikey": key, "Authorization": f"Bearer {key}"}
@@ -90,6 +111,8 @@ def main():
     ap.add_argument("--delete", action="store_true", help="perform the deletion")
     ap.add_argument("--makeup", action="store_true",
                     help="also remove colour cosmetics (concealer, BB cream, nail, ...)")
+    ap.add_argument("--not-skincare", action="store_true",
+                    help="also remove accessories, hair, body and deodorant")
     args = ap.parse_args()
 
     if args.delete and not SERVICE_KEY:
@@ -107,6 +130,8 @@ def main():
     patterns = [("channel/gift", CHANNEL_LISTING)]
     if args.makeup:
         patterns.append(("makeup", MAKEUP))
+    if args.not_skincare:
+        patterns.append(("not skincare", NOT_SKINCARE))
 
     # First matching pattern wins, so nothing is listed or deleted twice.
     targets, reason = [], {}
@@ -130,6 +155,8 @@ def main():
         print("\nList only. Re-run with --delete (and SUPABASE_SERVICE_KEY set) to remove these.")
         if not args.makeup:
             print("Add --makeup to include colour cosmetics.")
+        if not args.not_skincare:
+            print("Add --not-skincare to include accessories, hair, body and deodorant.")
         return
 
     headers = {"apikey": key, "Authorization": f"Bearer {key}", "Prefer": "return=minimal"}

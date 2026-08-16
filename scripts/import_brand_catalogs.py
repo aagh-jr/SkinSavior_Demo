@@ -157,7 +157,23 @@ PROMO_IMAGE = re.compile(
 )
 
 # Body/hair products — out of scope for a face-focused index.
-SKIP_BODY = re.compile(r"\b(body wash|body lotion|body scrub|shampoo|conditioner|hand cream|foot)\b", re.I)
+SKIP_BODY = re.compile(
+    r"\b(body wash|body lotion|body scrub|body oil|body polish|body butter|"
+    r"shampoo|conditioner|hair (bonding|treatment|mask|oil|serum)|"
+    r"hand cream|foot|deodorant)\b",
+    re.I,
+)
+
+# Physical objects, not formulations. Brand stores sell these alongside
+# skincare and they have no ingredient list at all — "Dieux Squeeze Key" is a
+# tube squeezer, "Bojagi" a wrapping cloth, and hair clips are hair clips.
+SKIP_ACCESSORY = re.compile(
+    r"\b(squeeze key|spatula|hair clip|clips?\b|headband|scrunchie|charm|"
+    r"applicator|sponge|puff|roller|gua sha|device|lamp|mirror|"
+    r"tote|keychain|pin|patch tester|bojagi|cloth|towel|"
+    r"case|holder|stand|tray|dish)\b",
+    re.I,
+)
 
 # Colour cosmetics. This is a skincare ingredient index — a concealer's INCI
 # list is real, but nobody is checking it for retinoid clashes, and shade
@@ -339,17 +355,23 @@ def guess_category(product: dict) -> str | None:
     canonical_category generated column keys off anyway.
     """
     hay = f"{product.get('title','')} {product.get('product_type','')} {product.get('tags','')}".lower()
+
+    # Patterns are suffix-tolerant on purpose. `\bspf\b` does NOT match
+    # "SPF50+" (no boundary between F and 5) and `\bsunscreen\b` does NOT
+    # match the "Sunscreens" tag — between them that put Beauty of Joseon's
+    # Relief Sun, an actual sunscreen, into the "other" bucket.
     checks = [
-        ("Sunscreen", r"\b(sunscreen|sun stick|sun serum|sun cream|spf|suncream|sun milk)\b"),
-        ("Cleanser", r"\b(cleanser|cleansing|face wash|foam|micellar|makeup remover)\b"),
-        ("Toner", r"\btoner|toning\b"),
-        ("Essence", r"\b(essence|ampoule)\b"),
-        ("Serum", r"\b(serum|booster|drops)\b"),
-        ("Eye Cream", r"\beye (cream|serum|patch)\b"),
-        ("Mask", r"\b(mask|masque|sleeping pack)\b"),
-        ("Exfoliant", r"\b(exfoliant|peel|peeling|aha|bha|pha|pad)\b"),
-        ("Oil", r"\b(face oil|facial oil)\b"),
-        ("Moisturizer", r"\b(moisturi[sz]er|cream|lotion|gel cream|balm|emulsion)\b"),
+        ("Sunscreen", r"sunscreens?|sun ?(stick|serum|cream|milk|lotion|fluid)|spf\s*\d|\bspf\b|\buv\b"),
+        ("Eye Cream", r"eye\s+(cream|serum|patch|balm)"),
+        ("Cleanser", r"cleanser|cleansing|face wash|foaming|micellar|makeup remover|cleansing balm"),
+        ("Toner", r"\btoner|toning|\btonic\b"),
+        ("Essence", r"essences?\b|ampoules?\b"),
+        ("Exfoliant", r"exfoliant|exfoliating|peel(ing)?\b|\bahas?\b|\bbhas?\b|\bphas?\b|toner pad|acid pad"),
+        ("Serum", r"serums?\b|booster|\bdrops\b|ampoule"),
+        ("Mask", r"masks?\b|masque|sleeping pack|patch(es)?\b|spot cover"),
+        ("Oil", r"face oil|facial oil|cleansing oil|\boil\b"),
+        ("Mist", r"\bmist\b|thermal water|facial spray"),
+        ("Moisturizer", r"moisturi[sz]er|cream|lotion|gel cream|\bbalm\b|emulsion|\bfluid\b"),
     ]
     for label, pattern in checks:
         if re.search(pattern, hay):
@@ -403,7 +425,8 @@ def main():
         for p in catalog:
             title = (p.get("title") or "").strip()
             if (not title or SKIP_TITLE.search(title) or SKIP_BODY.search(title)
-                    or SKIP_MAKEUP.search(title) or SKIP_TAGGED.match(title)):
+                    or SKIP_MAKEUP.search(title) or SKIP_ACCESSORY.search(title)
+                    or SKIP_TAGGED.match(title)):
                 skipped_filter += 1
                 continue
             if not p.get("images"):
