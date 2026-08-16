@@ -92,7 +92,6 @@ BRAND_NAMES = {
     "byoma": "BYOMA",
     "inkeylist": "The INKEY List",
     "dieux": "Dieux",
-    "kosas": "Kosas",
 }
 
 # Verified Shopify storefronts. Keys double as the --brands filter.
@@ -118,7 +117,6 @@ BRAND_DOMAINS = {
     "byoma": "byoma.com",
     "inkeylist": "theinkeylist.com",
     "dieux": "dieuxskin.com",
-    "kosas": "kosas.com",
 }
 
 # Brand catalogues carry a lot that isn't a skincare product: bundles, gifts,
@@ -160,6 +158,19 @@ PROMO_IMAGE = re.compile(
 
 # Body/hair products — out of scope for a face-focused index.
 SKIP_BODY = re.compile(r"\b(body wash|body lotion|body scrub|shampoo|conditioner|hand cream|foot)\b", re.I)
+
+# Colour cosmetics. This is a skincare ingredient index — a concealer's INCI
+# list is real, but nobody is checking it for retinoid clashes, and shade
+# variants multiply into dozens of near-identical rows. BB/CC creams are
+# included deliberately: they're tinted coverage first, skincare second.
+SKIP_MAKEUP = re.compile(
+    r"\b(concealer|foundation|cushion|lipstick|lip tint|lip gloss|lip oil|"
+    r"lip stain|mascara|eyeliner|eye liner|eyeshadow|eye shadow|blush|"
+    r"bronzer|contour stick|highlighter|brow (pencil|gel|pen)|"
+    r"setting (spray|powder)|primer|bb cream|cc cream|tinted moisturi[sz]er|"
+    r"palette|nail|glitter|false lash|lash serum|makeup remover wipe)\b",
+    re.I,
+)
 
 # INCIDecoder politeness. Raised from 1.15s after a real import run: at that
 # rate the site began refusing requests partway through, and because a refused
@@ -392,7 +403,7 @@ def main():
         for p in catalog:
             title = (p.get("title") or "").strip()
             if (not title or SKIP_TITLE.search(title) or SKIP_BODY.search(title)
-                    or SKIP_TAGGED.match(title)):
+                    or SKIP_MAKEUP.search(title) or SKIP_TAGGED.match(title)):
                 skipped_filter += 1
                 continue
             if not p.get("images"):
