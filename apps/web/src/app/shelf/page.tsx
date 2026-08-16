@@ -54,8 +54,25 @@ export default async function ShelfPage() {
           in.
         </p>
 
-        {/* ---- In use ---- */}
+        {/* ---- Routines ---- */}
         <section className="mt-12">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="m-0 font-serif text-[24px] font-medium text-ink">
+              Your routines
+            </h2>
+            <span className="text-[13px] text-muted-foreground">
+              {routines.length > 0 ? `${routines.length}` : "none yet"}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            {routines.map((routine) => (
+              <RoutineCard key={routine.id} routine={routine} />
+            ))}
+            <NewRoutineCard />
+          </div>
+        </section>
+        {/* ---- In use ---- */}
+        <section className="mt-14">
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="m-0 font-serif text-[24px] font-medium text-ink">
               Products you use
@@ -97,23 +114,6 @@ export default async function ShelfPage() {
           )}
         </section>
 
-        {/* ---- Routines ---- */}
-        <section className="mt-14">
-          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="m-0 font-serif text-[24px] font-medium text-ink">
-              Your routines
-            </h2>
-            <span className="text-[13px] text-muted-foreground">
-              {routines.length > 0 ? `${routines.length}` : "none yet"}
-            </span>
-          </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            {routines.map((routine) => (
-              <RoutineCard key={routine.id} routine={routine} />
-            ))}
-            <NewRoutineCard />
-          </div>
-        </section>
       </main>
     </div>
   );

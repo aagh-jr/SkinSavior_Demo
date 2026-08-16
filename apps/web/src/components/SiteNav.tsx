@@ -8,11 +8,13 @@ import { supabase } from "@/lib/supabase/client";
 
 // Browse destinations. "My shelf" is deliberately NOT here — it's personal
 // rather than catalogue, so it sits apart on the right (see SHELF_LINK).
+// Brands is deliberately absent: browsing by brand duplicates what Products
+// already does, and the route still exists — product pages link to
+// /brands/[slug], and that page stays reachable from there.
 const LINKS = [
   { href: "/for-you", label: "For you" },
   { href: "/search", label: "Products" },
   { href: "/ingredients", label: "Ingredients" },
-  { href: "/brands", label: "Brands" },
 ] as const;
 
 /** The user's own stuff: products in use, saved products, routines. */

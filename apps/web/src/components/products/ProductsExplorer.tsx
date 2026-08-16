@@ -70,6 +70,7 @@ export function ProductsExplorer({
   initialQ: string;
 }) {
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [q, setQ] = useState(initialQ);
   const [debouncedQ, setDebouncedQ] = useState(initialQ);
   const [rows, setRows] = useState<ProductCardRow[]>(initialPage.rows);
@@ -81,10 +82,9 @@ export function ProductsExplorer({
   const reqId = useRef(0);
   const firstRender = useRef(true);
 
-  const rawCategories =
-    activeKey === null
-      ? null
-      : categories.find((c) => c.key === activeKey)?.rawValues ?? null;
+  const activeCategory =
+    activeKey === null ? null : categories.find((c) => c.key === activeKey) ?? null;
+  const rawCategories = activeCategory?.rawValues ?? null;
 
   // Debounce the search box.
   useEffect(() => {
@@ -142,22 +142,63 @@ export function ProductsExplorer({
         />
       </div>
 
-      {/* Type filter chips */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <FilterChip
-          active={activeKey === null}
-          onClick={() => setActiveKey(null)}
-          label="All types"
-        />
-        {categories.map((c) => (
-          <FilterChip
-            key={c.key}
-            active={activeKey === c.key}
-            onClick={() => setActiveKey(c.key)}
-            label={`${c.label} (${c.count})`}
-          />
-        ))}
+      {/* Filter — collapsed behind a control rather than a permanent wall of
+          chips. Retail catalogues lead with product, not taxonomy: the shelf
+          should be the first thing you see, with narrowing available when you
+          want it. The active filter stays visible as a removable pill so a
+          narrowed list is never mistaken for the whole catalogue. */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setFilterOpen((o) => !o)}
+          aria-expanded={filterOpen}
+          className={
+            "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[13px] font-medium transition-colors " +
+            (filterOpen || activeKey
+              ? "border-primary text-ink"
+              : "border-border text-muted-foreground hover:border-primary/40 hover:text-ink")
+          }
+        >
+          <span aria-hidden>⌄</span>
+          Filter by type
+        </button>
+
+        {activeCategory && (
+          <button
+            type="button"
+            onClick={() => setActiveKey(null)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-primary px-3.5 py-2 text-[13px] font-medium text-primary-foreground"
+            aria-label={`Remove ${activeCategory.label} filter`}
+          >
+            {activeCategory.label}
+            <span aria-hidden>×</span>
+          </button>
+        )}
       </div>
+
+      {filterOpen && (
+        <div className="mt-3 flex flex-wrap gap-2 rounded-2xl border border-border bg-warm-white p-4">
+          <FilterChip
+            active={activeKey === null}
+            onClick={() => {
+              setActiveKey(null);
+              setFilterOpen(false);
+            }}
+            label="All types"
+          />
+          {categories.map((c) => (
+            <FilterChip
+              key={c.key}
+              active={activeKey === c.key}
+              onClick={() => {
+                setActiveKey(c.key);
+                setFilterOpen(false);
+              }}
+              label={`${c.label} (${c.count})`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Result count */}
       <p className="mt-6 text-[13px] text-muted-foreground">
