@@ -135,7 +135,26 @@ SKIP_TITLE = re.compile(
     r"starter|discovery|limited edition|"
     # Size variants duplicate a full-size product we already import, and
     # INCIDecoder indexes the full size rather than the travel one.
-    r"travel size|mini|deluxe size|sachet)\b",
+    r"travel size|mini|deluxe size|sachet|"
+    # Channel-specific and gift-with-purchase listings. These are duplicates
+    # of a real product whose imagery is a promo banner or a before/after
+    # graphic rather than the product — "[Amazon] DIVE IN Serum" carried a
+    # before/after composite, "[FreeGift] DIVE IN Serum 10ml" a GWP graphic.
+    r"gwp|amazon|qoo10|shopee|lazada|tiktok shop|costco|walmart)\b",
+    re.I,
+)
+
+# Bracketed channel/promo tags: "[Amazon] ...", "[FreeGift] ...", "(Event)".
+SKIP_TAGGED = re.compile(r"^\s*[\[\(][^\]\)]{2,20}[\]\)]", re.I)
+
+# Filename markers for images that are NOT a clean product shot. Shopify's
+# position-1 image is whatever the brand most recently promoted, so it is
+# regularly a campaign graphic, a collab lockup, a before/after composite or a
+# model shot rather than the product on white.
+PROMO_IMAGE = re.compile(
+    r"(gwp|gift|event|promo|banner|sale|coupon|before|after|b_?a\b|review|"
+    r"chart|howto|how_to|step\d|tutorial|model|lifestyle|award|"
+    r"bundle|set_|_set|notice|launch|campaign|collab)",
     re.I,
 )
 
@@ -248,14 +267,44 @@ def fetch_catalog(domain: str, max_pages: int = 6) -> list:
 
 
 def best_image(product: dict) -> str | None:
-    """Highest-resolution image Shopify will serve for this product."""
-    images = product.get("images") or []
+    """
+    Pick the cleanest product shot, not simply the first image.
+
+    images[0] is whatever the brand last promoted, so it is often a campaign
+    graphic rather than the product — Torriden's BALANCEFUL Cream led with a
+    collab lockup, and its Amazon listing led with a before/after composite.
+    Both looked broken next to proper catalogue photography.
+
+    Scoring, best first:
+      + square (product shots are shot 1:1; banners and composites are not)
+      + earlier position, as a mild tiebreak
+      - filename matching PROMO_IMAGE
+
+    Automated selection can't be perfect — a promo shot with an innocuous
+    filename will still slip through — so this is a large improvement rather
+    than a guarantee, and a manual override remains worth adding.
+    """
+    images = [im for im in (product.get("images") or []) if isinstance(im.get("src"), str)]
     if not images:
         return None
-    src = images[0].get("src")
-    if not isinstance(src, str):
-        return None
-    src = src.split("?")[0]
+
+    def score(index: int, im: dict) -> float:
+        src = im["src"].split("?")[0]
+        filename = src.rsplit("/", 1)[-1]
+        value = 0.0
+        if PROMO_IMAGE.search(filename):
+            value -= 10
+        w, h = im.get("width") or 0, im.get("height") or 0
+        if w and h:
+            ratio = min(w, h) / max(w, h)
+            value += 3 * ratio          # 1.0 for square, less for banners
+            if w < 600 or h < 600:
+                value -= 2              # too small to render well
+        value -= index * 0.25           # prefer earlier, but weakly
+        return value
+
+    best = max(enumerate(images), key=lambda pair: score(*pair))[1]
+    src = best["src"].split("?")[0]
     # Shopify sizes live in the filename; 1200 is sharp without being huge.
     return re.sub(r"_(\d+)x(\d+)?(\.[a-z]+)$", r"_1200x1200\3", src)
 
@@ -342,7 +391,8 @@ def main():
         seen_titles: set[str] = set()
         for p in catalog:
             title = (p.get("title") or "").strip()
-            if not title or SKIP_TITLE.search(title) or SKIP_BODY.search(title):
+            if (not title or SKIP_TITLE.search(title) or SKIP_BODY.search(title)
+                    or SKIP_TAGGED.match(title)):
                 skipped_filter += 1
                 continue
             if not p.get("images"):
