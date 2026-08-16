@@ -11,29 +11,48 @@ export const metadata: Metadata = {
 };
 
 /**
- * Categories to rank, in the order a routine is applied.
+ * Selectable categories, in the order a routine is applied.
  *
  * Deliberately not every canonical category — eye_cream (2 products) and
- * face_oil (1) have nothing to rank, and a "top picks" row of one product
- * implies a selection that never happened. They come back when the catalog
- * can support them.
+ * face_oil (1) have nothing to rank, and a "ranking" of one product implies a
+ * selection that never happened. They return when the catalogue can support
+ * them.
  */
-const SECTIONS: { category: string; label: string }[] = [
-  { category: "cleanser", label: "Cleansers" },
-  { category: "toner", label: "Toners" },
-  { category: "serum", label: "Serums" },
-  { category: "moisturizer", label: "Moisturizers" },
-  { category: "sunscreen", label: "Sunscreens" },
-  { category: "exfoliant", label: "Exfoliants" },
-  { category: "mask", label: "Masks" },
-];
+const CATEGORIES = [
+  { key: "cleanser", label: "Cleansers" },
+  { key: "toner", label: "Toners" },
+  { key: "serum", label: "Serums" },
+  { key: "moisturizer", label: "Moisturizers" },
+  { key: "sunscreen", label: "Sunscreens" },
+  { key: "exfoliant", label: "Exfoliants" },
+  { key: "mask", label: "Masks" },
+] as const;
 
-const PER_CATEGORY = 6;
+const LIMIT = 20;
 
-export default async function ForYouPage() {
+/**
+ * Score colour band.
+ *
+ * Four clearly separated steps rather than a wash of warm neutrals — the whole
+ * point of a score is that you can tell a good match from a mediocre one at a
+ * glance, which a single brown-ish tone can't do.
+ */
+function band(score: number) {
+  if (score >= 85) return { fg: "#2f6b30", bg: "#e4f2df", ring: "#7fb069" };
+  if (score >= 70) return { fg: "#4a7c2f", bg: "#eef5e6", ring: "#a3c585" };
+  if (score >= 55) return { fg: "#9a6a12", bg: "#fdf2dd", ring: "#e0be7a" };
+  return { fg: "#9a4a2f", bg: "#fdece6", ring: "#dda893" };
+}
+
+export default async function ForYouPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const { category } = await searchParams;
   const profile = await getMyProfile();
 
-  // No profile: prompt rather than render a page of meaningless numbers.
+  // No profile: prompt rather than render meaningless numbers.
   if (!isScorable(profile)) {
     return (
       <div className="min-h-screen bg-background">
@@ -58,122 +77,149 @@ export default async function ForYouPage() {
     );
   }
 
-  const sections = await Promise.all(
-    SECTIONS.map(async (s) => ({
-      ...s,
-      data: await rankCategoryForMe(s.category, PER_CATEGORY),
-    })),
-  );
-
-  const visible = sections.filter((s) => s.data && s.data.ranked.length > 0);
+  const active =
+    CATEGORIES.find((c) => c.key === category)?.key ?? CATEGORIES[2].key; // serums
+  const activeLabel = CATEGORIES.find((c) => c.key === active)!.label;
+  const data = await rankCategoryForMe(active, LIMIT);
+  const ranked = data?.ranked ?? [];
 
   return (
     <div className="min-h-screen bg-background">
       <SiteNav />
-      <main className="mx-auto w-full max-w-[1100px] px-6 py-12 md:px-12 md:py-16">
+      <main className="mx-auto w-full max-w-[900px] px-6 py-10 md:px-12 md:py-14">
         <div className="mb-2 text-[13px] text-muted-foreground">For you</div>
         <h1 className="font-serif text-4xl font-medium tracking-tight text-ink md:text-5xl">
           Matched to your skin
         </h1>
         <p className="mt-3 max-w-2xl text-[16px] leading-relaxed text-muted-foreground">
-          Every product scored against your quiz answers. Tap any product to see
-          the full breakdown — which ingredients earned or cost it points, and
-          why. Same answers, same score, every time.
+          Every product scored against your quiz answers, best first. Tap any
+          one to see the full breakdown — which ingredients earned or cost it
+          points, and why.
         </p>
 
-        {visible.length === 0 && (
-          <p className="mt-10 text-muted-foreground">
-            We couldn&apos;t rank anything yet — the catalogue is still filling out.
+        {/* Category selector — server-side links, so no client JS needed. */}
+        <div className="mt-6 flex flex-wrap gap-2">
+          {CATEGORIES.map((c) => {
+            const isActive = c.key === active;
+            return (
+              <Link
+                key={c.key}
+                href={`/for-you?category=${c.key}`}
+                scroll={false}
+                className={
+                  "rounded-full border px-4 py-2 text-[14px] font-medium transition-colors " +
+                  (isActive
+                    ? "border-ink bg-ink text-warm-white"
+                    : "border-border bg-warm-white text-ink hover:border-clay")
+                }
+              >
+                {c.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Honest framing: with 7 exfoliants, "top 20" would imply a selection
+            that barely happened. Say what we actually looked at. */}
+        <p className="mt-6 text-[13px] text-muted-foreground">
+          {data && data.total > 0 ? (
+            <>
+              {data.total <= LIMIT
+                ? `All ${data.total} ${activeLabel.toLowerCase()} we know about`
+                : `Best ${ranked.length} of ${data.total} ${activeLabel.toLowerCase()}`}
+              {data.blockedCount > 0 && (
+                <> · {data.blockedCount} hidden on safety grounds</>
+              )}
+            </>
+          ) : (
+            <>No {activeLabel.toLowerCase()} in the catalogue yet.</>
+          )}
+        </p>
+
+        <ol className="mt-5 list-none space-y-3 p-0">
+          {ranked.map(({ slug, name, brand, imageUrl, price, result }, i) => {
+            const c = band(result.score);
+            const top = result.reasons[0];
+            return (
+              <li key={slug}>
+                <Link
+                  href={`/product/${slug}`}
+                  className="flex items-center gap-4 rounded-[16px] border border-border bg-white p-4 transition-colors hover:border-clay"
+                >
+                  <span className="w-5 flex-shrink-0 text-center font-mono text-[13px] text-[#9a8c75]">
+                    {i + 1}
+                  </span>
+
+                  <div className="h-[68px] w-[68px] flex-shrink-0 overflow-hidden rounded-[12px] border border-border">
+                    <ProductThumb
+                      category={active}
+                      imageUrl={imageUrl}
+                      name={name}
+                      className="h-full w-full"
+                      iconSize={28}
+                    />
+                  </div>
+
+                  {/* Big, clearly banded score — readable at a glance. */}
+                  <div
+                    className="flex h-[58px] w-[58px] flex-shrink-0 flex-col items-center justify-center rounded-[14px] border-2"
+                    style={{ background: c.bg, borderColor: c.ring }}
+                  >
+                    <span
+                      className="font-serif text-[24px] font-semibold leading-none"
+                      style={{ color: c.fg }}
+                    >
+                      {result.score}
+                    </span>
+                    <span
+                      className="mt-0.5 text-[9px] uppercase tracking-[0.12em]"
+                      style={{ color: c.fg, opacity: 0.75 }}
+                    >
+                      match
+                    </span>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-2 font-serif text-[16px] leading-snug text-ink">
+                      {name}
+                    </p>
+                    <p className="mt-0.5 text-[11px] uppercase tracking-[0.1em] text-clay">
+                      {brand}
+                      {price && <span className="ml-2 normal-case tracking-normal text-muted-foreground">{price}</span>}
+                    </p>
+                    {top && (
+                      <p className="mt-1.5 line-clamp-1 text-[12px]">
+                        <span
+                          className="font-mono font-semibold"
+                          style={{ color: top.points > 0 ? "#2f6b30" : "#9a4a2f" }}
+                        >
+                          {top.points > 0 ? "+" : ""}
+                          {top.points}
+                        </span>{" "}
+                        <span className="text-muted-foreground">
+                          {top.ingredients[0] ?? top.text}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+
+        {ranked.length === 0 && data && data.total === 0 && (
+          <p className="mt-6 rounded-[14px] border border-dashed border-border bg-warm-white p-6 text-center text-[14px] text-muted-foreground">
+            Nothing here yet — the catalogue is still filling out for this type.
           </p>
         )}
 
-        {visible.map(({ category, label, data }) => (
-          <section key={category} className="mt-14">
-            <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="m-0 font-serif text-[26px] font-medium text-ink">{label}</h2>
-              {/* Honest framing: with 7 exfoliants in the catalogue, "top 6"
-                  would imply a selection that barely happened. Say what we
-                  actually looked at. */}
-              <span className="text-[13px] text-muted-foreground">
-                {data!.total <= PER_CATEGORY
-                  ? `all ${data!.total} we know about`
-                  : `best ${data!.ranked.length} of ${data!.total}`}
-                {data!.blockedCount > 0 && (
-                  <> · {data!.blockedCount} hidden on safety grounds</>
-                )}
-              </span>
-            </div>
-
-            <ul className="grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
-              {data!.ranked.map(({ slug, name, brand, imageUrl, price, result }) => (
-                <li key={slug}>
-                  <Link
-                    href={`/product/${slug}`}
-                    className="flex h-full gap-4 rounded-[16px] border border-border bg-white p-4 transition-colors hover:border-clay"
-                  >
-                    <div className="h-[74px] w-[74px] flex-shrink-0 overflow-hidden rounded-[12px] border border-border">
-                      <ProductThumb
-                        category={category}
-                        imageUrl={imageUrl}
-                        name={name}
-                        className="h-full w-full"
-                        iconSize={30}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="font-mono text-[13px] font-semibold"
-                          style={{
-                            color:
-                              result.score >= 80
-                                ? "#5a7a4a"
-                                : result.score >= 60
-                                  ? "#7a6a58"
-                                  : "#9a4a2f",
-                          }}
-                        >
-                          {result.score}
-                        </span>
-                        <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                          match
-                        </span>
-                        {price && (
-                          <span className="ml-auto text-[12px] text-muted-foreground">
-                            {price}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 line-clamp-2 font-serif text-[15px] leading-snug text-ink">
-                        {name}
-                      </p>
-                      <p className="mt-0.5 text-[11px] uppercase tracking-[0.1em] text-clay">
-                        {brand}
-                      </p>
-                      {/* The single biggest reason, so the card explains
-                          itself without a click. */}
-                      {result.reasons[0] && (
-                        <p className="mt-1.5 line-clamp-1 text-[12px] text-muted-foreground">
-                          {result.reasons[0].points > 0 ? "+" : ""}
-                          {result.reasons[0].points}{" "}
-                          {result.reasons[0].ingredients[0] ??
-                            result.reasons[0].text}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-
-        <p className="mt-16 border-t border-border pt-6 text-[12px] leading-relaxed text-muted-foreground">
+        <p className="mt-12 border-t border-border pt-6 text-[12px] leading-relaxed text-muted-foreground">
           Scores come from your quiz answers and each product&apos;s ingredient
           list — no AI guesswork, and the same inputs always give the same
           result. Products excluded on safety grounds are counted above but not
-          shown here; you&apos;ll still see them, with the reason, if you reach
-          them from search. This is information to weigh, not medical advice.
+          listed; you&apos;ll still see them, with the reason, if you reach them
+          from search. This is information to weigh, not medical advice.
         </p>
       </main>
     </div>
