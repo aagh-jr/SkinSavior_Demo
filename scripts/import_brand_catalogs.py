@@ -371,14 +371,44 @@ def best_image(product: dict) -> str | None:
     return re.sub(r"_(\d+)x(\d+)?(\.[a-z]+)$", r"_1200x1200\3", src)
 
 
+# Storefront boilerplate that ends up inside body_html: stock and shipping
+# notes, promo terms, variant labels. None of it describes the product, and
+# some of it dates ("Expiration date : 2027-06-19") so it goes stale on the
+# page. Applied per sentence so the real description survives.
+DESC_NOISE = re.compile(
+    r"(expiration date|expiry|discount codes?|cannot be combined|can'?t be combined|"
+    r"free shipping|promo code|use code|while supplies last|final sale|no returns|"
+    r"limited time only|save \d+%|get \d+x more|shop now|add to (cart|bag)|"
+    r"subscribe|auto-?ship|klarna|afterpay|default title)",
+    re.I,
+)
+
+
 def clean_text(html: str | None, limit: int = 600) -> str | None:
+    """Product description with storefront boilerplate removed."""
     if not html:
         return None
     text = re.sub(r"<[^>]+>", " ", html)
     text = re.sub(r"&nbsp;", " ", text)
     text = re.sub(r"&amp;", "&", text)
+    text = re.sub(r"&#\d+;", " ", text)
+    # Parenthetical asides are almost always the promo bits
+    # ("(Discount codes can't be combined)", "(Default Title)").
+    text = re.sub(r"\([^)]*\)", " ", text) if DESC_NOISE.search(text) else text
     text = re.sub(r"\s+", " ", text).strip()
-    return text[:limit] or None
+
+    # Drop whole sentences that are storefront noise rather than description.
+    kept = [
+        part.strip()
+        for part in re.split(r"(?<=[.!?])\s+", text)
+        if part.strip() and not DESC_NOISE.search(part)
+    ]
+    cleaned = " ".join(kept).strip()
+
+    # If filtering removed everything, the description was pure boilerplate.
+    if not cleaned:
+        return None
+    return cleaned[:limit]
 
 
 def guess_category(product: dict) -> str | None:
@@ -390,6 +420,11 @@ def guess_category(product: dict) -> str | None:
     canonical_category generated column keys off anyway.
     """
     hay = f"{product.get('title','')} {product.get('product_type','')} {product.get('tags','')}".lower()
+
+    # "Oil-free" is a claim about what the product LACKS. Removing the phrase
+    # before matching stops it from being read as an oil, without losing the
+    # rest of the title ("...Ultra-Moisturizing Lotion" still says lotion).
+    hay = re.sub(r"\boils?\s*[-–]?\s*free\b", " ", hay)
 
     # Patterns are suffix-tolerant on purpose. `\bspf\b` does NOT match
     # "SPF50+" (no boundary between F and 5) and `\bsunscreen\b` does NOT
@@ -404,7 +439,10 @@ def guess_category(product: dict) -> str | None:
         ("Exfoliant", r"exfoliant|exfoliating|peel(ing)?\b|\bahas?\b|\bbhas?\b|\bphas?\b|toner pad|acid pad"),
         ("Serum", r"serums?\b|booster|\bdrops\b|ampoule"),
         ("Mask", r"masks?\b|masque|sleeping pack|patch(es)?\b|spot cover"),
-        ("Oil", r"face oil|facial oil|cleansing oil|\boil\b"),
+        # "Oil" only when the product IS an oil. An unqualified \boil\b match
+        # put "Oil Free Ultra-Moisturizing Lotion" — a lotion whose selling
+        # point is containing no oil — into the Oil category.
+        ("Oil", r"face oil|facial oil|body oil|\boils?\b(?!\s*[-–]?\s*free)"),
         ("Mist", r"\bmist\b|thermal water|facial spray"),
         ("Moisturizer", r"moisturi[sz]er|cream|lotion|gel cream|\bbalm\b|emulsion|\bfluid\b"),
     ]
