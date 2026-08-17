@@ -42,22 +42,34 @@ export async function analyzeMyRoutine(
   if (withProducts.length === 0) return null;
 
   const db = (await createClient()) as unknown as SupabaseClient;
-  const { data } = await db
-    .from("product_ingredients")
-    .select("product_id, position, ingredients(inci_name)")
-    .in(
-      "product_id",
-      withProducts.map((s) => s.productId as string),
-    )
-    .order("position");
 
+  // Paginated. A routine of 25 products at ~40 ingredients each already
+  // exceeds PostgREST's 1000-row cap, and the ingredients that would be lost
+  // are the ones at the END of each INCI list — exactly where fragrance,
+  // essential oils and preservatives sit. Truncation here would quietly
+  // under-report clashes while the report still looked complete.
+  const PAGE = 1000;
+  const productIds = withProducts.map((s) => s.productId as string);
   const byProduct = new Map<string, string[]>();
-  for (const row of (data ?? []) as unknown as IngredientJoinRow[]) {
-    if (!row.ingredients) continue;
-    byProduct.set(row.product_id, [
-      ...(byProduct.get(row.product_id) ?? []),
-      row.ingredients.inci_name,
-    ]);
+
+  for (let offset = 0; ; offset += PAGE) {
+    const { data, error } = await db
+      .from("product_ingredients")
+      .select("product_id, position, ingredients(inci_name)")
+      .in("product_id", productIds)
+      .order("product_id")
+      .order("position")
+      .range(offset, offset + PAGE - 1);
+    if (error) break;
+    const page = (data ?? []) as unknown as IngredientJoinRow[];
+    for (const row of page) {
+      if (!row.ingredients) continue;
+      byProduct.set(row.product_id, [
+        ...(byProduct.get(row.product_id) ?? []),
+        row.ingredients.inci_name,
+      ]);
+    }
+    if (page.length < PAGE) break;
   }
 
   const input: RoutineStepInput[] = withProducts.map((s) => ({

@@ -72,14 +72,20 @@ function mostCommon<T>(values: (T | null | undefined)[]): T | null {
   return best;
 }
 
+/**
+ * Every catalogue product, PAGINATED.
+ *
+ * PostgREST caps a response at 1000 rows. The catalogue passed that some time
+ * ago, so an unpaginated read silently returned the first 1000 ordered by
+ * brand — dropping every brand late in the alphabet from the A-Z index and
+ * undercounting the ones on the boundary. Same failure that was hiding safety
+ * exclusions in the category ranking: truncation looks exactly like "there
+ * isn't any more".
+ */
 async function loadAllProducts(): Promise<BrandProduct[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select("slug, name, brand, category, origin, image_url, created_at")
-    .order("brand");
-  if (error) throw new Error(`Couldn't load products: ${error.message}`);
-  const rows = (data ?? []) as unknown as {
+  const PAGE = 1000;
+  const rows: {
     slug: string;
     name: string;
     brand: string | null;
@@ -87,7 +93,19 @@ async function loadAllProducts(): Promise<BrandProduct[]> {
     origin: string | null;
     image_url: string | null;
     created_at: string;
-  }[];
+  }[] = [];
+
+  for (let offset = 0; ; offset += PAGE) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("slug, name, brand, category, origin, image_url, created_at")
+      .order("brand")
+      .range(offset, offset + PAGE - 1);
+    if (error) throw new Error(`Couldn't load products: ${error.message}`);
+    const page = (data ?? []) as unknown as typeof rows;
+    rows.push(...page);
+    if (page.length < PAGE) break;
+  }
   return rows
     .filter((r) => r.brand && r.brand.trim())
     .map((r) => ({
