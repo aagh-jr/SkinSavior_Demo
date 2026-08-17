@@ -167,7 +167,12 @@ export async function rankCategoryForMe(
   const { data } = await db
     .from("products")
     .select("id, slug, name, brand, image_url, price, canonical_category")
-    .eq("canonical_category", canonicalCategory);
+    .eq("canonical_category", canonicalCategory)
+    // Out-of-scope products (makeup, accessories, bundles, no ingredients) are
+    // flagged rather than deleted — migration 20260816000000. Recommending
+    // them would be worse than not having them: a mascara has an INCI list but
+    // nothing here can say anything useful about it.
+    .is("excluded_reason", null);
 
   const rows = (data ?? []) as {
     id: string;

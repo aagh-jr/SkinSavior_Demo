@@ -99,6 +99,9 @@ async function loadAllProducts(): Promise<BrandProduct[]> {
     const { data, error } = await supabase
       .from("products")
       .select("slug, name, brand, category, origin, image_url, created_at")
+      // Out-of-scope products are flagged, not deleted (migration
+      // 20260816000000). NULL = visible.
+      .is("excluded_reason", null)
       .order("brand")
       .range(offset, offset + PAGE - 1);
     if (error) throw new Error(`Couldn't load products: ${error.message}`);

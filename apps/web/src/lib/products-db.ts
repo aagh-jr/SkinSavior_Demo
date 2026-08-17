@@ -320,7 +320,10 @@ export async function listDbProductsPage({
     .from("products")
     .select("slug, name, brand, origin, category, price, image_url", {
       count: "exact",
-    });
+    })
+    // Out-of-scope products are flagged, not deleted (migration
+    // 20260816000000). NULL = visible.
+    .is("excluded_reason", null);
 
   const needle = q.trim();
   if (needle) {
