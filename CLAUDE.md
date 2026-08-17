@@ -107,7 +107,19 @@ predates the grouping and is no longer necessary.
 |---|---|
 | `import_brand_catalogs.py` | Whole brand catalogues from Shopify `/products.json`. Main importer. |
 | `fetch_popular_products.py` | Curated list; also holds shared `Db`, `scrape_incidecoder`, `preflight`. |
-| `cleanup_catalog.py` | Removes channel listings, makeup, accessories. List-only unless `--delete`. |
+| `classify_catalog.py` | Flags out-of-scope rows via `excluded_reason`. Report-only unless `--write`. |
+| `backfill_ingredient_links.py` | Rebuilds links from stored `raw_ingredients`. No scraping. |
+| `cleanup_catalog.py` | DELETES channel listings/makeup/accessories. Prefer classify — it hides instead. |
+
+**Out-of-scope products are HIDDEN, not deleted.** `products.excluded_reason`
+(NULL = visible) is set by `classify_catalog.py` and filtered by every
+catalogue query. Reversible, and a re-import can't silently resurrect a
+product that was already judged.
+
+Classification reads Shopify `product_type`, not the title — titles say
+nothing ("Hotliner" is a lip liner, "Shiny Objects" a mascara, "Face
+Perfector" a brush). `CLASSIFY_ONLY_DOMAINS` covers brands we no longer import
+but still hold products from (Kosas), which would otherwise be unclassifiable.
 
 **Sources and what each is good for:**
 - **Brand Shopify storefronts** — `/products.json` is public and documented.
@@ -124,15 +136,46 @@ anon.
 
 ---
 
-## Gotchas that have already cost time
+## The failure mode that keeps recurring
 
+**A failure that looks like absence hides itself — and here, absence means
+safe.** Four separate bugs, all this shape, each one silently removing
+protection while every page still looked fine:
+
+| What failed | What it looked like |
+|---|---|
+| INCIDecoder throttling | "product not indexed" |
+| Swallowed `AttributeError` on a renamed method | "product has no ingredients" |
+| PostgREST truncating at 1000 rows | "product has no such ingredient" |
+| A cached page render | "this product was never blocked" |
+
+The last two were the worst: ingredients are stored in INCI (concentration)
+order, so truncation always kept the base and dropped the tail — exactly where
+fragrance, essential oils and preservatives sit. Products came back looking
+clean because the disqualifying ingredient was never loaded. On serums alone
+that was 38 products recommended to a user who had declared a reaction to
+what was in them.
+
+The defence is to make **"we don't know" a distinct state from "there is
+nothing there"** — `_fetch_failed` for the scraper, checking page length for
+truncation, never bare-`except` around a call whose failure resembles no-data.
+
+## Other gotchas that have cost time
+
+- **PostgREST caps every response at 1000 rows.** Anything reading a whole
+  category or the whole catalogue must paginate with `.range()`. Fixed in
+  `match-db`, `brands-db`, `compatibility-db`.
+- **Never cache a page that renders a safety block.** `/for-you` and the
+  product page are `force-dynamic`. A safety exclusion a cache can hide is not
+  an exclusion.
 - **Word-boundary regexes.** `\bspf\b` does not match `SPF50+`;
-  `\bsunscreen\b` does not match the `Sunscreens` tag; SQL `LIKE '%lip_%'`
-  treats `_` as a wildcard and matched "Lipid" and "Lollipop". Always test
-  patterns against real catalogue values.
-- **INCIDecoder throttles.** A refused request looked identical to "product
-  not indexed", silently dropping valid products. `_fetch_failed` now
-  distinguishes them; never conflate the two.
+  `\bsunscreen\b` does not match the `Sunscreens` tag; `\boil\b` matches the
+  "Oil" in "Oil Free"; SQL `LIKE '%lip_%'` treats `_` as a wildcard and caught
+  "Lipid" and "Lollipop". Test patterns against real catalogue values.
+- **Escaping through heredocs corrupts regexes.** A pattern once contained a
+  literal backspace (0x08) where `\b` was intended, so it matched nothing —
+  and 0x08 renders invisibly, so the source looked correct. Edit regex lines
+  directly rather than patching them through nested shell/Python strings.
 - **Shopify `vendor` is free text** — "COSRX official" broke ingredient
   lookups. Use `BRAND_NAMES`.
 - **Shopify `images[0]` is often a promo graphic**, not the product. Some have
@@ -142,27 +185,37 @@ anon.
 - **`supabaseAdmin` silently returns a mock** when `SUPABASE_SERVICE_ROLE_KEY`
   is unset — no error, just empty data and 404s everywhere.
 - **Migrations are applied by hand** in the Supabase SQL editor. Writing the
-  file does not apply it.
+  file does not apply it. Same for classification: `--write` is required.
+- **Run destructive/bulk scripts as a REPORT first.** The report caught
+  makeup-remover cleansers about to be flagged as makeup, and "Detox Soap -
+  Bag" about to be flagged as an accessory.
 
 ---
 
 ## State
 
-~1,420 products, ~3,000 ingredients. Roughly 25% have studio photography;
-the rest are Open Beauty Facts phone photos awaiting replacement.
+**1,422 rows · 1,215 visible · 207 hidden** (153 no ingredients, 49 makeup,
+4 accessories, 1 body). Of the visible catalogue: **100% scoreable** (every
+product has a real INCI list), **57% studio photography**, 693 with prices.
+
+Started the day at 40% scoreable and 5% studio photography.
 
 **Built:** 13-question quiz (4 skin axes + safety fields) → seeded routine
 builder · deterministic match scoring with visible reasoning · `/for-you`
 ranking · routine clash detection incl. retinoid/SPF timing · My shelf
-(routines, products in use, saved) · brand-catalogue importer.
+(routines, products in use, saved) · A-Z brand index · brand-catalogue
+importer + classification pipeline.
 
-**Open:**
-- Rebuild catalogue from brand sources; prune the Open Beauty Facts tail
+**Open, roughly by value:**
+- **Vercel is not deploying** — the live site runs old code, so none of this
+  is visible to anyone but a local dev. Diagnose before building more.
+- Price comparison from affiliate feeds (Rakuten/CJ/Impact). Current prices
+  are a brand-site snapshot with no timestamp and no "best price" claim.
+- Vision pass or manual override for promo-overlay images (the "FREE GIFT"
+  badge case) — filename rules provably cannot catch these.
 - Clean the contaminated `ingredients.functions` column
-- ~118 products in `canonical_category = "other"` (partly fixed; needs re-import)
-- Vision pass or manual override for promo-overlay images
-- Derived product attributes (fragrance-free, alcohol-free) from INCI lists
 - Home page, `/saved` and nav search still read a 3-product static demo file
+- Derived product attributes (fragrance-free, alcohol-free) from INCI lists
+- Replace the remaining Open Beauty Facts photos (~43% of visible catalogue)
 - Regenerate Supabase types to drop `as unknown as SupabaseClient` casts
 - `packages/core` ESLint config is broken; repo-wide `bun run lint` fails
-- Vercel is not deploying — the live site runs old code
