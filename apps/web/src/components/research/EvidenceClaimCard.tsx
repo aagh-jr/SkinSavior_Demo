@@ -10,6 +10,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { ClaimBadgeIcon } from "./ClaimBadgeIcon";
 import { EvidenceMeter } from "./EvidenceMeter";
 
 /** Icon + colour for a reason's direction. */
@@ -51,8 +52,9 @@ export function EvidenceClaimCard({
       <div className="mb-2 flex items-center gap-2">
         <Badge
           variant="outline"
-          className="w-fit border-soft-tan text-[11px] font-medium text-muted-foreground"
+          className="flex w-fit items-center gap-1 border-soft-tan text-[11px] font-medium text-muted-foreground"
         >
+          <ClaimBadgeIcon slug={claim.badgeSlug} className="h-4 w-4 shrink-0" />
           {claim.badgeLabel}
         </Badge>
         {showIngredient && claim.ingredientName && (
