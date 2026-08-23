@@ -231,10 +231,20 @@ export async function searchDbProductRows(q: string, limit = 24): Promise<Produc
 }
 
 /** Most recently added catalog products (for browse views without a query). */
+/**
+ * Newest catalogue products, for the home page showcase.
+ *
+ * Filters excluded_reason: without it this surfaced the makeup, accessories
+ * and bundles that classify_catalog.py hides, which is the whole point of
+ * flagging them. Also requires an image — a showcase row is the first thing
+ * on the landing page, and an empty grey box there reads as a broken site.
+ */
 export async function listRecentDbProducts(limit = 24): Promise<Product[]> {
   const { data } = await db
     .from("products")
     .select("*")
+    .is("excluded_reason", null)
+    .not("image_url", "is", null)
     .order("created_at", { ascending: false })
     .limit(limit);
   return ((data ?? []) as ProductRow[]).map(rowToCard);

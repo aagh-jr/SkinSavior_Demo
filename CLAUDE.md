@@ -105,11 +105,24 @@ predates the grouping and is no longer necessary.
 
 | Script | Does |
 |---|---|
-| `import_brand_catalogs.py` | Whole brand catalogues from Shopify `/products.json`. Main importer. |
+| `import_brand_catalogs.py` | Whole brand catalogues from Shopify `/products.json`. Main importer. 46 brands. |
 | `fetch_popular_products.py` | Curated list; also holds shared `Db`, `scrape_incidecoder`, `preflight`. |
 | `classify_catalog.py` | Flags out-of-scope rows via `excluded_reason`. Report-only unless `--write`. |
+| `backfill_photos.py` | Official pack shots from INCIDecoder for products stuck on crowd photos. |
+| `upgrade_obf_resolution.py` | Swaps OBF `.400.jpg` thumbnails for `.full.jpg` originals. |
 | `backfill_ingredient_links.py` | Rebuilds links from stored `raw_ingredients`. No scraping. |
+| `run_import.py` | Launcher: reads the service key from `apps/web/.env.local` so it never goes in a shell. |
 | `cleanup_catalog.py` | DELETES channel listings/makeup/accessories. Prefer classify — it hides instead. |
+
+**Photo identity is verified by FORMULA, not name.** `backfill_photos.py` takes
+INCIDecoder's top search hit, which is best-effort — "CeraVe Moisturising
+Lotion" and "…Cream" are one result apart. A wrong photo is worse than a bad
+one, because a bad photo looks bad while a wrong photo looks fine. So the
+fetched INCI list is compared against the stored `raw_ingredients`: ≥0.80
+containment settles it alone, and below that the name must agree too. Name
+alone would reject correct matches on every non-English row — Avène's "Crème
+peaux intolérantes" scored formula 1.00 and name 0.00 purely because we store
+the French title.
 
 **Out-of-scope products are HIDDEN, not deleted.** `products.excluded_reason`
 (NULL = visible) is set by `classify_catalog.py` and filtered by every
@@ -148,6 +161,17 @@ protection while every page still looked fine:
 | Swallowed `AttributeError` on a renamed method | "product has no ingredients" |
 | PostgREST truncating at 1000 rows | "product has no such ingredient" |
 | A cached page render | "this product was never blocked" |
+| An unquoted comma breaking a PostgREST filter | "this brand had no products" |
+| A brand shortlist added to save lookups | "no photo exists for these" |
+
+The last two are recent. A comma in the brand name — `Dear, Klairs` — split
+the `or=(...)` filter in `find_product`, so all 44 of that brand's products
+400'd and were lost; the run still printed `added: 508` and looked like a
+success. And `backfill_photos.py` originally defaulted to a hand-written list
+of recognisable brands, on the untested assumption that INCIDecoder wouldn't
+index European supermarket own-label. Sampling that tail returned a ~27% hit
+rate. **A filter added as a cost optimisation is a claim about the data, and
+it needs measuring like any other.**
 
 The last two were the worst: ingredients are stored in INCI (concentration)
 order, so truncation always kept the base and dropped the tail — exactly where
@@ -176,6 +200,22 @@ truncation, never bare-`except` around a call whose failure resembles no-data.
   literal backspace (0x08) where `\b` was intended, so it matched nothing —
   and 0x08 renders invisibly, so the source looked correct. Edit regex lines
   directly rather than patching them through nested shell/Python strings.
+- **PostgREST splits `or=(...)` on commas and parens AFTER url-decoding.** Any
+  value going into a filter list must be double-quoted — `Db._quoted()` for a
+  single value, `Db._in_list()` for a list. Brand names are full of commas
+  (`Dear, Klairs`, `Henkel, Diadermine`), as are INCI names (`1,2-hexanediol`).
+- **Open Beauty Facts serves `.400.jpg` and `.full.jpg`** from the same path.
+  The whole seed was stored at 400px, which on portrait phone shots leaves the
+  short edge at ~150px — they rendered as broken rather than merely amateur.
+- **Shopify `tags` are merchandising metadata, never product typing.**
+  Folding them into `guess_category` put moisturizers in Sunscreens: Innisfree
+  carries the gift-with-purchase tag `free mini spf w/moisturizer`, Cocokind
+  carries `NO CHEMICAL SUNSCREEN` (a *negative* claim), Versed carries the
+  collection `Moisturizers & SPF`. Category comes from title + `product_type`;
+  tags are consulted only as a WHOLE value (`TAG_CATEGORY`), the same rule
+  `BUNDLE_TAGS` already follows. **A miscategorised product is safety-adjacent
+  — `/for-you` ranks within a category, so a moisturizer in Sunscreens gets
+  recommended to someone shopping for sun protection.**
 - **Shopify `vendor` is free text** — "COSRX official" broke ingredient
   lookups. Use `BRAND_NAMES`.
 - **Shopify `images[0]` is often a promo graphic**, not the product. Some have
@@ -194,11 +234,24 @@ truncation, never bare-`except` around a call whose failure resembles no-data.
 
 ## State
 
-**1,422 rows · 1,215 visible · 207 hidden** (153 no ingredients, 49 makeup,
-4 accessories, 1 body). Of the visible catalogue: **100% scoreable** (every
-product has a real INCI list), **57% studio photography**, 693 with prices.
+**1,975 rows · 1,739 visible · 236 hidden** (153 no ingredients, 76 makeup,
+6 accessories, 1 body). 343 brands. Of the visible catalogue: **100%
+scoreable** (every product has a real INCI list), **78% real product
+photography** (1,215 brand studio + 147 official pack shots), 1,249 with
+prices.
 
-Started the day at 40% scoreable and 5% studio photography.
+The remaining 377 are crowd photos (351) or nothing (24). Measured: only ~21
+of those are out-of-scope products rather than a genuine photo gap, so hiding
+junk will not move this number — a new source would.
+
+Photo sources are exhausted except one. Shopify covers the 46 brands that run
+it; INCIDecoder was swept across all 442 verifiable products and yielded 71,
+with 266 simply not indexed and 105 rejected as different products (83 of
+those scored under 0.40 formula similarity, so the guard is not the
+bottleneck). **The untapped lead is that 442 of them carry an EAN barcode** —
+a key into retailer sites (dm, Rossmann, Carrefour, Lidl) that carry clean
+pack shots for exactly the supermarket own-label brands that are stranded.
+Licensing needs checking first; that is what ruled out Olive Young.
 
 **Built:** 13-question quiz (4 skin axes + safety fields) → seeded routine
 builder · deterministic match scoring with visible reasoning · `/for-you`
@@ -216,6 +269,11 @@ importer + classification pipeline.
 - Clean the contaminated `ingredients.functions` column
 - Home page, `/saved` and nav search still read a 3-product static demo file
 - Derived product attributes (fragrance-free, alcohol-free) from INCI lists
-- Replace the remaining Open Beauty Facts photos (~43% of visible catalogue)
+- Replace the remaining Open Beauty Facts photos (~20% of visible catalogue,
+  377 products) — needs the EAN/barcode route described above; Shopify and
+  INCIDecoder are both exhausted
+- **Ingredient descriptions are effectively empty.** Of 5,154 ingredients in
+  use, 17 have a description and 1 has a common name. "Tap any ingredient ->
+  what it does" is the founding idea and the emptiest part of the product
 - Regenerate Supabase types to drop `as unknown as SupabaseClient` casts
 - `packages/core` ESLint config is broken; repo-wide `bun run lint` fails

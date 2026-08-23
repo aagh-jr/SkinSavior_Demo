@@ -92,6 +92,37 @@ BRAND_NAMES = {
     "byoma": "BYOMA",
     "inkeylist": "The INKEY List",
     "dieux": "Dieux",
+    # Second wave. Chosen by probing /products.json across ~65 candidate
+    # brands: these are the ones that both answer and sell face skincare.
+    # Notable misses, all serving a custom platform rather than Shopify:
+    # CeraVe, La Roche-Posay, The Ordinary, Paula's Choice, Drunk Elephant,
+    # Purito, Isntree, Good Molecules, SOME BY MI, Beauty of Joseon's US site.
+    # Those brands need the INCIDecoder photo path (backfill_photos.py).
+    "klairs": "Dear, Klairs",
+    "kravebeauty": "KraveBeauty",
+    "haruharu": "Haruharu Wonder",
+    "rovectin": "Rovectin",
+    "tonymoly": "TONYMOLY",
+    "laneige": "LANEIGE",
+    "peachandlily": "Peach & Lily",
+    "starface": "Starface",
+    "herocosmetics": "Hero Cosmetics",
+    "skinfix": "Skinfix",
+    "supergoop": "Supergoop!",
+    "eltamd": "EltaMD",
+    "firstaidbeauty": "First Aid Beauty",
+    "dermalogica": "Dermalogica",
+    "cocokind": "Cocokind",
+    "herbivore": "Herbivore",
+    "stratia": "Stratia",
+    "eadem": "Eadem",
+    "kinship": "Kinship",
+    "bliss": "Bliss",
+    "patchology": "Patchology",
+    "threeships": "Three Ships",
+    "rhode": "rhode",
+    "loops": "Loops",
+    "glossier": "Glossier",
 }
 
 # Verified Shopify storefronts. Keys double as the --brands filter.
@@ -117,6 +148,31 @@ BRAND_DOMAINS = {
     "byoma": "byoma.com",
     "inkeylist": "theinkeylist.com",
     "dieux": "dieuxskin.com",
+    "klairs": "klairs.com",
+    "kravebeauty": "kravebeauty.com",
+    "haruharu": "haruharuwonder.com",
+    "rovectin": "rovectin.com",
+    "tonymoly": "tonymoly.us",
+    "laneige": "us.laneige.com",
+    "peachandlily": "www.peachandlily.com",
+    "starface": "starface.world",
+    "herocosmetics": "herocosmetics.us",
+    "skinfix": "skinfix.com",
+    "supergoop": "supergoop.com",
+    "eltamd": "eltamd.com",
+    "firstaidbeauty": "www.firstaidbeauty.com",
+    "dermalogica": "www.dermalogica.com",
+    "cocokind": "www.cocokind.com",
+    "herbivore": "www.herbivorebotanicals.com",
+    "stratia": "stratiaskin.com",
+    "eadem": "eadem.co",
+    "kinship": "lovekinship.com",
+    "bliss": "blissworld.com",
+    "patchology": "patchology.com",
+    "threeships": "threeshipsbeauty.com",
+    "rhode": "www.rhodeskin.com",
+    "loops": "loopsbeauty.com",
+    "glossier": "www.glossier.com",
 }
 
 # Brand catalogues carry a lot that isn't a skincare product: bundles, gifts,
@@ -185,7 +241,7 @@ def is_bundle(product: dict) -> bool:
 # regularly a campaign graphic, a collab lockup, a before/after composite or a
 # model shot rather than the product on white.
 PROMO_IMAGE = re.compile(
-    r"(gwp|gift|event|promo|banner|sale|coupon|before|after|b_?a\b|review|"
+    r"(gwp|gift|event|promo|banner|sale|coupon|before|after|b_?a\b|bna|review|"
     r"chart|howto|how_to|step\d|tutorial|model|lifestyle|award|"
     r"bundle|set_|_set|notice|launch|campaign|collab)",
     re.I,
@@ -263,6 +319,53 @@ def search_terms(brand: str, title: str) -> list[str]:
     return out
 
 
+def _is_same_product(result: dict, brand: str, title: str) -> bool:
+    """
+    Is this INCIDecoder page actually the product we asked for?
+
+    INCIDecoder's search matches on product NAME and happily returns a
+    different brand's product of the same name. scrape_incidecoder() takes
+    links[0] unconditionally, so without this check the importer stored:
+
+        Kinship  Moisturizing Body Cream -> byphasse-caresse-moisturizing-body-cream
+        BYOMA    Glass Skin              -> cuura-glass-skin
+        BYOMA    Ultralight Face Fluid   -> ivy-aia-ultralight-sun-face-fluid-spf50
+        Patchology glow potion           -> herbivore-prism-exfoliating-glow-potion
+
+    Measured at 4 in 30 sampled products. That is not a cosmetic error: the
+    INCI list drives match scoring, clash detection and the pregnancy /
+    reaction safety blocks, so a wrong list makes every one of those answer
+    about a different product while looking perfectly healthy.
+
+    The brand must appear in the URL. Compared with accent folding and
+    substring matching for the reasons enrich_missing_inci.brand_in documents
+    (apostrophes split "Kiehl's" into pieces the slug spells as one word).
+    """
+    url = result.get("source_url") or ""
+    if not url:
+        return False
+    folded = "".join(
+        c for c in unicodedata.normalize("NFKD", urllib.parse.unquote(url).lower())
+        if not unicodedata.combining(c)
+    )
+    slug = re.sub(r"[^a-z0-9]+", " ", folded.rsplit("/", 1)[-1])
+    stok = {w for w in slug.split() if len(w) > 3}
+    btok = [
+        w for w in re.findall(
+            r"[a-z0-9]+",
+            "".join(c for c in unicodedata.normalize("NFKD", brand.lower())
+                    if not unicodedata.combining(c)),
+        )
+        if len(w) > 3
+    ]
+    if not btok:
+        # Brands too short to check by token ("Anua", "Bliss", "rhode") fall
+        # back to a raw substring test against the whole slug.
+        compact = re.sub(r"[^a-z0-9]+", "", brand.lower())
+        return bool(compact) and compact in re.sub(r"[^a-z0-9]+", "", slug)
+    return any(b in s or s in b for b in btok for s in stok)
+
+
 def lookup_inci(brand: str, title: str) -> dict:
     """
     INCIDecoder lookup that tells throttling apart from a genuine miss, and
@@ -284,8 +387,15 @@ def lookup_inci(brand: str, title: str) -> dict:
             result = scrape_incidecoder(term)
             time.sleep(SLEEP_INCI)
 
-        if result.get("ingredients"):
+        if result.get("ingredients") and _is_same_product(result, brand, title):
             return result
+        if result.get("ingredients"):
+            # Right name, WRONG BRAND. Discard rather than store: an ingredient
+            # list belonging to another product is worse than none, because
+            # every downstream safety check then answers about that product.
+            print(f"         rejected {result.get('source_url','').rsplit('/',1)[-1][:44]}"
+                  f"  (not {brand})")
+            result = {}
         last = result
         if result.get("_fetch_failed"):
             # Still blocked after full backoff; further phrasings won't fare
@@ -356,6 +466,15 @@ def best_image(product: dict) -> str | None:
         value = 0.0
         if PROMO_IMAGE.search(filename):
             value -= 10
+
+        # NOTE: a "filename resembles the product title" bonus was tried here
+        # and REMOVED. It fixed Torriden's FREE GIFT lockup, which is what it
+        # was tuned on, but re-running it across the catalogue regressed 235
+        # products: Glow Recipe gained a before/after with a model
+        # (BLACKBERRY_SERUM_B_A_ELENA_AGE_30), Skinfix a bare texture swatch,
+        # Supergoop a two-pack composite. Brands name those after the product
+        # too. Filename heuristics are at their ceiling; separating a pack
+        # shot from a texture shot needs to look at the pixels.
         w, h = im.get("width") or 0, im.get("height") or 0
         if w and h:
             ratio = min(w, h) / max(w, h)
@@ -411,6 +530,24 @@ def clean_text(html: str | None, limit: int = 600) -> str | None:
     return cleaned[:limit]
 
 
+# Tags trusted ONLY as a whole value. See the note in guess_category.
+TAG_CATEGORY = {
+    "sunscreen": "Sunscreen", "sunscreens": "Sunscreen", "spf": "Sunscreen",
+    "suncare": "Sunscreen", "sun care": "Sunscreen",
+    "cleanser": "Cleanser", "cleansers": "Cleanser",
+    "toner": "Toner", "toners": "Toner",
+    "serum": "Serum", "serums": "Serum",
+    "essence": "Essence", "essences": "Essence",
+    "moisturizer": "Moisturizer", "moisturizers": "Moisturizer",
+    "moisturiser": "Moisturizer", "moisturisers": "Moisturizer",
+    "mask": "Mask", "masks": "Mask",
+    "exfoliant": "Exfoliant", "exfoliants": "Exfoliant",
+    "eye cream": "Eye Cream", "eye creams": "Eye Cream",
+    "face oil": "Oil", "facial oil": "Oil",
+    "mist": "Mist", "mists": "Mist",
+}
+
+
 def guess_category(product: dict) -> str | None:
     """
     Map a Shopify product to our canonical vocabulary.
@@ -419,7 +556,21 @@ def guess_category(product: dict) -> str | None:
     Bundle', empty), so the title is the primary signal — it's what the
     canonical_category generated column keys off anyway.
     """
-    hay = f"{product.get('title','')} {product.get('product_type','')} {product.get('tags','')}".lower()
+    # Title + product_type ONLY. Shopify `tags` are merchandising metadata,
+    # not product typing, and folding them in put moisturizers in Sunscreens:
+    #
+    #   'free mini spf w/moisturizer'    a gift-with-purchase promo
+    #   'NO CHEMICAL SUNSCREEN'          a NEGATIVE claim - contains none
+    #   'meta-related-products-for-spf'  related-products merchandising
+    #   'Moisturizers & SPF'             a collection name
+    #   'bundle:serum-spf-bundle'        a bundle this product appears in
+    #
+    # Innisfree's Green Tea Ceramide Plump Cream ranked #1 in Sunscreens on
+    # the strength of a free-sample tag. The negative-claim case is the same
+    # shape as "Oil Free" below, and the fix is the same one BUNDLE_TAGS
+    # already applies: a tag is only trustworthy as a WHOLE value, never as a
+    # substring. Tags are consulted that way in TAG_CATEGORY, as a last resort.
+    hay = f"{product.get('title','')} {product.get('product_type','')}".lower()
 
     # "Oil-free" is a claim about what the product LACKS. Removing the phrase
     # before matching stops it from being read as an oil, without losing the
@@ -444,11 +595,27 @@ def guess_category(product: dict) -> str | None:
         # point is containing no oil — into the Oil category.
         ("Oil", r"face oil|facial oil|body oil|\boils?\b(?!\s*[-–]?\s*free)"),
         ("Mist", r"\bmist\b|thermal water|facial spray"),
-        ("Moisturizer", r"moisturi[sz]er|cream|lotion|gel cream|\bbalm\b|emulsion|\bfluid\b"),
+        # "moisture" as well as "moisturizer": Cocokind's "All-over Moisture
+        # Stick" matched neither, so it kept a stale Sunscreen category. Safe
+        # this late in the list - cleanser/toner/serum/mask all match first.
+        ("Moisturizer", r"moisturi[sz]er|\bmoisture\b|cream|lotion|gel cream|\bbalm\b|emulsion|\bfluid\b"),
     ]
     for label, pattern in checks:
         if re.search(pattern, hay):
             return label
+
+    # Last resort: a tag whose ENTIRE value names a category. This rescues
+    # products whose title says nothing and whose product_type is generic --
+    # Bubble's sunscreen is titled "Plus One" with product_type "Skin Care",
+    # and only the bare tag 'sunscreen' identifies it. Whole-value equality is
+    # what makes this safe: it accepts 'sunscreen' and rejects
+    # 'no chemical sunscreen' and 'moisturizers & spf'.
+    tags = product.get("tags")
+    if isinstance(tags, list):
+        for t in tags:
+            label = TAG_CATEGORY.get(str(t).strip().lower())
+            if label:
+                return label
     return None
 
 

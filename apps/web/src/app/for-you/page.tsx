@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { ProductThumb } from "@/components/ProductThumb";
-import { getMyProfile, isScorable, rankCategoryForMe } from "@/lib/match-db";
+import { getMyProfile, isScorable, rankCategoryWithRoutine } from "@/lib/match-db";
 
 export const metadata: Metadata = {
   title: "For you",
@@ -93,7 +93,7 @@ export default async function ForYouPage({
   const active =
     CATEGORIES.find((c) => c.key === category)?.key ?? CATEGORIES[2].key; // serums
   const activeLabel = CATEGORIES.find((c) => c.key === active)!.label;
-  const data = await rankCategoryForMe(active, LIMIT);
+  const data = await rankCategoryWithRoutine(active, LIMIT);
   const ranked = data?.ranked ?? [];
 
   return (
@@ -140,6 +140,9 @@ export default async function ForYouPage({
               {data.total <= LIMIT
                 ? `All ${data.total} ${activeLabel.toLowerCase()} we know about`
                 : `Best ${ranked.length} of ${data.total} ${activeLabel.toLowerCase()}`}
+              {data.conflictCount > 0 && (
+                <> · <span className="text-[#9a4a2f]">{data.conflictCount} interact with your routine</span></>
+              )}
               {data.blockedCount > 0 && (
                 <> · {data.blockedCount} hidden on safety grounds</>
               )}
@@ -150,7 +153,7 @@ export default async function ForYouPage({
         </p>
 
         <ol className="mt-5 list-none space-y-3 p-0">
-          {ranked.map(({ slug, name, brand, imageUrl, price, result }, i) => {
+          {ranked.map(({ slug, name, brand, imageUrl, price, result, conflicts }, i) => {
             const c = band(result.score);
             const top = result.reasons[0];
             return (
@@ -200,6 +203,17 @@ export default async function ForYouPage({
                       {brand}
                       {price && <span className="ml-2 normal-case tracking-normal text-muted-foreground">{price}</span>}
                     </p>
+                    {/* How this sits with what the user ALREADY uses. Shown, never
+                        priced into the score: most routine clashes are solved by
+                        timing, so sinking the product would explain nothing. */}
+                    {conflicts.length > 0 && (
+                      <p className="mt-1.5 line-clamp-1 text-[12px] font-medium text-[#9a4a2f]">
+                        {conflicts[0].severity === "major" ? "Clashes" : "Interacts"} with{" "}
+                        {conflicts[0].steps.filter((x) => x !== "This product")[0] ??
+                          "your routine"}
+                        {conflicts.length > 1 && ` +${conflicts.length - 1} more`}
+                      </p>
+                    )}
                     {top && (
                       <p className="mt-1.5 line-clamp-1 text-[12px]">
                         <span

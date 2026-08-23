@@ -3,7 +3,8 @@ import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { SearchBar } from "@/components/SearchBar";
 import { ProductThumb } from "@/components/ProductThumb";
-import { products } from "@/lib/products";
+import type { Product } from "@skinsavior/core/types";
+import { listRecentDbProducts } from "@/lib/products-db";
 import { getHomeRoutine, type BuilderStep } from "@/lib/routines-db";
 import { ROUTINE_CATEGORIES } from "@/lib/routine-categories";
 
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     "Your personalized skinsavior home — search products, see your current routine, and discover trending picks.",
 };
 
-function ProductCard({ p }: { p: (typeof products)[number] }) {
+function ProductCard({ p }: { p: Product }) {
   return (
     <Link
       href={`/product/${p.slug}`}
@@ -81,7 +82,11 @@ function RoutineStepCard({ step }: { step: BuilderStep }) {
 
 export default async function HomePage() {
   const homeRoutine = await getHomeRoutine();
-  const trending = [...products].reverse();
+  // Real catalogue rows, not the lib/products.ts mock. That mock is three
+  // invented products (GLOWLAB, PureLeaf, DermaQuiet) with no images, and the
+  // row rendered it twice to look full — so the landing page opened on six
+  // grey boxes for products that do not exist.
+  const showcase = await listRecentDbProducts(12);
 
   return (
     <div className="min-h-screen bg-background">
@@ -151,10 +156,10 @@ export default async function HomePage() {
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>
             <h2 className="font-serif text-2xl text-ink md:text-3xl">
-              Trending products
+              Recently added
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              What the community is loving this week
+              The newest products in the index
             </p>
           </div>
           <Link
@@ -165,11 +170,8 @@ export default async function HomePage() {
           </Link>
         </div>
         <div className="flex gap-5 overflow-x-auto pb-4 [scrollbar-width:thin]">
-          {trending.map((p) => (
+          {showcase.map((p) => (
             <ProductCard key={p.slug} p={p} />
-          ))}
-          {trending.map((p) => (
-            <ProductCard key={`t2-${p.slug}`} p={p} />
           ))}
         </div>
       </section>

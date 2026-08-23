@@ -11,11 +11,14 @@
 
 import {
   rankProducts,
+  rankProductsForRoutine,
   scoreProduct,
   type MatchResult,
+  type RoutineStepInput,
   type ScorableProduct,
   type SkinProfile,
 } from "@skinsavior/core/scoring";
+import { getHomeRoutine } from "@/lib/routines-db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
@@ -242,5 +245,151 @@ export async function rankCategoryForMe(
     })),
     total,
     blockedCount,
+  };
+}
+
+/**
+ * The signed-in user's routine, shaped for the interaction engine.
+ *
+ * `id` is the PRODUCT id, not the routine-step id. findRoutineConflicts()
+ * excludes the candidate from its own routine by id, and keying on the step
+ * would defeat that -- a product you already use would be reported as
+ * clashing with itself.
+ *
+ * Steps without a product are quiz-seeded placeholder slots. They carry no
+ * ingredients, so they can neither cause nor rule out a clash.
+ */
+export async function getMyRoutineSteps(): Promise<RoutineStepInput[]> {
+  const routine = await getHomeRoutine();
+  if (!routine) return [];
+  const withProducts = routine.steps.filter((s) => s.productId);
+  if (!withProducts.length) return [];
+
+  const db = await catalogDb();
+  const PAGE = 1000;
+  const productIds = withProducts.map((s) => s.productId as string);
+  const byProduct = new Map<string, string[]>();
+
+  // Paginated for the reason documented throughout this file: PostgREST caps
+  // a response at 1000 rows, and the ingredients lost to truncation are the
+  // ones at the END of each INCI list -- where fragrance, essential oils and
+  // preservatives sit. Under-reporting clashes would look identical to having
+  // none.
+  for (let offset = 0; ; offset += PAGE) {
+    const { data, error } = await db
+      .from("product_ingredients")
+      .select("product_id, position, ingredients(inci_name, functions)")
+      .in("product_id", productIds)
+      .order("product_id")
+      .order("position")
+      .range(offset, offset + PAGE - 1);
+    if (error) break;
+    const page = (data ?? []) as unknown as (IngredientJoinRow & { product_id: string })[];
+    for (const row of page) {
+      if (!row.ingredients) continue;
+      byProduct.set(row.product_id, [
+        ...(byProduct.get(row.product_id) ?? []),
+        row.ingredients.inci_name,
+      ]);
+    }
+    if (page.length < PAGE) break;
+  }
+
+  return withProducts.map((s) => ({
+    id: s.productId as string,
+    label: `${s.productBrand} ${s.productName}`.trim(),
+    timeOfDay: s.timeOfDay,
+    ingredients: byProduct.get(s.productId as string) ?? [],
+    category: s.category,
+  }));
+}
+
+export interface RoutineAwareCatalogProduct extends RankedCatalogProduct {
+  conflicts: {
+    code: string;
+    severity: "minor" | "major";
+    title: string;
+    explanation: string;
+    recommendation: string;
+    evidenceTier: string;
+    steps: string[];
+    ingredients: string[];
+  }[];
+}
+
+/**
+ * rankCategoryForMe(), but each product is also checked against the routine
+ * the user already owns.
+ *
+ * Ordering is identical -- a conflict never moves a product up or down. It is
+ * reported alongside the score, the same way `blocked` is, because most
+ * routine conflicts are solved by timing rather than by avoidance and burying
+ * the product would explain nothing.
+ *
+ * `routineChecked` is false when there is no routine to check against, so the
+ * UI can say "we haven't checked this" instead of implying an all-clear.
+ */
+export async function rankCategoryWithRoutine(
+  canonicalCategory: string,
+  limit = 10,
+): Promise<{
+  ranked: RoutineAwareCatalogProduct[];
+  total: number;
+  blockedCount: number;
+  conflictCount: number;
+  routineChecked: boolean;
+} | null> {
+  const profile = await getMyProfile();
+  if (!isScorable(profile)) return null;
+
+  const [base, routine] = await Promise.all([
+    rankCategoryForMe(canonicalCategory, limit),
+    getMyRoutineSteps(),
+  ]);
+  if (!base) return null;
+
+  // Re-score only the page being shown. Scoring the whole category against the
+  // routine would be wasted work: ordering is unchanged by conflicts, so
+  // products below the cut cannot move into it.
+  const db = await catalogDb();
+  const slugs = base.ranked.map((r) => r.slug);
+  if (!slugs.length || !routine.length) {
+    return { ...base, ranked: base.ranked.map((r) => ({ ...r, conflicts: [] })),
+             conflictCount: 0, routineChecked: routine.length > 0 };
+  }
+
+  const { data } = await db
+    .from("products")
+    .select("id, slug, canonical_category")
+    .in("slug", slugs);
+  const rows = (data ?? []) as { id: string; slug: string; canonical_category: string | null }[];
+  const bySlug = new Map(rows.map((r) => [r.slug, r]));
+
+  const scorable: (ScorableProduct & { meta: RankedCatalogProduct })[] = [];
+  for (const r of base.ranked) {
+    const row = bySlug.get(r.slug);
+    if (!row) continue;
+    scorable.push({
+      id: row.id,
+      canonicalCategory: row.canonical_category,
+      ingredients: await loadIngredients(row.id),
+      meta: r,
+    });
+  }
+
+  const { ranked, conflictCount } = rankProductsForRoutine(profile, scorable, routine);
+  const order = new Map(base.ranked.map((r, i) => [r.slug, i]));
+
+  return {
+    ranked: ranked
+      .map(({ product, result }) => ({
+        ...product.meta,
+        conflicts: result.fit.conflicts.map((c) => ({ ...c, evidenceTier: c.evidenceTier as string })),
+      }))
+      .sort((a, b) => (order.get(a.slug) ?? 0) - (order.get(b.slug) ?? 0)),
+    total: base.total,
+    blockedCount: base.blockedCount,
+    conflictCount,
+    routineChecked: true,
   };
 }

@@ -289,10 +289,20 @@ class Db:
         brand+name under a different slug and the insert would 409.
         """
         # One request, not two: slug match OR (brand AND name) match.
+        #
+        # brand and name MUST be double-quoted. PostgREST splits an or=(...)
+        # list on commas and parentheses AFTER url-decoding, so a value
+        # containing either breaks the filter and returns 400 — the same trap
+        # _in_list() documents for INCI names like "1,2-hexanediol".
+        # Unquoted, this silently lost every product from any brand with a
+        # comma in its name: all 44 Dear, Klairs products failed to import,
+        # and the run still reported "added: 508" as though nothing was wrong.
+        # Open Beauty Facts brands are full of these ("Henkel, Diadermine",
+        # "L'Oreal, L'Oreal Consumer products, Garnier").
         q = (
             "products?select=id&or=("
             f"slug.eq.{urllib.parse.quote(slug)},"
-            f"and(brand.eq.{urllib.parse.quote(brand)},name.eq.{urllib.parse.quote(name)})"
+            f"and(brand.eq.{self._quoted(brand)},name.eq.{self._quoted(name)})"
             ")"
         )
         rows = self._get(q)
@@ -311,6 +321,16 @@ class Db:
         )
         if r.status_code >= 300:
             raise RuntimeError(f"{r.status_code} {r.text[:300]}")
+
+    @staticmethod
+    def _quoted(value: str) -> str:
+        """A single PostgREST filter value, safe for use inside or=(...)/and().
+
+        Double quotes protect commas and parentheses in the value; backslash
+        and quote are escaped inside them.
+        """
+        escaped = (value or "").replace("\\", "\\\\").replace('"', '\\"')
+        return urllib.parse.quote(f'"{escaped}"', safe="")
 
     @staticmethod
     def _in_list(values) -> str:
