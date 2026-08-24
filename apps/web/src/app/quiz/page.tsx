@@ -205,8 +205,17 @@ export default function QuizPage() {
   // "done" so they cannot drift apart.
   const finish = useCallback(() => {
     setPhase("done");
-    void seedRoutineFromQuizAction().then((res) => {
-      setTimeout(() => router.push(res.ok ? `/routines/${res.id}` : "/home"), 1400);
+    // Seed the routine and hold the confirmation for a beat — CONCURRENTLY.
+    // Chaining a 1400ms timeout onto .then() made the two additive: the server
+    // action takes ~3s, so the measured wait was 4.5s of staring at a static
+    // "profile saved" screen. Racing them against Promise.all means the dwell
+    // only costs anything when the action returns faster than it, which is the
+    // point of having one at all.
+    void Promise.all([
+      seedRoutineFromQuizAction(),
+      new Promise((r) => setTimeout(r, 900)),
+    ]).then(([res]) => {
+      router.push(res.ok ? `/routines/${res.id}` : "/home");
     });
   }, [router]);
 
