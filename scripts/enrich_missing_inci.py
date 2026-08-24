@@ -122,7 +122,9 @@ def main():
 
     found = rejected = missing = throttled = failed = photos = 0
     for i, r in enumerate(targets, 1):
-        brand = (r.get("brand") or "").split(",")[0].strip()
+        brand = (r.get("brand") or "").strip()  # NOT split on "," -- see
+        # _is_same_product: "Dear, Klairs" is one brand, and taking the
+        # first segment rejected correct klairs-* matches.
         title = (r.get("name") or "").strip()
         label = f"{brand} {title}"[:56]
 

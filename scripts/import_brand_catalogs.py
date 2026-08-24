@@ -350,6 +350,17 @@ def _is_same_product(result: dict, brand: str, title: str) -> bool:
     )
     slug = re.sub(r"[^a-z0-9]+", " ", folded.rsplit("/", 1)[-1])
     stok = {w for w in slug.split() if len(w) > 3}
+    # Use the WHOLE brand string, and treat commas as ordinary characters.
+    #
+    # Callers used to pass brand.split(",")[0] -- a habit from Open Beauty
+    # Facts, whose brand field really is a list ("Henkel, Diadermine"). But for
+    # "Dear, Klairs" the comma is part of the name, so that split handed this
+    # function "Dear", which appears nowhere in a klairs-* slug. Ten correct
+    # matches were rejected as wrong-brand, and verify_ingredients.py cleared
+    # their ingredient lists on the strength of it.
+    #
+    # Any token surviving the length filter is enough, so a multi-brand string
+    # still matches on whichever part is real.
     btok = [
         w for w in re.findall(
             r"[a-z0-9]+",
