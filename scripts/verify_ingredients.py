@@ -144,10 +144,10 @@ def main():
                     print(f"           DB error: {str(e)[:100]}", flush=True)
             continue
 
-        if result.get("ingredients"):
+        if result.get("_wrong_brand"):
             # Proven wrong: a page matched the name under another brand.
             corrupt += 1
-            src = (result.get("source_url") or "").rsplit("/", 1)[-1][:40]
+            src = (result.get("rejected_url") or "").rsplit("/", 1)[-1][:40]
             print(f"[{i}/{len(targets)}] CORRUPT    {label}  <- {src}", flush=True)
             if args.write:
                 try:

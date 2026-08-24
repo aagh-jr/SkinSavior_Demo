@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -201,14 +201,29 @@ export default function QuizPage() {
   const [phase, setPhase] = useState<"survey" | "account" | "done">("survey");
   const router = useRouter();
 
-  // If user is already signed in, save and skip to done
+  // Seed the routine and hand off to the builder. Shared by both paths into
+  // "done" so they cannot drift apart.
+  const finish = useCallback(() => {
+    setPhase("done");
+    void seedRoutineFromQuizAction().then((res) => {
+      setTimeout(() => router.push(res.ok ? `/routines/${res.id}` : "/home"), 1400);
+    });
+  }, [router]);
+
+  // Already signed in: save and skip the account step.
+  //
+  // This used to setPhase("done") and stop, so anyone with an existing
+  // session finished the quiz, saw "Your skin profile is saved" -- which
+  // promises "Next: your routine" -- and then sat on that screen forever.
+  // Only brand-new signups ever reached the routine builder, which is the
+  // one place the clash checks have anything to run on.
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session && phase === "account") {
         void persistAnswers(answers).then((ok) => {
           if (ok) {
             clearPendingAnswers();
-            setPhase("done");
+            finish();
           }
         });
       }
@@ -280,20 +295,12 @@ export default function QuizPage() {
         {phase === "account" && (
           <AccountStep
             answers={answers}
-            onSuccess={() => {
-              setPhase("done");
-              // Hand off into the routine builder rather than the home page.
-              // The builder is seeded from the current_routine answer just
-              // saved, so the user lands on labelled empty slots instead of a
-              // blank page — and routine data is what the compatibility
-              // checks need to run on at all.
-              void seedRoutineFromQuizAction().then((res) => {
-                setTimeout(
-                  () => router.push(res.ok ? `/routines/${res.id}` : "/"),
-                  1400,
-                );
-              });
-            }}
+            // Hand off into the routine builder rather than the home page.
+            // The builder is seeded from the current_routine answer just
+            // saved, so the user lands on labelled empty slots instead of a
+            // blank page — and routine data is what the compatibility checks
+            // need to run on at all.
+            onSuccess={finish}
             onBack={() => setStepIdx(TOTAL - 1)}
           />
         )}

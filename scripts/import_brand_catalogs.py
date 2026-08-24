@@ -393,9 +393,18 @@ def lookup_inci(brand: str, title: str) -> dict:
             # Right name, WRONG BRAND. Discard rather than store: an ingredient
             # list belonging to another product is worse than none, because
             # every downstream safety check then answers about that product.
-            print(f"         rejected {result.get('source_url','').rsplit('/',1)[-1][:44]}"
-                  f"  (not {brand})")
-            result = {}
+            #
+            # Keep _wrong_brand on the result. Returning a bare {} would make
+            # "we found another brand's product under this name" indistinguish-
+            # able from "nothing is indexed", and callers need to tell those
+            # apart -- verify_ingredients.py clears a stored list only on the
+            # first, and silently skipped every corrupt row while this returned
+            # an empty dict. That is the failure-that-looks-like-absence shape
+            # this repo keeps re-introducing, this time inside the guard meant
+            # to prevent it.
+            rejected = result.get("source_url", "")
+            print(f"         rejected {rejected.rsplit('/', 1)[-1][:44]}  (not {brand})")
+            result = {"_wrong_brand": True, "rejected_url": rejected}
         last = result
         if result.get("_fetch_failed"):
             # Still blocked after full backoff; further phrasings won't fare
