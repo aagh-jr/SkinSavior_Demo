@@ -6,9 +6,15 @@ import type { Paper } from "./schema";
 const ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi";
 const EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi";
 
-/** NCBI etiquette: identify the app on every request. */
+/** NCBI etiquette: identify the app on every request.
+ *
+ * NCBI asks for a contact address so they can reach you before rate-limiting.
+ * Read it from the environment rather than hardcoding: a personal address in
+ * a public repo is scraped, and whoever maintains this next is unlikely to be
+ * whoever committed it. Falls back to a role address so requests stay
+ * well-formed when the variable is unset. */
 const TOOL = "skinsavior";
-const EMAIL = "gonzalez.abel2003@gmail.com";
+const EMAIL = process.env.NCBI_CONTACT_EMAIL?.trim() || "contact@skinsavior.app";
 
 /** How many papers to surface per ingredient. */
 export const TOP_N = 5;

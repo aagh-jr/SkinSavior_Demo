@@ -8,10 +8,22 @@ export const metadata: Metadata = {
   description: "Enter the skinsavior demo.",
 };
 
-// The account the demo signs you into. Override with DEMO_ACCOUNT_EMAIL in the
-// environment without touching code. The real marketing landing lives at
-// /landing (see src/app/landing/page.tsx).
-const DEMO_EMAIL = process.env.DEMO_ACCOUNT_EMAIL ?? "gonzalez.abel2003@gmail.com";
+// The account the demo signs you into.
+//
+// There is deliberately NO fallback. This action mints a real session with no
+// password, so whatever address sits here is an account anyone who reaches the
+// page can log in as. It used to default to a maintainer's personal address,
+// which on a public deployment meant any visitor became that person — with
+// access to their profile, and the profile holds health information
+// (pregnancy status, medications, reactions).
+//
+// Unset means the demo is off and visitors get the marketing landing instead.
+// Failing closed is the only safe default for something that hands out
+// sessions: forgetting to set a variable should disable the demo, never
+// silently expose a real account.
+//
+// Point it at a dedicated throwaway account, never a personal one.
+const DEMO_EMAIL = process.env.DEMO_ACCOUNT_EMAIL?.trim() || null;
 
 // Server action: mint a genuine session for the demo account and drop the
 // visitor into the logged-in app. Uses the service-role admin client to create
@@ -19,6 +31,13 @@ const DEMO_EMAIL = process.env.DEMO_ACCOUNT_EMAIL ?? "gonzalez.abel2003@gmail.co
 // password required, and the service-role key never leaves the server.
 async function enterDemo() {
   "use server";
+
+  if (!DEMO_EMAIL) {
+    // Checked again here, not just at render: a server action is a real HTTP
+    // endpoint and can be invoked directly, so hiding the button is not the
+    // same as disabling the action.
+    redirect("/landing");
+  }
 
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: "magiclink",
@@ -40,6 +59,12 @@ async function enterDemo() {
 }
 
 export default function DemoSplash() {
+  // No demo account configured — send visitors to the real landing page
+  // rather than showing an Enter button that cannot do anything.
+  if (!DEMO_EMAIL) {
+    redirect("/landing");
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 text-center text-foreground">
       <span className="mb-10 font-serif text-lg font-semibold text-ink">
