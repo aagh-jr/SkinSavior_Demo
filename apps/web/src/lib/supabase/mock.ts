@@ -59,6 +59,9 @@ const auth = {
     error: null,
   }),
   signOut: async () => ({ error: null }),
+  resend: async () => ({ data: {}, error: null }),
+  resetPasswordForEmail: async () => ({ data: {}, error: null }),
+  updateUser: async () => ({ data: { user: null }, error: null }),
   onAuthStateChange: () => ({
     data: { subscription: { unsubscribe() {} } },
   }),

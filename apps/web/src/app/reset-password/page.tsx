@@ -1,10 +1,54 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AuthShell, authClass } from "@/components/account/AuthShell";
 import { PasswordField } from "@/components/account/PasswordField";
+import { supabase } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Clicking the emailed link lands here with a recovery token in the URL;
+  // the client detects it and fires PASSWORD_RECOVERY once the session is set.
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" && session) setReady(true);
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setReady(true);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (loading) return;
+    setError(null);
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords don't match.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    router.push("/reset-password/done");
+  }
+
   return (
     <AuthShell>
       <div className={`${authClass.card} max-w-[430px]`}>
@@ -15,29 +59,55 @@ export default function ResetPasswordPage() {
           Choose a strong password you haven&apos;t used before.
         </p>
 
-        <PasswordField label="New password" placeholder="At least 8 characters" />
-        <div className="mb-2.5">
-          <label className={authClass.label}>Confirm new password</label>
-          <input
-            type="password"
-            placeholder="Re-enter your password"
-            className={authClass.input}
-          />
-        </div>
-
-        <div className="mb-5 flex items-center gap-2">
-          <div className="h-[5px] flex-1 overflow-hidden rounded-full bg-sage-bg">
-            <div className="h-full w-3/4 bg-sage" />
+        {!ready ? (
+          <div className="mb-3.5 rounded-[10px] border border-destructive/40 bg-[#fdf1ee] px-3.5 py-2.5 text-[13px] text-destructive">
+            This reset link is invalid or has expired.{" "}
+            <Link href="/forgot-password" className="font-semibold underline">
+              Request a new one
+            </Link>
+            .
           </div>
-          <span className="text-xs font-semibold text-sage">Strong</span>
-        </div>
+        ) : null}
 
-        <Link
-          href="/reset-password/done"
-          className={authClass.primaryBtn + " inline-block text-center"}
-        >
-          Update password →
-        </Link>
+        <form onSubmit={handleSubmit}>
+          <PasswordField
+            label="New password"
+            placeholder="At least 8 characters"
+            value={password}
+            onChange={setPassword}
+            autoComplete="new-password"
+            disabled={!ready || loading}
+          />
+          <div className="mb-2.5">
+            <label className={authClass.label} htmlFor="reset-confirm">
+              Confirm new password
+            </label>
+            <input
+              id="reset-confirm"
+              type="password"
+              placeholder="Re-enter your password"
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              disabled={!ready || loading}
+              className={authClass.input}
+            />
+          </div>
+
+          {error ? (
+            <div className="mb-3.5 rounded-[10px] border border-destructive/40 bg-[#fdf1ee] px-3.5 py-2.5 text-[13px] text-destructive">
+              {error}
+            </div>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={!ready || loading}
+            className={`${authClass.primaryBtn} disabled:opacity-60`}
+          >
+            {loading ? "Updating…" : "Update password →"}
+          </button>
+        </form>
       </div>
     </AuthShell>
   );

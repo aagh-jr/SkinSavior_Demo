@@ -136,7 +136,7 @@ export default function SignupPage() {
   return (
     <AuthShell back={{ href: "/", label: "← Back to home" }}>
       <form onSubmit={handleEmail} className={`${authClass.card} max-w-[448px]`}>
-        <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-clay">
+        <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-link">
           Create your account
         </div>
         <h1 className="mt-2.5 font-serif text-[30px] font-medium tracking-tight text-ink">
@@ -186,6 +186,7 @@ export default function SignupPage() {
             placeholder="Alex Morgan"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            disabled={busy}
             className={authClass.input}
           />
         </div>
@@ -200,6 +201,7 @@ export default function SignupPage() {
             placeholder="you@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={busy}
             className={authClass.input}
           />
         </div>
@@ -211,9 +213,11 @@ export default function SignupPage() {
           disabled={busy}
         />
 
-        {error && (
-          <p className="mb-3 text-[13px] font-medium text-[#9a4a2f]">{error}</p>
-        )}
+        {error ? (
+          <div className="mb-3.5 rounded-[10px] border border-destructive/40 bg-[#fdf1ee] px-3.5 py-2.5 text-[13px] text-destructive">
+            {error}
+          </div>
+        ) : null}
 
         <button
           type="submit"
@@ -222,9 +226,10 @@ export default function SignupPage() {
         >
           {loading === "email" ? "Creating your account…" : "Create account →"}
         </button>
+
         <div className="mt-[18px] text-center text-[13px] text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-clay">
+          <Link href="/login" className="font-semibold text-link">
             Log in
           </Link>
         </div>
