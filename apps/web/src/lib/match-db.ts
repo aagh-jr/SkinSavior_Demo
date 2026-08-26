@@ -142,6 +142,97 @@ export async function scoreProductForMe(
   });
 }
 
+export interface ProductMatch {
+  score: number;
+  blocked: boolean;
+}
+
+/**
+ * Score many products for the signed-in user in a bounded number of queries.
+ *
+ * Returns null when there's no scorable profile — the caller hides the badge
+ * rather than invent a number for a visitor we know nothing about (same
+ * contract as scoreProductForMe). Otherwise a map keyed by slug; a slug whose
+ * product has no ingredient data is omitted rather than scored as empty.
+ *
+ * The INCI join is paginated. product_ingredients for ~50 products easily
+ * clears the 1000-row PostgREST cap, and a truncated read drops the TAIL of
+ * concentration-ordered lists — precisely where fragrance, oils and
+ * preservatives sit. A silently short list would recompute a "clean" score for
+ * a product that isn't. See CLAUDE.md, "the failure mode that keeps recurring".
+ */
+export async function scoreProductsForMe(
+  slugs: string[],
+): Promise<Record<string, ProductMatch> | null> {
+  const profile = await getMyProfile();
+  if (!isScorable(profile)) return null;
+
+  const unique = [...new Set(slugs)].filter(Boolean);
+  if (unique.length === 0) return {};
+
+  const db = await catalogDb();
+  const { data: prodRows } = await db
+    .from("products")
+    .select("id, slug, canonical_category")
+    .in("slug", unique);
+
+  const productList = (prodRows ?? []) as {
+    id: string;
+    slug: string;
+    canonical_category: string | null;
+  }[];
+  if (productList.length === 0) return {};
+
+  const productIds = productList.map((p) => p.id);
+
+  // Page through the join in 1000-row windows until a short page proves we've
+  // read the tail. Never a bare `.select()` here — see the doc comment.
+  type JoinRow = IngredientJoinRow & { product_id: string };
+  const joinRows: JoinRow[] = [];
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("product_ingredients")
+      .select("product_id, position, ingredients(inci_name, functions)")
+      .in("product_id", productIds)
+      .order("product_id")
+      .order("position")
+      .range(from, from + PAGE - 1);
+    if (error) break;
+    const batch = (data ?? []) as unknown as JoinRow[];
+    joinRows.push(...batch);
+    if (batch.length < PAGE) break;
+  }
+
+  const byProduct = new Map<
+    string,
+    { inciName: string; position: number; functions: string[] | null }[]
+  >();
+  for (const j of joinRows) {
+    if (!j.ingredients) continue;
+    const list = byProduct.get(j.product_id) ?? [];
+    list.push({
+      inciName: j.ingredients.inci_name,
+      position: j.position,
+      functions: j.ingredients.functions,
+    });
+    byProduct.set(j.product_id, list);
+  }
+
+  const out: Record<string, ProductMatch> = {};
+  for (const p of productList) {
+    const ingredients = byProduct.get(p.id);
+    if (!ingredients || ingredients.length === 0) continue;
+    const result = scoreProduct(profile, {
+      id: p.id,
+      canonicalCategory: p.canonical_category,
+      ingredients,
+    });
+    out[p.slug] = { score: result.score, blocked: result.blocked };
+  }
+  return out;
+}
+
 export interface RankedCatalogProduct {
   slug: string;
   name: string;

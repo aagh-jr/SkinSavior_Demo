@@ -54,7 +54,7 @@ function band(score: number) {
   if (score >= 85) return { fg: "#2f6b30", bg: "#e4f2df", ring: "#7fb069" };
   if (score >= 70) return { fg: "#4a7c2f", bg: "#eef5e6", ring: "#a3c585" };
   if (score >= 55) return { fg: "#9a6a12", bg: "#fdf2dd", ring: "#e0be7a" };
-  return { fg: "#9a4a2f", bg: "#fdece6", ring: "#dda893" };
+  return { fg: "#dc6464", bg: "#fdece6", ring: "#dda893" };
 }
 
 export default async function ForYouPage({
@@ -141,7 +141,7 @@ export default async function ForYouPage({
                 ? `All ${data.total} ${activeLabel.toLowerCase()} we know about`
                 : `Best ${ranked.length} of ${data.total} ${activeLabel.toLowerCase()}`}
               {data.conflictCount > 0 && (
-                <> · <span className="text-[#9a4a2f]">{data.conflictCount} interact with your routine</span></>
+                <> · <span className="text-[#dc6464]">{data.conflictCount} interact with your routine</span></>
               )}
               {data.blockedCount > 0 && (
                 <> · {data.blockedCount} hidden on safety grounds</>
@@ -199,7 +199,7 @@ export default async function ForYouPage({
                     <p className="line-clamp-2 font-serif text-[16px] leading-snug text-ink">
                       {name}
                     </p>
-                    <p className="mt-0.5 text-[11px] uppercase tracking-[0.1em] text-clay">
+                    <p className="mt-0.5 text-[11px] uppercase tracking-[0.1em] text-link">
                       {brand}
                       {price && <span className="ml-2 normal-case tracking-normal text-muted-foreground">{price}</span>}
                     </p>
@@ -207,7 +207,7 @@ export default async function ForYouPage({
                         priced into the score: most routine clashes are solved by
                         timing, so sinking the product would explain nothing. */}
                     {conflicts.length > 0 && (
-                      <p className="mt-1.5 line-clamp-1 text-[12px] font-medium text-[#9a4a2f]">
+                      <p className="mt-1.5 line-clamp-1 text-[12px] font-medium text-[#dc6464]">
                         {conflicts[0].severity === "major" ? "Clashes" : "Interacts"} with{" "}
                         {conflicts[0].steps.filter((x) => x !== "This product")[0] ??
                           "your routine"}
@@ -218,7 +218,7 @@ export default async function ForYouPage({
                       <p className="mt-1.5 line-clamp-1 text-[12px]">
                         <span
                           className="font-mono font-semibold"
-                          style={{ color: top.points > 0 ? "#2f6b30" : "#9a4a2f" }}
+                          style={{ color: top.points > 0 ? "#2f6b30" : "#dc6464" }}
                         >
                           {top.points > 0 ? "+" : ""}
                           {top.points}
