@@ -123,6 +123,21 @@ BRAND_NAMES = {
     "rhode": "rhode",
     "loops": "Loops",
     "glossier": "Glossier",
+    # Third wave. Probed 68 more candidates; these are the ones that answer
+    # and sell face skincare. Excluded from the working set: Kosas and
+    # Revolution (makeup), OUAI (hair), and theinkeylist.com (already imported
+    # under "inkeylist").
+    "medik8": "Medik8",
+    "neogen": "Neogen Dermalogy",
+    "mediheal": "Mediheal",
+    "beautypie": "Beauty Pie",
+    "111skin": "111SKIN",
+    "drsambunting": "Dr Sam Bunting",
+    "facetheory": "Facetheory",
+    "bywishtrend": "By Wishtrend",
+    "wishtrend": "Wishtrend",
+    "peaceout": "Peace Out",
+    "selfless": "Selfless by Hyram",
 }
 
 # Verified Shopify storefronts. Keys double as the --brands filter.
@@ -173,6 +188,17 @@ BRAND_DOMAINS = {
     "rhode": "www.rhodeskin.com",
     "loops": "loopsbeauty.com",
     "glossier": "www.glossier.com",
+    "medik8": "www.medik8.com",
+    "neogen": "neogenlab.us",
+    "mediheal": "www.mediheal.com",
+    "beautypie": "www.beautypie.com",
+    "111skin": "111skin.com",
+    "drsambunting": "drsambunting.com",
+    "facetheory": "facetheory.com",
+    "bywishtrend": "bywishtrend.com",
+    "wishtrend": "www.wishtrend.com",
+    "peaceout": "peaceoutskincare.com",
+    "selfless": "selflessbyhyram.com",
 }
 
 # Brand catalogues carry a lot that isn't a skincare product: bundles, gifts,
