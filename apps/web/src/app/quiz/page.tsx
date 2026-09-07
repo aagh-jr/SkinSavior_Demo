@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import { seedRoutineFromQuizAction } from "@/app/routines/actions";
@@ -196,15 +196,37 @@ const TOTAL = STEPS.length;
 
 // ---------- main component ----------
 export default function QuizPage() {
+  return (
+    <Suspense fallback={null}>
+      <QuizInner />
+    </Suspense>
+  );
+}
+
+function QuizInner() {
   const [stepIdx, setStepIdx] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [phase, setPhase] = useState<"survey" | "account" | "done">("survey");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Settings' "Retake quiz" link carries this flag. A retake is someone who
+  // already has a routine and just wants their match scores updated — it
+  // should land them back where they started, not walk them into the
+  // routine builder like a first-time signup.
+  const isRetake = searchParams.get("retake") === "1";
 
-  // Seed the routine and hand off to the builder. Shared by both paths into
-  // "done" so they cannot drift apart.
+  // Persist the answers and hand off. First-time signups seed the routine
+  // and land in the builder; a retake already has a routine (seeding is a
+  // no-op there anyway) and returns to Settings, which is where the retake
+  // was launched from and where the updated "last taken" date shows up.
   const finish = useCallback(() => {
     setPhase("done");
+    if (isRetake) {
+      void new Promise((r) => setTimeout(r, 900)).then(() => {
+        router.push("/settings");
+      });
+      return;
+    }
     // Seed the routine and hold the confirmation for a beat — CONCURRENTLY.
     // Chaining a 1400ms timeout onto .then() made the two additive: the server
     // action takes ~3s, so the measured wait was 4.5s of staring at a static
@@ -217,7 +239,7 @@ export default function QuizPage() {
     ]).then(([res]) => {
       router.push(res.ok ? `/routines/${res.id}` : "/home");
     });
-  }, [router]);
+  }, [router, isRetake]);
 
   // Already signed in: save and skip the account step.
   //
@@ -313,7 +335,7 @@ export default function QuizPage() {
             onBack={() => setStepIdx(TOTAL - 1)}
           />
         )}
-        {phase === "done" && <DoneView />}
+        {phase === "done" && <DoneView isRetake={isRetake} />}
       </main>
     </div>
   );
@@ -561,7 +583,7 @@ function AccountStep({
 
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
+      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-link">
         Last step
       </p>
       <h1 className="mt-3 font-serif text-3xl font-medium leading-[1.1] tracking-tight text-ink md:text-[40px]">
@@ -685,7 +707,7 @@ function AccountStep({
 }
 
 // ---------- done ----------
-function DoneView() {
+function DoneView({ isRetake }: { isRetake: boolean }) {
   return (
     <div className="text-center">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sage-bg text-2xl text-sage">
@@ -695,8 +717,9 @@ function DoneView() {
         Your skin profile is saved.
       </h1>
       <p className="mt-3 text-[15px] text-muted-foreground">
-        Next: your routine. We&apos;ve started it with the steps you told us you
-        already use — add the products you own so we can check them for clashes.
+        {isRetake
+          ? "Your match scores are updated across the site. Back to settings…"
+          : "Next: your routine. We've started it with the steps you told us you already use — add the products you own so we can check them for clashes."}
       </p>
     </div>
   );

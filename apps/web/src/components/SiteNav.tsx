@@ -161,7 +161,9 @@ export function SiteNav() {
           )}
         </nav>
         <div className="flex items-center gap-3 md:gap-4">
-          <SearchBar />
+          <div className="hidden sm:block">
+            <SearchBar />
+          </div>
           {auth === "in" ? (
             <div ref={menuRef} className="relative">
               <button
@@ -170,7 +172,7 @@ export function SiteNav() {
                 aria-label="Your account"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
-                className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-clay transition-colors hover:bg-accent/40"
+                className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-link transition-colors hover:bg-accent/40"
               >
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element

@@ -116,6 +116,19 @@ function isMissingDescription(error: { code?: string; message?: string } | null)
   return isMissingColumn(error, "description");
 }
 
+// The demo sign-in flow mints a session (supabaseAdmin.auth.admin.generateLink
+// + verifyOtp) and redirects to /home immediately. If the token's `iat` is a
+// moment ahead of this machine's clock, the very next request can fail the
+// client's local skew check. It's transient — the same request right after
+// always succeeds — so retry once rather than crashing the page.
+function isClockSkewError(error: { message?: string } | null): boolean {
+  return !!error?.message && error.message.toLowerCase().includes("issued at future");
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /** The user's chosen primary routine id (null if unset or column not live). */
 async function getPrimaryRoutineId(
   db: SupabaseClient,
@@ -161,6 +174,25 @@ export async function listMyRoutines(): Promise<RoutineSummary[]> {
       .order("created_at");
     data = retry.data;
     error = retry.error;
+  }
+  if (error && isClockSkewError(error)) {
+    await delay(300);
+    const retry = await ctx.db
+      .from("skincare_routines")
+      .select("id, name, description, created_at, routine_steps(count)")
+      .eq("profile_id", ctx.userId)
+      .order("created_at");
+    data = retry.data;
+    error = retry.error;
+    if (error && isMissingDescription(error)) {
+      const retry2 = await ctx.db
+        .from("skincare_routines")
+        .select("id, name, created_at, routine_steps(count)")
+        .eq("profile_id", ctx.userId)
+        .order("created_at");
+      data = retry2.data;
+      error = retry2.error;
+    }
   }
   if (error) throw new Error(`Couldn't load your routines: ${error.message}`);
   const primaryId = await getPrimaryRoutineId(ctx.db, ctx.userId);

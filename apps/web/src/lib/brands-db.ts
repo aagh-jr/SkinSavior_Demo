@@ -39,6 +39,41 @@ export function brandSlug(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/**
+ * Hand-reviewed aliases for `products.brand` values that are the same real
+ * brand but DON'T already collapse under `brandSlug()`'s case/punctuation
+ * normalization — genuine scraper typos or formatting drift, each verified
+ * against the live catalogue before being added here (see the brand-cleanup
+ * investigation, 2026-08-27: 343 distinct brand strings, ~18 already merge by
+ * slug alone; this list is the next layer for near-misses slug can't catch).
+ *
+ * Deliberately NOT automated (no fuzzy-match auto-merge): brand identity
+ * feeds attribution and search, and two similar names can be genuinely
+ * different companies ("OMBIA SUN" vs "Ombra" — Aldi vs. an unrelated brand,
+ * one letter apart, correctly NOT in this list). Every entry here is a
+ * confirmed duplicate, not a guess.
+ *
+ * Keyed by `brandSlug(raw value)` so matching is case/punctuation-insensitive
+ * on the input side; value is the canonical display name to show instead.
+ * This changes only what renders — `products.brand` in the database is
+ * untouched, so it's reversible by editing this file.
+ */
+const BRAND_ALIASES: Record<string, string> = {
+  // One-letter scraper typo: "Nutrogena" is not a real skincare brand.
+  nutrogena: "Neutrogena",
+  // Same brand, three spacing/casing variants across import batches.
+  "sun-ozon": "Sun Ozon",
+  sunozon: "Sun Ozon",
+  // Redundant "dmp" abbreviation suffix on an otherwise-matching name.
+  "du-monde-la-provence-dmp": "du monde à la Provence",
+};
+
+/** Canonical brand name for a raw `products.brand` value — resolves known
+ *  aliases (see `BRAND_ALIASES`); otherwise returns the value unchanged. */
+export function canonicalBrand(raw: string): string {
+  return BRAND_ALIASES[brandSlug(raw)] ?? raw;
+}
+
 /** Normalize a raw product category into a stable key + display label. */
 export function normalizeCategory(raw: string | null): { key: string; label: string } | null {
   if (!raw) return null;
@@ -114,7 +149,7 @@ async function loadAllProducts(): Promise<BrandProduct[]> {
     .map((r) => ({
       slug: r.slug,
       name: r.name,
-      brand: r.brand as string,
+      brand: canonicalBrand(r.brand as string),
       category: r.category,
       origin: r.origin,
       imageUrl: r.image_url,

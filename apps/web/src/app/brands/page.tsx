@@ -72,7 +72,7 @@ export default async function BrandsPage() {
               <span
                 key={letter}
                 aria-hidden
-                className="flex h-8 w-8 items-center justify-center text-[13px] text-[#cfc4b2]"
+                className="flex h-8 w-8 items-center justify-center text-[13px] text-faint/50"
               >
                 {letter}
               </span>
@@ -92,22 +92,17 @@ export default async function BrandsPage() {
               // Offset so the sticky nav doesn't cover the heading on jump.
               className="scroll-mt-[132px] border-b border-border py-7 last:border-b-0"
             >
-              <h2 className="m-0 font-serif text-[28px] font-medium leading-none text-clay">
+              <h2 className="m-0 font-serif text-[28px] font-medium leading-none text-link">
                 {letter}
               </h2>
-              <ul className="mt-4 grid list-none grid-cols-1 gap-x-8 gap-y-1 p-0 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="mt-4 flex list-none flex-wrap gap-x-10 gap-y-2 p-0">
                 {byLetter.get(letter)!.map((brand) => (
                   <li key={brand.slug}>
                     <Link
                       href={`/brands/${brand.slug}`}
-                      className="group flex items-baseline justify-between gap-3 rounded-md py-1.5 transition-colors hover:text-clay"
+                      className="text-[15px] text-ink transition-colors hover:text-link"
                     >
-                      <span className="min-w-0 truncate text-[15px] text-ink group-hover:text-clay">
-                        {brand.name}
-                      </span>
-                      <span className="flex-shrink-0 font-mono text-[12px] text-muted-foreground">
-                        {brand.productCount}
-                      </span>
+                      {brand.name} <span className="text-muted-foreground">({brand.productCount})</span>
                     </Link>
                   </li>
                 ))}

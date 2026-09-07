@@ -46,7 +46,7 @@ function bestStudyType(types: string[]): string | null {
 function badgeTone(type: string): string {
   const score = STUDY_TYPE_RANK[type] ?? 20;
   return score >= 60
-    ? "bg-primary/10 text-primary"
+    ? "bg-primary/10 text-link"
     : "bg-muted text-muted-foreground";
 }
 
@@ -82,7 +82,7 @@ function PaperCard({ paper }: { paper: Paper }) {
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-primary hover:underline"
+          className="hover:text-link hover:underline"
         >
           {paper.title}
         </a>
@@ -96,7 +96,7 @@ function PaperCard({ paper }: { paper: Paper }) {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-3 inline-block text-[13px] font-semibold text-primary hover:underline"
+        className="mt-3 inline-block text-[13px] font-semibold text-link hover:underline"
       >
         {paper.doi ? "Read full text →" : "View on PubMed →"}
       </a>

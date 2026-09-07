@@ -104,7 +104,7 @@ export default async function BrandPage({
               className={
                 "rounded-full border px-3.5 py-[7px] text-[13px] transition-colors " +
                 (!category
-                  ? "border-clay bg-secondary font-semibold text-clay"
+                  ? "border-clay bg-secondary font-semibold text-link"
                   : "border-border text-muted-foreground hover:text-ink")
               }
             >
@@ -119,7 +119,7 @@ export default async function BrandPage({
                   className={
                     "rounded-full border px-3.5 py-[7px] text-[13px] transition-colors " +
                     (active
-                      ? "border-clay bg-secondary font-semibold text-clay"
+                      ? "border-clay bg-secondary font-semibold text-link"
                       : "border-border text-muted-foreground hover:text-ink")
                   }
                 >
@@ -140,7 +140,7 @@ export default async function BrandPage({
                   className={
                     "rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition-colors " +
                     (active
-                      ? "bg-secondary text-clay"
+                      ? "bg-secondary text-link"
                       : "text-muted-foreground hover:text-ink")
                   }
                 >
@@ -175,7 +175,7 @@ export default async function BrandPage({
                 </div>
                 <div className="flex flex-1 flex-col gap-1.5 p-4">
                   {p.category ? (
-                    <div className="text-[10px] uppercase tracking-[0.14em] text-[#9a4a2f]">
+                    <div className="text-[10px] uppercase tracking-[0.14em] text-link">
                       {p.category}
                     </div>
                   ) : null}

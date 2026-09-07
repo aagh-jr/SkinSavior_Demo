@@ -1,180 +1,234 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
-import { SearchBar } from "@/components/SearchBar";
-import { ProductThumb } from "@/components/ProductThumb";
-import type { Product } from "@skinsavior/core/types";
-import { listRecentDbProducts } from "@/lib/products-db";
-import { getHomeRoutine, type BuilderStep } from "@/lib/routines-db";
-import { ROUTINE_CATEGORIES } from "@/lib/routine-categories";
+import { AiTipCard } from "@/components/home/AiTipCard";
+import { RoutineTimeStrip } from "@/components/home/RoutineTimeStrip";
+import { getHomeRoutine } from "@/lib/routines-db";
+import { createClient } from "@/lib/supabase/server";
+import { getUvIndex } from "@/lib/uv";
+
+/**
+ * The signed-in user's greeting name — their profile display name, falling back
+ * to the email local-part (matching handle_new_user()), then a neutral "there".
+ * Read through the cookie-aware client so RLS enforces own-row access.
+ */
+async function getGreetingName(): Promise<string> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "there";
+  const { data } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .maybeSingle();
+  const name = (data as { display_name: string | null } | null)?.display_name;
+  return name?.trim() || user.email?.split("@")[0] || "there";
+}
 
 export const metadata: Metadata = {
   title: "Your home",
   description:
-    "Your personalized skinsavior home — search products, see your current routine, and discover trending picks.",
+    "Your personalized skinsavior home — your routine, today's AI tip, UV index, and your sunscreen streak.",
 };
 
-function ProductCard({ p }: { p: Product }) {
-  return (
-    <Link
-      href={`/product/${p.slug}`}
-      className="group flex w-[260px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[#e6ddcf] bg-white transition-shadow hover:shadow-lg"
-    >
-      <ProductThumb
-        category={p.category}
-        imageUrl={p.imageUrl}
-        name={p.name}
-        className="aspect-[4/3] w-full"
-        iconSize={48}
-      />
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <div className="text-[10px] uppercase tracking-[0.14em] text-[#9a4a2f]">
-          {p.brand} · {p.category}
-        </div>
-        <div className="font-serif text-lg leading-tight text-ink">{p.name}</div>
-        <div className="mt-auto flex items-center justify-between pt-2">
-          <span className="text-sm font-semibold text-ink">{p.price}</span>
-        </div>
-      </div>
-    </Link>
-  );
-}
+// Routine, UV index (Open-Meteo, San Jose — no location service yet) and the
+// AI tip (Gemini, grounded in the routine) are all live. The sunscreen
+// tracker below is still a static reproduction of the redesign — there is no
+// application-logging backend yet, so it carries the design's demo values.
+export const dynamic = "force-dynamic";
 
-const CATEGORY_LABELS = new Map(
-  ROUTINE_CATEGORIES.map((c) => [c.value, c.label] as const),
-);
-
-function RoutineStepCard({ step }: { step: BuilderStep }) {
-  const category = CATEGORY_LABELS.get(step.category) ?? step.category;
-  const inner = (
-    <>
-      <div className="aspect-[4/3] w-full overflow-hidden">
-        <ProductThumb
-          category={step.category}
-          imageUrl={step.productImage}
-          name={step.productName}
-          className="h-full w-full"
-          iconSize={48}
-        />
-      </div>
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <div className="text-[10px] uppercase tracking-[0.14em] text-[#9a4a2f]">
-          {step.productBrand ? `${step.productBrand} · ` : ""}
-          {category}
-        </div>
-        <div className="font-serif text-lg leading-tight text-ink">
-          {step.productName}
-        </div>
-      </div>
-    </>
-  );
-
-  const className =
-    "group flex w-[260px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[#e6ddcf] bg-white transition-shadow hover:shadow-lg";
-  return step.productSlug ? (
-    <Link href={`/product/${step.productSlug}`} className={className}>
-      {inner}
-    </Link>
-  ) : (
-    <div className={className}>{inner}</div>
-  );
-}
+// Static reproduction of the redesign's sunscreen tracker. August 2026 starts
+// on a Saturday, so a Mon-first grid opens with 5 blank cells. Values are the
+// design's demo data; 0–3 map to the four-step legend.
+const SPF_COUNTS = [
+  3, 2, 1, 3, 3, 2, 0, 3, 3, 3, 1, 2, 3, 3, 0, 2, 3, 3, 3, 1, 0, 2, 3, 3, 2, 3,
+  1, 0, 3, 3, 2,
+];
+const SPF_BG = ["#F5F7FA", "#CFEEE0", "#6FC7A4", "#159A6B"];
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default async function HomePage() {
-  const homeRoutine = await getHomeRoutine();
-  // Real catalogue rows, not the lib/products.ts mock. That mock is three
-  // invented products (GLOWLAB, PureLeaf, DermaQuiet) with no images, and the
-  // row rendered it twice to look full — so the landing page opened on six
-  // grey boxes for products that do not exist.
-  const showcase = await listRecentDbProducts(12);
+  const [homeRoutine, firstName, uv] = await Promise.all([
+    getHomeRoutine(),
+    getGreetingName(),
+    getUvIndex(),
+  ]);
+
+  const steps = homeRoutine?.steps ?? [];
+  const amSteps = steps.filter((s) => s.timeOfDay === "am" || s.timeOfDay === "both");
+  const pmSteps = steps.filter((s) => s.timeOfDay === "pm" || s.timeOfDay === "both");
 
   return (
     <div className="min-h-screen bg-background">
       <SiteNav />
 
-      {/* Hero search */}
-      <section className="mx-auto max-w-[1180px] px-6 pb-10 pt-16 md:px-14 md:pt-24">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="mb-3 text-xs uppercase tracking-[0.18em] text-[#9a4a2f]">
-            Welcome back
-          </p>
-          <h1 className="font-serif text-4xl leading-tight text-ink md:text-5xl">
-            What are we decoding today?
-          </h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Search any product or ingredient to see how it fits your skin.
-          </p>
-          <div className="mt-7 flex justify-center">
-            <SearchBar />
-          </div>
-        </div>
-      </section>
+      <main className="mx-auto max-w-[1180px] px-6 py-10 md:px-14">
+        <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[minmax(0,1fr)_340px]">
+          {/* LEFT COLUMN — welcome + routine */}
+          <div className="flex min-w-0 flex-col gap-6">
+            <div>
+              <h1 className="font-serif text-4xl leading-[1.06] tracking-tight text-ink md:text-[44px]">
+                Welcome back {firstName},
+              </h1>
+              <p className="mt-2.5 text-sm text-muted-foreground">
+                {homeRoutine
+                  ? `${homeRoutine.name} · ${steps.length} ${steps.length === 1 ? "product" : "products"}`
+                  : "You haven't built a routine yet"}
+              </p>
+            </div>
 
-      {/* Current routine — the user's primary routine (manually scrollable) */}
-      <section className="mx-auto max-w-[1180px] px-6 py-8 md:px-14">
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="font-serif text-2xl text-ink md:text-3xl">
-              Your current routine
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {homeRoutine
-                ? `${homeRoutine.name} · ${homeRoutine.steps.length} ${
-                    homeRoutine.steps.length === 1 ? "product" : "products"
-                  }`
-                : "You haven't built a routine yet"}
-            </p>
-          </div>
-          <Link
-            href={homeRoutine ? `/routines/${homeRoutine.id}` : "/routines"}
-            className="text-xs font-semibold text-[#9a4a2f] hover:underline"
-          >
-            {homeRoutine ? "Manage routine →" : "Build one →"}
-          </Link>
-        </div>
+            <div className="min-w-0 overflow-hidden rounded-xl border border-soft-tan bg-warm-white">
+              <div className="flex items-center justify-between px-5 pb-3.5 pt-[18px]">
+                <div>
+                  <h2 className="m-0 font-serif text-xl text-ink">Your routine</h2>
+                  <div className="mt-0.5 text-[13px] text-faint">
+                    {homeRoutine
+                      ? `${homeRoutine.name} · ${steps.length} ${steps.length === 1 ? "product" : "products"}`
+                      : "Nothing here yet"}
+                  </div>
+                </div>
+                {homeRoutine ? (
+                  <Link
+                    href={`/routines/${homeRoutine.id}`}
+                    aria-label="Manage your routine"
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-ink text-warm-white transition-opacity hover:opacity-85"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                      <path d="M3.33 8h9.33" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M9.33 4.67L12.67 8l-3.34 3.33" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </Link>
+                ) : (
+                  <Link
+                    href="/routines"
+                    className="text-[12px] font-semibold text-link hover:underline"
+                  >
+                    Build one →
+                  </Link>
+                )}
+              </div>
 
-        {homeRoutine && homeRoutine.steps.length > 0 ? (
-          <div className="flex gap-5 overflow-x-auto pb-4 [scrollbar-width:thin]">
-            {homeRoutine.steps.map((step) => (
-              <RoutineStepCard key={step.id} step={step} />
-            ))}
+              {homeRoutine ? (
+                <RoutineTimeStrip
+                  amSteps={amSteps}
+                  pmSteps={pmSteps}
+                  routineId={homeRoutine.id}
+                />
+              ) : (
+                <Link
+                  href="/routines"
+                  className="flex items-center justify-center border-t border-soft-tan px-5 py-10 text-sm font-semibold text-link transition-colors hover:bg-secondary"
+                >
+                  + Build your first routine
+                </Link>
+              )}
+            </div>
           </div>
-        ) : (
-          <Link
-            href={homeRoutine ? `/routines/${homeRoutine.id}` : "/routines"}
-            className="flex items-center justify-center rounded-2xl border border-dashed border-[#d8ccba] bg-warm-white px-6 py-12 text-sm font-semibold text-clay transition-colors hover:bg-[#fff7ea]"
-          >
-            {homeRoutine
-              ? "+ Add products to your routine"
-              : "+ Build your first routine"}
-          </Link>
-        )}
-      </section>
 
-      {/* Trending */}
-      <section className="mx-auto max-w-[1180px] px-6 py-8 pb-24 md:px-14">
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="font-serif text-2xl text-ink md:text-3xl">
-              Recently added
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              The newest products in the index
-            </p>
+          {/* RIGHT COLUMN — AI tip + UV index */}
+          <div className="flex flex-col gap-4">
+            <AiTipCard />
+
+            <div
+              className="rounded-xl border border-soft-tan p-5 text-white"
+              style={{
+                background: "linear-gradient(150deg, #FFC876, #D97706)",
+              }}
+            >
+              <div className="flex items-end justify-between">
+                <div>
+                  <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80">
+                    UV index · {uv?.location ?? "San Jose, CA"}
+                  </div>
+                  <div className="mt-1.5 font-serif text-[44px] font-semibold leading-none">
+                    {uv?.uv ?? "–"}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[13px] font-bold">{uv?.label ?? "Unavailable"}</div>
+                  <div className="text-[12px] text-white/75">
+                    {uv?.reapply ?? "Check back later"}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3.5 flex gap-1">
+                {Array.from({ length: 4 }).map((_, i) => {
+                  const frac = uv ? Math.min(1, Math.max(0, uv.uv / 11 - i * 0.25) * 4) : 0;
+                  return (
+                    <div
+                      key={i}
+                      className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/20"
+                    >
+                      <div
+                        className="h-full rounded-full bg-white/90"
+                        style={{ width: `${frac * 100}%` }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-          <Link
-            href="/search"
-            className="text-xs font-semibold text-[#9a4a2f] hover:underline"
-          >
-            Browse all →
-          </Link>
+
+          {/* FULL-WIDTH — sunscreen tracker (static) */}
+          <div className="min-w-0 rounded-xl border border-soft-tan bg-warm-white px-6 py-5 lg:col-span-2">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="m-0 font-serif text-[22px] text-ink">SPF application</h2>
+                <div className="mt-0.5 text-[13px] text-faint">
+                  August · self-reported, 24 of 31 days logged
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <span className="text-[11px] text-faint">0</span>
+                <div className="flex gap-[3px]">
+                  {SPF_BG.map((bg, i) => (
+                    <div
+                      key={i}
+                      className="h-4 w-4 rounded"
+                      style={{
+                        background: bg,
+                        border: i === 0 ? "1px solid #DEE3E9" : undefined,
+                      }}
+                    />
+                  ))}
+                </div>
+                <span className="text-[11px] text-faint">3+ applications</span>
+              </div>
+            </div>
+            <div className="mt-3.5 grid max-w-[520px] grid-cols-7 gap-1">
+              {WEEKDAYS.map((d) => (
+                <div
+                  key={d}
+                  className="text-center font-mono text-[10px] uppercase tracking-[0.1em] text-faint"
+                >
+                  {d}
+                </div>
+              ))}
+              {/* 5 leading blanks — August 2026 begins on a Saturday. */}
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={`blank-${i}`} className="h-8" />
+              ))}
+              {SPF_COUNTS.map((c, i) => (
+                <div
+                  key={i}
+                  className="h-8 rounded-md border border-soft-tan px-1 py-[3px]"
+                  style={{ background: SPF_BG[c] }}
+                >
+                  <span
+                    className="font-mono text-[9px]"
+                    style={{ color: c >= 2 ? "rgba(255,255,255,.85)" : "#5B6472" }}
+                  >
+                    {i + 1}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="flex gap-5 overflow-x-auto pb-4 [scrollbar-width:thin]">
-          {showcase.map((p) => (
-            <ProductCard key={p.slug} p={p} />
-          ))}
-        </div>
-      </section>
+      </main>
     </div>
   );
 }

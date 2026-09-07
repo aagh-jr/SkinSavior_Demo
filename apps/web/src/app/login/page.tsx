@@ -121,7 +121,7 @@ function LoginForm() {
           disabled={busy}
         />
         <div className="mb-[18px] text-right">
-          <Link href="/forgot-password" className="text-[13px] font-semibold text-clay">
+          <Link href="/forgot-password" className="text-[13px] font-semibold text-link">
             Forgot password?
           </Link>
         </div>
@@ -143,7 +143,7 @@ function LoginForm() {
 
       <div className="mt-[18px] text-center text-[13px] text-muted-foreground">
         New here?{" "}
-        <Link href="/signup" className="font-semibold text-clay">
+        <Link href="/signup" className="font-semibold text-link">
           Create an account
         </Link>
       </div>

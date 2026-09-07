@@ -4,11 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ProductThumb } from "@/components/ProductThumb";
 import { fetchProductsPage } from "@/app/search/actions";
+import type { ProductMatch } from "@/lib/match-db";
 import type {
   ProductCardRow,
   ProductCategory,
   ProductsPage,
 } from "@/lib/products-db";
+
+type ScoreMap = Record<string, ProductMatch>;
+type View = "grid" | "list";
 
 /** Client-safe tidy of a raw category value for the card subtitle. */
 function prettyCategory(c: string | null): string {
@@ -19,39 +23,69 @@ function prettyCategory(c: string | null): string {
     .replace(/\b\w/g, (ch) => ch.toUpperCase());
 }
 
-function ProductCard({ p }: { p: ProductCardRow }) {
+/** The clay match badge. Blocked products get an ink badge + a "!" — a safety
+ *  concern is surfaced wherever the product renders, never hidden by rank. */
+function MatchBadge({ match, size = 50 }: { match: ProductMatch; size?: number }) {
+  const blocked = match.blocked;
+  return (
+    <div
+      className="flex flex-col items-center justify-center rounded-xl"
+      style={{
+        width: size,
+        height: size,
+        ...(blocked
+          ? { background: "#12181F", color: "#FFFFFF" }
+          : { background: "#2F6FED", color: "#FFFFFF" }),
+      }}
+      title={blocked ? "Flagged on safety grounds for your profile" : undefined}
+    >
+      <span className="font-serif text-[16px] font-semibold leading-none">
+        {blocked ? "!" : `${match.score}%`}
+      </span>
+      <span className="mt-0.5 text-[8px] uppercase tracking-[0.12em] opacity-85">
+        {blocked ? "check" : "match"}
+      </span>
+    </div>
+  );
+}
+
+function GridCard({ p, match }: { p: ProductCardRow; match?: ProductMatch }) {
   return (
     <Link
       href={`/product/${p.slug}`}
-      className="group overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary/40"
+      className="group overflow-hidden rounded-xl border border-soft-tan bg-white transition-colors hover:border-clay hover:bg-secondary/40"
     >
-      <div className="relative aspect-square">
+      <div className="relative aspect-[4/3]">
         <ProductThumb
           category={p.category}
           imageUrl={p.image_url}
           name={p.name}
           className="absolute inset-0 h-full w-full"
-          iconSize={56}
+          iconSize={48}
         />
+        {match && (
+          <div className="absolute right-2.5 top-2.5">
+            <MatchBadge match={match} />
+          </div>
+        )}
       </div>
-      <div className="p-5">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+      <div className="px-4 pb-4 pt-3.5">
+        <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-link">
           {p.brand}
-          {p.origin ? ` · ${p.origin}` : ""}
         </div>
-        <div className="mt-1.5 font-serif text-xl font-medium leading-tight text-ink">
+        <div className="mt-1 font-serif text-[17px] font-medium leading-[1.18] text-ink">
           {p.name}
         </div>
         {p.category && (
-          <div className="mt-1 text-sm text-muted-foreground">
+          <div className="mt-1 text-[13px] text-muted-foreground">
             {prettyCategory(p.category)}
           </div>
         )}
-        <div className="mt-4 flex items-baseline justify-between">
-          <span className="font-serif text-lg font-semibold text-ink">
+        <div className="mt-3 flex items-baseline justify-between">
+          <span className="font-serif text-[16px] font-semibold text-ink">
             {p.price ?? ""}
           </span>
-          <span className="text-sm font-semibold text-primary group-hover:underline">
+          <span className="text-[13px] font-semibold text-link group-hover:underline">
             View →
           </span>
         </div>
@@ -60,24 +94,67 @@ function ProductCard({ p }: { p: ProductCardRow }) {
   );
 }
 
+function ListCard({ p, match }: { p: ProductCardRow; match?: ProductMatch }) {
+  return (
+    <Link
+      href={`/product/${p.slug}`}
+      className="flex items-center gap-4 rounded-xl border border-soft-tan bg-white p-3 transition-colors hover:border-clay hover:bg-secondary/40"
+    >
+      <div className="h-[64px] w-[64px] flex-shrink-0 overflow-hidden rounded-xl border border-soft-tan">
+        <ProductThumb
+          category={p.category}
+          imageUrl={p.image_url}
+          name={p.name}
+          className="h-full w-full"
+          iconSize={28}
+        />
+      </div>
+      {match && <MatchBadge match={match} size={52} />}
+      <div className="min-w-0 flex-1">
+        <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-link">
+          {p.brand}
+        </div>
+        <div className="mt-0.5 truncate font-serif text-[16px] font-medium text-ink">
+          {p.name}
+        </div>
+        {p.category && (
+          <div className="text-[12px] text-muted-foreground">
+            {prettyCategory(p.category)}
+          </div>
+        )}
+      </div>
+      <span className="flex-shrink-0 font-serif text-[15px] font-semibold text-ink">
+        {p.price ?? ""}
+      </span>
+    </Link>
+  );
+}
+
 export function ProductsExplorer({
   categories,
   initialPage,
   initialQ,
+  initialScores,
 }: {
   categories: ProductCategory[];
   initialPage: ProductsPage;
   initialQ: string;
+  initialScores: ScoreMap | null;
 }) {
   const [activeKey, setActiveKey] = useState<string | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [q, setQ] = useState(initialQ);
   const [debouncedQ, setDebouncedQ] = useState(initialQ);
   const [rows, setRows] = useState<ProductCardRow[]>(initialPage.rows);
   const [total, setTotal] = useState(initialPage.total);
   const [hasMore, setHasMore] = useState(initialPage.hasMore);
+  const [scores, setScores] = useState<ScoreMap>(initialScores ?? {});
+  const [view, setView] = useState<View>("grid");
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // Null means "no scorable profile" — hide badges entirely rather than show a
+  // number we can't stand behind. Latches on the initial server value.
+  const scorable = initialScores !== null;
 
   const reqId = useRef(0);
   const firstRender = useRef(true);
@@ -85,15 +162,13 @@ export function ProductsExplorer({
   const activeCategory =
     activeKey === null ? null : categories.find((c) => c.key === activeKey) ?? null;
   const rawCategories = activeCategory?.rawValues ?? null;
+  const hasFilter = Boolean(activeKey || debouncedQ.trim());
 
-  // Debounce the search box.
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQ(q), 300);
     return () => clearTimeout(t);
   }, [q]);
 
-  // Refetch the first page when the filter or (debounced) search changes.
-  // Skip the initial render — the server already provided that page.
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
@@ -102,13 +177,13 @@ export function ProductsExplorer({
     const id = ++reqId.current;
     setLoading(true);
     fetchProductsPage({ q: debouncedQ, rawCategories, offset: 0 }).then((page) => {
-      if (id !== reqId.current) return; // superseded
+      if (id !== reqId.current) return;
       setRows(page.rows);
       setTotal(page.total);
       setHasMore(page.hasMore);
+      setScores(page.scores ?? {});
       setLoading(false);
     });
-    // rawCategories is derived from activeKey; depend on the key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey, debouncedQ]);
 
@@ -125,146 +200,230 @@ export function ProductsExplorer({
       setRows((prev) => [...prev, ...page.rows]);
       setTotal(page.total);
       setHasMore(page.hasMore);
+      if (page.scores) setScores((prev) => ({ ...prev, ...page.scores }));
     }
     setLoadingMore(false);
   }
 
   return (
     <div>
-      {/* Search */}
-      <div className="mt-8">
+      {/* Header */}
+      <div>
+        <h1 className="m-0 font-serif text-4xl font-medium tracking-tight text-ink">
+          Search
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {loading
+            ? "Searching…"
+            : `${total.toLocaleString()} ${total === 1 ? "product" : "products"}${
+                debouncedQ.trim() ? ` match “${debouncedQ.trim()}”` : ""
+              }`}
+        </p>
+      </div>
+
+      {/* Search box */}
+      <div className="mt-6">
         <input
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search products by name, brand, or ingredient…"
-          className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-ink outline-none placeholder:text-muted-foreground focus:border-primary/50"
+          className="w-full rounded-full border border-soft-tan bg-white px-5 py-3 text-sm text-ink outline-none placeholder:text-faint focus:border-clay"
         />
       </div>
 
-      {/* Filter — collapsed behind a control rather than a permanent wall of
-          chips. Retail catalogues lead with product, not taxonomy: the shelf
-          should be the first thing you see, with narrowing available when you
-          want it. The active filter stays visible as a removable pill so a
-          narrowed list is never mistaken for the whole catalogue. */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setFilterOpen((o) => !o)}
-          aria-expanded={filterOpen}
-          className={
-            "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[13px] font-medium transition-colors " +
-            (filterOpen || activeKey
-              ? "border-primary text-ink"
-              : "border-border text-muted-foreground hover:border-primary/40 hover:text-ink")
-          }
-        >
-          <span aria-hidden>⌄</span>
-          Filter by type
-        </button>
-
-        {activeCategory && (
-          <button
-            type="button"
-            onClick={() => setActiveKey(null)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-primary px-3.5 py-2 text-[13px] font-medium text-primary-foreground"
-            aria-label={`Remove ${activeCategory.label} filter`}
-          >
-            {activeCategory.label}
-            <span aria-hidden>×</span>
-          </button>
-        )}
-      </div>
-
-      {filterOpen && (
-        <div className="mt-3 flex flex-wrap gap-2 rounded-2xl border border-border bg-warm-white p-4">
-          <FilterChip
-            active={activeKey === null}
-            onClick={() => {
-              setActiveKey(null);
-              setFilterOpen(false);
-            }}
+      {/* Rail + results */}
+      <div className="mt-7 grid grid-cols-1 items-start gap-8 md:grid-cols-[240px_1fr]">
+        {/* Filter rail */}
+        <aside className="flex flex-col gap-2.5">
+          <div className="font-serif text-[20px] font-medium text-ink">Filter</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-faint">
+            Type
+          </div>
+          <RailRow
             label="All types"
+            active={activeKey === null}
+            onClick={() => setActiveKey(null)}
           />
           {categories.map((c) => (
-            <FilterChip
+            <RailRow
               key={c.key}
+              label={c.label}
+              hint={`${c.count}`}
               active={activeKey === c.key}
-              onClick={() => {
-                setActiveKey(c.key);
-                setFilterOpen(false);
-              }}
-              label={`${c.label} (${c.count})`}
+              onClick={() => setActiveKey(c.key)}
             />
           ))}
-        </div>
-      )}
 
-      {/* Result count */}
-      <p className="mt-6 text-[13px] text-muted-foreground">
-        {loading
-          ? "Loading…"
-          : `${total.toLocaleString()} ${total === 1 ? "product" : "products"}${
-              activeKey || debouncedQ.trim() ? " match your filter" : ""
-            }`}
-      </p>
+          {hasFilter && (
+            <>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {activeCategory && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveKey(null)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1.5 text-[12px] font-medium text-link"
+                  >
+                    {activeCategory.label} ×
+                  </button>
+                )}
+                {debouncedQ.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setQ("")}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1.5 text-[12px] font-medium text-link"
+                  >
+                    “{debouncedQ.trim()}” ×
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveKey(null);
+                  setQ("");
+                }}
+                className="mt-1 self-start text-[12px] font-semibold text-link hover:underline"
+              >
+                Clear all
+              </button>
+            </>
+          )}
+        </aside>
 
-      {/* Grid */}
-      {rows.length === 0 && !loading ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-border bg-warm-white px-6 py-12 text-center text-sm text-muted-foreground">
-          No products match this filter.
-        </div>
-      ) : (
-        <div
-          className={`mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 transition-opacity ${
-            loading ? "opacity-50" : "opacity-100"
-          }`}
-        >
-          {rows.map((p) => (
-            <ProductCard key={p.slug} p={p} />
-          ))}
-        </div>
-      )}
+        {/* Results */}
+        <div>
+          <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div className="font-serif text-[20px] font-medium text-ink">
+              Products
+            </div>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/add"
+                className="rounded-[10px] border border-soft-tan px-3.5 py-2 text-[13px] font-semibold text-link transition-colors hover:bg-secondary"
+              >
+                + Add product
+              </Link>
+              <div className="flex gap-0.5 rounded-[10px] border border-soft-tan bg-warm-white p-[3px]">
+                <ViewButton active={view === "list"} onClick={() => setView("list")} label="List view">
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </ViewButton>
+                <ViewButton active={view === "grid"} onClick={() => setView("grid")} label="Grid view">
+                  <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
+                  <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
+                  <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
+                  <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+                </ViewButton>
+              </div>
+            </div>
+          </div>
+          {rows.length === 0 && !loading ? (
+            <div className="rounded-xl border border-dashed border-soft-tan bg-warm-white px-6 py-12 text-center text-sm text-muted-foreground">
+              No products match this filter.
+            </div>
+          ) : view === "grid" ? (
+            <div
+              className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${
+                loading ? "opacity-50" : "opacity-100"
+              } transition-opacity`}
+            >
+              {rows.map((p) => (
+                <GridCard key={p.slug} p={p} match={scorable ? scores[p.slug] : undefined} />
+              ))}
+            </div>
+          ) : (
+            <div
+              className={`flex flex-col gap-3 ${
+                loading ? "opacity-50" : "opacity-100"
+              } transition-opacity`}
+            >
+              {rows.map((p) => (
+                <ListCard key={p.slug} p={p} match={scorable ? scores[p.slug] : undefined} />
+              ))}
+            </div>
+          )}
 
-      {/* Load more */}
-      {hasMore && rows.length > 0 && (
-        <div className="mt-10 flex justify-center">
-          <button
-            type="button"
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="rounded-full border border-border bg-card px-6 py-3 text-sm font-medium text-ink transition-colors hover:border-primary/40 disabled:opacity-60"
-          >
-            {loadingMore
-              ? "Loading…"
-              : `Load more (${rows.length} of ${total.toLocaleString()})`}
-          </button>
+          {hasMore && rows.length > 0 && (
+            <div className="mt-10 flex justify-center">
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="rounded-full border border-soft-tan bg-white px-6 py-3 text-sm font-medium text-ink transition-colors hover:border-clay disabled:opacity-60"
+              >
+                {loadingMore
+                  ? "Loading…"
+                  : `Load more (${rows.length} of ${total.toLocaleString()})`}
+              </button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
-function FilterChip({
+function RailRow({
+  label,
+  hint,
   active,
   onClick,
-  label,
 }: {
+  label: string;
+  hint?: string;
   active: boolean;
   onClick: () => void;
-  label: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-4 py-2 text-[13px] font-medium transition-colors ${
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border text-muted-foreground hover:border-primary/40 hover:text-ink"
-      }`}
+      className={
+        "flex items-center justify-between gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-colors " +
+        (active
+          ? "border-clay bg-secondary"
+          : "border-soft-tan bg-warm-white hover:border-clay hover:bg-secondary/60")
+      }
     >
-      {label}
+      <span className="text-[14px] font-semibold text-ink">{label}</span>
+      {hint && <span className="text-[11px] text-faint">{hint}</span>}
+    </button>
+  );
+}
+
+function ViewButton({
+  active,
+  onClick,
+  label,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
+      className={
+        "flex h-7 w-8 items-center justify-center rounded-[7px] transition-colors " +
+        (active ? "bg-secondary text-link" : "text-faint hover:text-ink")
+      }
+    >
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      >
+        {children}
+      </svg>
     </button>
   );
 }

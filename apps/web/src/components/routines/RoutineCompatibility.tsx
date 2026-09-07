@@ -65,7 +65,7 @@ export function RoutineCompatibility({
             verdict === "no_clashes"
               ? { background: "#f1f5ee", color: "#5a7a4a" }
               : verdict === "major_clashes"
-                ? { background: "#fdf1ec", color: "#9a4a2f" }
+                ? { background: "#fdf1ec", color: "#dc6464" }
                 : { background: "#f8f5ef", color: "#7a6a58" }
           }
         >
@@ -95,7 +95,7 @@ export function RoutineCompatibility({
                   className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em]"
                   style={
                     isMajor
-                      ? { background: "#fdf1ec", color: "#9a4a2f" }
+                      ? { background: "#fdf1ec", color: "#dc6464" }
                       : { background: "#f8f5ef", color: "#7a6a58" }
                   }
                 >

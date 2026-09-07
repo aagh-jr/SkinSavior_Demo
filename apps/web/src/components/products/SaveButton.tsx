@@ -55,14 +55,14 @@ export function SaveButton({
         className={
           "inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-[14px] font-semibold transition-colors disabled:opacity-60 " +
           (saved
-            ? "border-clay bg-[#fdf1ec] text-clay"
+            ? "border-clay bg-[#fdf1ec] text-link"
             : "border-border bg-warm-white text-ink hover:border-clay")
         }
       >
         <span aria-hidden>{saved ? "★" : "☆"}</span>
         {saved ? "On your shelf" : "Save to shelf"}
       </button>
-      {error && <p className="mt-1.5 text-[12px] text-[#9a4a2f]">{error}</p>}
+      {error && <p className="mt-1.5 text-[12px] text-link">{error}</p>}
     </div>
   );
 }

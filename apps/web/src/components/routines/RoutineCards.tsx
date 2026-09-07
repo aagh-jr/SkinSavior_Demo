@@ -58,7 +58,7 @@ export function RoutineCard({ routine }: { routine: RoutineSummary }) {
             {routine.name}
           </h2>
           {routine.isPrimary ? (
-            <span className="flex-shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-clay">
+            <span className="flex-shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-link">
               ★ Primary
             </span>
           ) : null}
@@ -76,13 +76,13 @@ export function RoutineCard({ routine }: { routine: RoutineSummary }) {
         ) : null}
       </div>
       <div className="mt-4 flex items-center justify-between gap-2">
-        <span className="text-[13px] font-semibold text-clay">Open →</span>
+        <span className="text-[13px] font-semibold text-link">Open →</span>
         <div className="flex items-center gap-1">
           {routine.isPrimary ? null : (
             <button
               type="button"
               onClick={handleSetPrimary}
-              className="rounded-full px-2 py-1 text-[12px] font-semibold text-muted-foreground opacity-0 transition-opacity hover:text-clay focus:opacity-100 group-hover:opacity-100"
+              className="rounded-full px-2 py-1 text-[12px] font-semibold text-muted-foreground opacity-0 transition-opacity hover:text-link focus:opacity-100 group-hover:opacity-100"
             >
               Set primary
             </button>
@@ -121,7 +121,7 @@ export function NewRoutineCard() {
       type="button"
       onClick={handleCreate}
       disabled={pending}
-      className={`${cardBase} items-center justify-center border-2 border-dashed border-border text-muted-foreground hover:border-clay hover:text-clay disabled:opacity-60`}
+      className={`${cardBase} items-center justify-center border-2 border-dashed border-border text-muted-foreground hover:border-clay hover:text-link disabled:opacity-60`}
     >
       <div className="flex flex-col items-center gap-2">
         <span className="flex h-11 w-11 items-center justify-center rounded-full border border-current text-2xl leading-none">

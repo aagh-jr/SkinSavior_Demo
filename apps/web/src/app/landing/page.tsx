@@ -87,7 +87,7 @@ function HeroCard() {
             </span>
           </div>
           <div className="flex-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-primary">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-link">
               COSRX
             </div>
             <div className="mt-1 font-serif text-[17px] font-medium leading-[1.25] text-ink">
@@ -145,13 +145,13 @@ function HookSection() {
   return (
     <section className="border-y border-border bg-secondary/40">
       <div className="mx-auto max-w-[1180px] px-6 py-24 md:px-14 md:py-32">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-link">
           The honest pitch
         </p>
         <h2 className="mt-6 font-serif text-4xl font-medium leading-[1.05] tracking-tight text-ink text-balance md:text-7xl">
           The beauty aisle lies.
           <br />
-          <span className="italic text-primary">Your skin shouldn&apos;t have to guess.</span>
+          <span className="italic text-link">Your skin shouldn&apos;t have to guess.</span>
         </h2>
         <p className="mt-8 max-w-2xl font-serif text-xl leading-relaxed text-foreground/75 md:text-2xl">
           We read the studies, decode the INCI, and cross-check every claim — so the
@@ -187,7 +187,7 @@ function HowItWorks() {
     >
       <div className="mx-auto max-w-[1100px]">
         <div className="mb-12 text-center">
-          <div className="mb-3 text-[13px] font-semibold uppercase tracking-[0.1em] text-primary">
+          <div className="mb-3 text-[13px] font-semibold uppercase tracking-[0.1em] text-link">
             How it works
           </div>
           <h2 className="font-serif text-4xl font-medium tracking-tight text-ink md:text-[40px]">
@@ -198,7 +198,7 @@ function HowItWorks() {
         <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
           {steps.map((s) => (
             <div key={s.n} className="text-center">
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-background font-serif text-2xl font-semibold text-primary">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-background font-serif text-2xl font-semibold text-link">
                 {s.n}
               </div>
               <h3 className="font-serif text-[22px] font-medium text-ink">{s.title}</h3>
@@ -227,7 +227,7 @@ function ProductSnapshot() {
     <section id="product" className="bg-background">
       <div className="mx-auto max-w-[1180px] px-6 py-24 md:px-14 md:py-32">
         <div className="mb-12 max-w-2xl">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-link">
             Inside the app
           </p>
           <h2 className="mt-3 font-serif text-4xl tracking-tight md:text-5xl text-balance">
@@ -275,7 +275,7 @@ function ProductSnapshot() {
 
             <div>
               <div className="flex items-center gap-2 text-[13px]">
-                <span className="font-semibold uppercase tracking-[0.08em] text-primary">
+                <span className="font-semibold uppercase tracking-[0.08em] text-link">
                   COSRX
                 </span>
                 <span className="text-muted-foreground/60">·</span>
@@ -338,7 +338,7 @@ function ProductSnapshot() {
                   <ul className="mt-3 space-y-1.5 text-[13px] text-sage">
                     <li>✓ Heavy humectant load for dehydration</li>
                     <li>✓ Fragrance-free — fits your sensitivity</li>
-                    <li className="text-primary">⚠ Contains Phenoxyethanol</li>
+                    <li className="text-link">⚠ Contains Phenoxyethanol</li>
                   </ul>
                 </div>
                 <div className="rounded-xl border border-border bg-background p-5">
