@@ -44,7 +44,7 @@ function ReviewCard({ study }: { study: PendingStudy }) {
           {study.ingredientName}
         </span>
         {study.conflictFlag && (
-          <Badge variant="outline" className="w-fit border-clay text-[11px] text-clay">
+          <Badge variant="outline" className="w-fit border-clay text-[11px] text-link">
             Industry-funded
           </Badge>
         )}
@@ -71,7 +71,7 @@ function ReviewCard({ study }: { study: PendingStudy }) {
             <span className="font-semibold text-ink">{impact.badgeLabel}</span>
             <span className="text-muted-foreground">{impact.currentLabel}</span>
             <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-            <span className={impact.flips ? "font-semibold text-clay" : "text-muted-foreground"}>
+            <span className={impact.flips ? "font-semibold text-link" : "text-muted-foreground"}>
               {impact.wouldBecomeLabel}
             </span>
           </div>
@@ -92,12 +92,12 @@ function ReviewCard({ study }: { study: PendingStudy }) {
         <button
           onClick={() => act(rejectStudyAction)}
           disabled={pending}
-          className="rounded-xl border border-clay px-4 py-2 text-sm font-semibold text-clay hover:bg-muted disabled:opacity-50"
+          className="rounded-xl border border-clay px-4 py-2 text-sm font-semibold text-link hover:bg-muted disabled:opacity-50"
         >
           Reject
         </button>
         {pending && <span className="text-[13px] text-muted-foreground">Working…</span>}
-        {error && <span className="text-[13px] text-clay">{error}</span>}
+        {error && <span className="text-[13px] text-link">{error}</span>}
       </div>
     </article>
   );

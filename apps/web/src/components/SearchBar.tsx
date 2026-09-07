@@ -97,7 +97,7 @@ export function SearchBar({
   return (
     <div ref={wrapRef} className="flex items-center gap-2">
       {/* Products / Ingredients toggle */}
-      <div className="flex flex-shrink-0 items-center rounded-full border border-[#e6ddcf] bg-white p-0.5 text-[11px] font-semibold">
+      <div className="flex flex-shrink-0 items-center rounded-full border border-soft-tan bg-white p-0.5 text-[11px] font-semibold">
         {(["products", "ingredients"] as const).map((m) => (
           <button
             key={m}
@@ -110,8 +110,8 @@ export function SearchBar({
             className={
               "rounded-full px-2.5 py-1 capitalize transition-colors " +
               (mode === m
-                ? "bg-[#9a4a2f] text-white"
-                : "text-[#9a4a2f] hover:bg-[#fbf3ec]")
+                ? "bg-primary text-primary-foreground"
+                : "text-link hover:bg-secondary")
             }
           >
             {m}
@@ -125,10 +125,10 @@ export function SearchBar({
           e.preventDefault();
           submit();
         }}
-        className="flex items-center gap-2 rounded-full border border-[#e6ddcf] bg-white px-3.5 py-2 transition-all"
+        className="flex items-center gap-2 rounded-full border border-soft-tan bg-white px-3.5 py-2 transition-all"
         style={{ width: expanded ? 300 : 220 }}
       >
-        <span className="text-sm text-[#b3a690]">⌕</span>
+        <span className="text-sm text-faint">⌕</span>
         <input
           ref={inputRef}
           value={q}
@@ -138,7 +138,7 @@ export function SearchBar({
           }}
           onFocus={() => setOpen(true)}
           placeholder={mode === "products" ? "Search products" : "Search ingredients"}
-          className="w-full bg-transparent text-[13px] text-[#2a241d] placeholder:text-[#b3a690] focus:outline-none"
+          className="w-full bg-transparent text-[13px] text-ink placeholder:text-faint focus:outline-none"
         />
         {q && (
           <button
@@ -147,7 +147,7 @@ export function SearchBar({
               setQ("");
               inputRef.current?.focus();
             }}
-            className="text-xs text-[#b3a690] hover:text-[#9a4a2f]"
+            className="text-xs text-faint hover:text-link"
             aria-label="Clear"
           >
             ✕
@@ -156,9 +156,9 @@ export function SearchBar({
       </form>
 
       {open && q.trim() && (
-        <div className="absolute right-0 mt-2 w-[380px] overflow-hidden rounded-xl border border-[#e6ddcf] bg-white shadow-lg z-30">
+        <div className="absolute right-0 mt-2 w-[380px] overflow-hidden rounded-xl border border-soft-tan bg-white shadow-lg z-30">
           {!hasResults ? (
-            <div className="px-4 py-5 text-sm text-[#6b5f4f]">
+            <div className="px-4 py-5 text-sm text-faint">
               No {mode} matching <strong>&quot;{q}&quot;</strong>
             </div>
           ) : mode === "products" ? (
@@ -168,7 +168,7 @@ export function SearchBar({
                   key={p.slug}
                   href={`/product/${p.slug}`}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 border-b border-[#f0e8db] px-4 py-3 last:border-0 hover:bg-[#fbf3ec]"
+                  className="flex items-center gap-3 border-b border-soft-tan px-4 py-3 last:border-0 hover:bg-secondary"
                 >
                   <ProductThumb
                     category={p.category}
@@ -178,10 +178,10 @@ export function SearchBar({
                     iconSize={22}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-semibold text-[#1d1812]">
+                    <div className="truncate text-[13px] font-semibold text-ink">
                       {p.name}
                     </div>
-                    <div className="text-[11px] uppercase tracking-wider text-[#9a4a2f]">
+                    <div className="text-[11px] uppercase tracking-wider text-link">
                       {p.brand} · {p.category}
                     </div>
                   </div>
@@ -190,7 +190,7 @@ export function SearchBar({
               <Link
                 href={`/search?q=${encodeURIComponent(q)}`}
                 onClick={() => setOpen(false)}
-                className="block bg-[#fbf3ec] px-4 py-2.5 text-center text-xs font-semibold text-[#9a4a2f] hover:bg-[#f6ece2]"
+                className="block bg-secondary px-4 py-2.5 text-center text-xs font-semibold text-link hover:opacity-80"
               >
                 See all results for &quot;{q}&quot; →
               </Link>
@@ -202,16 +202,16 @@ export function SearchBar({
                   key={ing.slug}
                   href={`/ingredients?q=${encodeURIComponent(ing.name)}`}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 border-b border-[#f0e8db] px-4 py-3 last:border-0 hover:bg-[#fbf3ec]"
+                  className="flex items-center gap-3 border-b border-soft-tan px-4 py-3 last:border-0 hover:bg-secondary"
                 >
-                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-[#e6ddcf] bg-[#fbf3ec] font-serif text-sm font-semibold text-[#9a4a2f]">
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-soft-tan bg-secondary font-serif text-sm font-semibold text-link">
                     {ing.grade}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-semibold text-[#1d1812]">
+                    <div className="truncate text-[13px] font-semibold text-ink">
                       {ing.name}
                     </div>
-                    <div className="text-[11px] uppercase tracking-wider text-[#9a4a2f]">
+                    <div className="text-[11px] uppercase tracking-wider text-link">
                       {ing.tag}
                     </div>
                   </div>
@@ -220,7 +220,7 @@ export function SearchBar({
               <Link
                 href={`/ingredients?q=${encodeURIComponent(q)}`}
                 onClick={() => setOpen(false)}
-                className="block bg-[#fbf3ec] px-4 py-2.5 text-center text-xs font-semibold text-[#9a4a2f] hover:bg-[#f6ece2]"
+                className="block bg-secondary px-4 py-2.5 text-center text-xs font-semibold text-link hover:opacity-80"
               >
                 See all ingredients for &quot;{q}&quot; →
               </Link>

@@ -32,7 +32,7 @@ export function PasswordField({
         <button
           type="button"
           onClick={() => setShow((s) => !s)}
-          className="font-semibold text-clay"
+          className="font-semibold text-link"
         >
           {show ? "Hide" : "Show"}
         </button>

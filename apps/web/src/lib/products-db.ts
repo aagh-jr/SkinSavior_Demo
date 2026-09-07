@@ -13,7 +13,7 @@ import type { ProductExtraction } from "@skinsavior/core/schemas";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { isResearched } from "@skinsavior/core/research";
 import { slugify } from "@/lib/ingest";
-import { normalizeCategory } from "@/lib/brands-db";
+import { normalizeCategory, canonicalBrand } from "@/lib/brands-db";
 
 /** How many products the browse/search explorer loads per page. */
 export const PRODUCTS_PAGE_SIZE = 50;
@@ -76,7 +76,7 @@ export async function getDbProduct(slug: string): Promise<Product | null> {
   return {
     slug: row.slug,
     name: row.name,
-    brand: row.brand,
+    brand: canonicalBrand(row.brand),
     origin: row.origin ?? "",
     category: row.category ?? "Other",
     imageUrl: row.image_url,
@@ -155,7 +155,7 @@ function rowToCard(row: ProductRow): Product {
   return {
     slug: row.slug,
     name: row.name,
-    brand: row.brand,
+    brand: canonicalBrand(row.brand),
     origin: row.origin ?? "",
     category: row.category ?? "Other",
     imageUrl: row.image_url,
@@ -370,7 +370,10 @@ export async function listDbProductsPage({
     .range(offset, offset + limit - 1);
   if (error) return { rows: [], total: 0, hasMore: false };
 
-  const rows = (data ?? []) as ProductCardRow[];
+  const rows = ((data ?? []) as ProductCardRow[]).map((r) => ({
+    ...r,
+    brand: canonicalBrand(r.brand),
+  }));
   const total = count ?? rows.length;
   return { rows, total, hasMore: offset + rows.length < total };
 }

@@ -21,14 +21,25 @@ import { Redis } from "@upstash/redis";
 export const INGEST_PER_MINUTE = 3;
 export const INGEST_PER_DAY = 40;
 
+// The AI tip is a much cheaper call (short prompt, lite model) than ingest,
+// so it gets a looser budget — still capped so no account can hammer it.
+export const AI_TIP_PER_MINUTE = 6;
+export const AI_TIP_PER_DAY = 100;
+
 type Limiters = { perMinute: Ratelimit; perDay: Ratelimit };
 
 // undefined = not yet resolved; null = Upstash not configured (fail open).
-let _limiters: Limiters | null | undefined;
+// Keyed by prefix so ingest and ai-tip (and any future paid endpoint) don't
+// share a bucket.
+const _limiters = new Map<string, Limiters | null>();
 let _warned = false;
 
-function getLimiters(): Limiters | null {
-  if (_limiters !== undefined) return _limiters;
+function getLimiters(
+  prefix: string,
+  perMinute: number,
+  perDay: number,
+): Limiters | null {
+  if (_limiters.has(prefix)) return _limiters.get(prefix)!;
 
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -39,24 +50,25 @@ function getLimiters(): Limiters | null {
       );
       _warned = true;
     }
-    _limiters = null;
+    _limiters.set(prefix, null);
     return null;
   }
 
   const redis = new Redis({ url, token });
-  _limiters = {
+  const limiters: Limiters = {
     perMinute: new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(INGEST_PER_MINUTE, "60 s"),
-      prefix: "rl:ingest:min",
+      limiter: Ratelimit.slidingWindow(perMinute, "60 s"),
+      prefix: `rl:${prefix}:min`,
     }),
     perDay: new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(INGEST_PER_DAY, "24 h"),
-      prefix: "rl:ingest:day",
+      limiter: Ratelimit.slidingWindow(perDay, "24 h"),
+      prefix: `rl:${prefix}:day`,
     }),
   };
-  return _limiters;
+  _limiters.set(prefix, limiters);
+  return limiters;
 }
 
 export interface RateLimitResult {
@@ -76,7 +88,23 @@ export interface RateLimitResult {
 export async function checkIngestRateLimit(
   identifier: string,
 ): Promise<RateLimitResult> {
-  const limiters = getLimiters();
+  return checkRateLimit("ingest", INGEST_PER_MINUTE, INGEST_PER_DAY, identifier);
+}
+
+/** Same shape as {@link checkIngestRateLimit}, for the AI tip endpoint. */
+export async function checkAiTipRateLimit(
+  identifier: string,
+): Promise<RateLimitResult> {
+  return checkRateLimit("aitip", AI_TIP_PER_MINUTE, AI_TIP_PER_DAY, identifier);
+}
+
+async function checkRateLimit(
+  prefix: string,
+  perMinute: number,
+  perDay: number,
+  identifier: string,
+): Promise<RateLimitResult> {
+  const limiters = getLimiters(prefix, perMinute, perDay);
   if (!limiters) return { ok: true };
 
   const minute = await limiters.perMinute.limit(identifier);

@@ -20,7 +20,7 @@ function ReasonIcon({ direction }: { direction: GradeReason["direction"] }) {
     case "up":
       return <ArrowUp className={`${cls} text-sage`} aria-hidden="true" />;
     case "down":
-      return <ArrowDown className={`${cls} text-clay`} aria-hidden="true" />;
+      return <ArrowDown className={`${cls} text-link`} aria-hidden="true" />;
     case "floor":
       return <Lock className={`${cls} text-muted-foreground`} aria-hidden="true" />;
     default:
@@ -116,7 +116,7 @@ export function EvidenceClaimCard({
                       href={s.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm leading-snug text-foreground hover:text-primary hover:underline"
+                      className="text-sm leading-snug text-foreground hover:text-link hover:underline"
                     >
                       {s.title}
                     </a>

@@ -38,12 +38,12 @@ export function MatchScore({ result }: { result: MatchResult | null }) {
 
   const { score, blocked, blockReasons, reasons } = result;
   const tone = blocked
-    ? { ring: "#9a4a2f", bg: "#fdf1ec" }
+    ? { ring: "#dc6464", bg: "#fdf1ec" }
     : score >= 80
       ? { ring: "#5a7a4a", bg: "#f1f5ee" }
       : score >= 60
         ? { ring: "#9a8c75", bg: "#f8f5ef" }
-        : { ring: "#9a4a2f", bg: "#fdf1ec" };
+        : { ring: "#dc6464", bg: "#fdf1ec" };
 
   return (
     <section className="rounded-[18px] border border-border bg-white p-6">
@@ -59,11 +59,11 @@ export function MatchScore({ result }: { result: MatchResult | null }) {
           <div className="flex items-center gap-2.5">
             <span
               aria-hidden
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#9a4a2f] text-[15px] leading-none text-white"
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-clay text-[15px] leading-none text-white"
             >
               ✕
             </span>
-            <h2 className="m-0 font-serif text-[20px] font-medium text-[#9a4a2f]">
+            <h2 className="m-0 font-serif text-[20px] font-medium text-link">
               Not recommended for you
             </h2>
           </div>
@@ -125,7 +125,7 @@ export function MatchScore({ result }: { result: MatchResult | null }) {
                     ? { background: "#f3efe8", color: "#9a8c75" }
                     : r.direction === "up"
                       ? { background: "#f1f5ee", color: "#5a7a4a" }
-                      : { background: "#fdf1ec", color: "#9a4a2f" }
+                      : { background: "#fdf1ec", color: "#dc6464" }
                 }
               >
                 {r.points > 0 ? `+${r.points}` : r.points}

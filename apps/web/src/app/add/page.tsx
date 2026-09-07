@@ -100,12 +100,12 @@ export default function AddProductPage() {
                   <span className="text-sm text-muted-foreground">queued</span>
                 )}
                 {row.status.state === "working" && (
-                  <span className="text-sm text-primary">reading page…</span>
+                  <span className="text-sm text-link">reading page…</span>
                 )}
                 {row.status.state === "done" && (
                   <Link
                     href={`/product/${row.status.slug}`}
-                    className="whitespace-nowrap text-sm font-semibold text-primary hover:underline"
+                    className="whitespace-nowrap text-sm font-semibold text-link hover:underline"
                   >
                     {row.status.created ? "Created — view page →" : "Already known — view page →"}
                   </Link>

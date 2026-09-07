@@ -27,7 +27,29 @@ type ProfileRow = {
   bio: string | null;
   skin_type: string | null;
   avatar_url: string | null;
+  quiz_taken_at: string | null;
+  answers: Record<string, unknown> | null;
 };
+
+// "3 weeks ago" style label. quiz_taken_at is set only when the quiz itself
+// is (re)submitted, never by unrelated profile edits, so this stays accurate
+// across retakes.
+function formatTakenAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} ${days === 1 ? "day" : "days"} ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks} ${weeks === 1 ? "week" : "weeks"} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} ${months === 1 ? "month" : "months"} ago`;
+  const years = Math.floor(days / 365);
+  return `${years} ${years === 1 ? "year" : "years"} ago`;
+}
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -49,6 +71,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [quizTakenAt, setQuizTakenAt] = useState<string | null>(null);
+  const [quizQuestionCount, setQuizQuestionCount] = useState(0);
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -64,7 +88,7 @@ export default function SettingsPage() {
       setUserId(data.user.id);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_name, username, bio, skin_type, avatar_url")
+        .select("display_name, username, bio, skin_type, avatar_url, quiz_taken_at, answers")
         .eq("id", data.user.id)
         .maybeSingle();
       if (!active) return;
@@ -78,6 +102,14 @@ export default function SettingsPage() {
         if (p.skin_type) setSkin(p.skin_type);
         const url = p.avatar_url;
         if (url && url.toUpperCase() !== "NULL") setPhotoUrl(url);
+        setQuizTakenAt(p.quiz_taken_at);
+        setQuizQuestionCount(
+          p.answers
+            ? Object.values(p.answers).filter((v) =>
+                Array.isArray(v) ? v.length > 0 : Boolean(v),
+              ).length
+            : 0,
+        );
       } else {
         setName(data.user.email?.split("@")[0] ?? "");
       }
@@ -337,7 +369,7 @@ export default function SettingsPage() {
                   className={
                     "rounded-full border px-3.5 py-[7px] text-[13px] " +
                     (active
-                      ? "border-clay bg-secondary font-semibold text-clay"
+                      ? "border-clay bg-secondary font-semibold text-link"
                       : "border-border text-muted-foreground")
                   }
                 >
@@ -352,12 +384,18 @@ export default function SettingsPage() {
                 Your matches come from your quiz answers
               </div>
               <div className="mt-0.5 text-[12.5px] text-muted-foreground">
-                Last taken 3 weeks ago · 12 questions
+                {quizTakenAt
+                  ? `Last taken ${formatTakenAgo(quizTakenAt)}${
+                      quizQuestionCount > 0
+                        ? ` · ${quizQuestionCount} ${quizQuestionCount === 1 ? "question" : "questions"}`
+                        : ""
+                    }`
+                  : "You haven't taken the quiz yet"}
               </div>
             </div>
             <Link
               href="/quiz?retake=1"
-              className="rounded-[10px] border border-accent px-4 py-2.5 text-[13px] font-semibold text-clay transition-colors hover:bg-[#fff7ea]"
+              className="rounded-[10px] border border-accent px-4 py-2.5 text-[13px] font-semibold text-link transition-colors hover:bg-[#fff7ea]"
             >
               Retake quiz
             </Link>

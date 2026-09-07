@@ -229,7 +229,7 @@ export function RoutineBuilder({
           className={
             "flex-shrink-0 rounded-[9px] border px-3.5 py-2 text-[13px] font-semibold transition-colors " +
             (editing
-              ? "border-clay bg-secondary text-clay"
+              ? "border-clay bg-secondary text-link"
               : "border-border text-ink hover:bg-muted")
           }
         >
@@ -310,7 +310,7 @@ export function RoutineBuilder({
                 setFillingStepId(null);
                 setPickerOpen(true);
               }}
-              className="mt-4 w-full rounded-[14px] border border-dashed border-[#d8ccba] bg-warm-white px-4 py-3.5 text-[14px] font-semibold text-clay transition-colors hover:bg-[#fff7ea]"
+              className="mt-4 w-full rounded-[14px] border border-dashed border-[#d8ccba] bg-warm-white px-4 py-3.5 text-[14px] font-semibold text-link transition-colors hover:bg-[#fff7ea]"
             >
               + Add product
             </button>
@@ -423,12 +423,12 @@ function StepCard({
               </span>
             )}
             {step.productBrand ? (
-              <span className="text-[11px] uppercase tracking-[0.12em] text-clay">
+              <span className="text-[11px] uppercase tracking-[0.12em] text-link">
                 {step.productBrand}
               </span>
             ) : null}
             {isEmptySlot ? (
-              <span className="rounded-full bg-[#f0e6d6] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-clay">
+              <span className="rounded-full bg-[#f0e6d6] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-link">
                 Not picked yet
               </span>
             ) : null}
@@ -439,7 +439,7 @@ function StepCard({
               type="button"
               onClick={onChooseProduct}
               disabled={busy}
-              className="mt-2 rounded-[9px] border border-clay/40 bg-white px-3 py-1.5 text-[13px] font-semibold text-clay transition-colors hover:bg-[#fff7ea] disabled:opacity-50"
+              className="mt-2 rounded-[9px] border border-clay/40 bg-white px-3 py-1.5 text-[13px] font-semibold text-link transition-colors hover:bg-[#fff7ea] disabled:opacity-50"
             >
               Choose your {step.productName.toLowerCase()} →
             </button>
@@ -461,7 +461,7 @@ function StepCard({
                         className={
                           "px-3 py-2 text-[12px] font-semibold transition-colors " +
                           (active
-                            ? "bg-secondary text-clay"
+                            ? "bg-secondary text-link"
                             : "bg-white text-muted-foreground hover:text-ink")
                         }
                       >
@@ -513,7 +513,7 @@ function StepCard({
                         className={
                           "rounded-full border px-2.5 py-1.5 text-[12px] transition-colors " +
                           (active
-                            ? "border-clay bg-secondary font-semibold text-clay"
+                            ? "border-clay bg-secondary font-semibold text-link"
                             : "border-border text-muted-foreground hover:text-ink")
                         }
                       >
@@ -625,7 +625,7 @@ function ProductPicker({
           type="button"
           onClick={onClose}
           aria-label="Close search"
-          className="text-xs text-[#b3a690] hover:text-clay"
+          className="text-xs text-[#b3a690] hover:text-link"
         >
           ✕
         </button>
@@ -639,7 +639,7 @@ function ProductPicker({
                 <>
                   No matches for <strong>&quot;{q}&quot;</strong>. You can add missing products
                   from a URL on the{" "}
-                  <Link href="/add" className="text-clay underline underline-offset-2">
+                  <Link href="/add" className="text-link underline underline-offset-2">
                     Add a product
                   </Link>{" "}
                   page.
@@ -656,7 +656,7 @@ function ProductPicker({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-semibold text-ink">{h.name}</div>
-                    <div className="text-[11px] uppercase tracking-wider text-clay">
+                    <div className="text-[11px] uppercase tracking-wider text-link">
                       {h.brand} · {h.category}
                     </div>
                   </div>

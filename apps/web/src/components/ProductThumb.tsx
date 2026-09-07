@@ -51,7 +51,7 @@ export function ProductThumb({
 
   return (
     <div
-      className={`flex items-center justify-center bg-[#efe7d9] text-[#b07a4f] ${className}`}
+      className={`flex items-center justify-center bg-cream text-faint ${className}`}
     >
       <CategoryIcon category={categoryToCanonical(category)} size={iconSize} />
     </div>

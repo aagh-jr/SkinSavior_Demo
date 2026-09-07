@@ -91,6 +91,7 @@ export async function persistAnswers(answers: QuizAnswers): Promise<boolean> {
     budget: toArray(answers.budget),
     reactions: toArray(answers.reactions),
     answers: answers as Json,
+    quiz_taken_at: new Date().toISOString(),
   };
   const { error } = await supabase
     .from("profiles")

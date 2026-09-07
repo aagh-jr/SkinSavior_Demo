@@ -27,7 +27,7 @@ export function ProductResearch({ ingredients }: { ingredients: ResearchIngredie
                 onClick={() => setActiveId(ing.ingredientId)}
                 className={`rounded-full border px-4 py-2 text-[13px] font-medium transition-colors ${
                   active
-                    ? "border-[#9a4a2f] bg-[#9a4a2f] text-white"
+                    ? "border-clay bg-clay text-ink"
                     : "border-[#e6ddcf] text-[#6b5f4f] hover:border-[#caa37f] hover:text-[#1d1812]"
                 }`}
               >

@@ -147,7 +147,7 @@ function ProductGrid({ products }: { products: ShelfProduct[] }) {
               <p className="line-clamp-2 font-serif text-[15px] leading-snug text-ink">
                 {p.name}
               </p>
-              <p className="mt-0.5 text-[11px] uppercase tracking-[0.1em] text-clay">
+              <p className="mt-0.5 text-[11px] uppercase tracking-[0.1em] text-link">
                 {p.brand}
               </p>
               {p.usedIn.length > 0 && (
