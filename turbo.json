@@ -9,7 +9,8 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".output/**", "dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": [".output/**", "dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["ANTHROPIC_API_KEY", "DEMO_ACCOUNT_EMAIL", "ADMIN_EMAILS", "FIRECRAWL_API_KEY"]
     },
     "lint": {
       "dependsOn": ["^build"]
