@@ -4,14 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ProductThumb } from "@/components/ProductThumb";
 import { fetchProductsPage } from "@/app/search/actions";
-import type { ProductMatch } from "@/lib/match-db";
 import type {
   ProductCardRow,
   ProductCategory,
   ProductsPage,
 } from "@/lib/products-db";
 
-type ScoreMap = Record<string, ProductMatch>;
 type View = "grid" | "list";
 
 /** Client-safe tidy of a raw category value for the card subtitle. */
@@ -23,33 +21,7 @@ function prettyCategory(c: string | null): string {
     .replace(/\b\w/g, (ch) => ch.toUpperCase());
 }
 
-/** The clay match badge. Blocked products get an ink badge + a "!" — a safety
- *  concern is surfaced wherever the product renders, never hidden by rank. */
-function MatchBadge({ match, size = 50 }: { match: ProductMatch; size?: number }) {
-  const blocked = match.blocked;
-  return (
-    <div
-      className="flex flex-col items-center justify-center rounded-xl"
-      style={{
-        width: size,
-        height: size,
-        ...(blocked
-          ? { background: "#12181F", color: "#FFFFFF" }
-          : { background: "#2F6FED", color: "#FFFFFF" }),
-      }}
-      title={blocked ? "Flagged on safety grounds for your profile" : undefined}
-    >
-      <span className="font-serif text-[16px] font-semibold leading-none">
-        {blocked ? "!" : `${match.score}%`}
-      </span>
-      <span className="mt-0.5 text-[8px] uppercase tracking-[0.12em] opacity-85">
-        {blocked ? "check" : "match"}
-      </span>
-    </div>
-  );
-}
-
-function GridCard({ p, match }: { p: ProductCardRow; match?: ProductMatch }) {
+function GridCard({ p }: { p: ProductCardRow }) {
   return (
     <Link
       href={`/product/${p.slug}`}
@@ -63,11 +35,6 @@ function GridCard({ p, match }: { p: ProductCardRow; match?: ProductMatch }) {
           className="absolute inset-0 h-full w-full"
           iconSize={48}
         />
-        {match && (
-          <div className="absolute right-2.5 top-2.5">
-            <MatchBadge match={match} />
-          </div>
-        )}
       </div>
       <div className="px-4 pb-4 pt-3.5">
         <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-link">
@@ -94,7 +61,7 @@ function GridCard({ p, match }: { p: ProductCardRow; match?: ProductMatch }) {
   );
 }
 
-function ListCard({ p, match }: { p: ProductCardRow; match?: ProductMatch }) {
+function ListCard({ p }: { p: ProductCardRow }) {
   return (
     <Link
       href={`/product/${p.slug}`}
@@ -109,7 +76,6 @@ function ListCard({ p, match }: { p: ProductCardRow; match?: ProductMatch }) {
           iconSize={28}
         />
       </div>
-      {match && <MatchBadge match={match} size={52} />}
       <div className="min-w-0 flex-1">
         <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-link">
           {p.brand}
@@ -134,12 +100,10 @@ export function ProductsExplorer({
   categories,
   initialPage,
   initialQ,
-  initialScores,
 }: {
   categories: ProductCategory[];
   initialPage: ProductsPage;
   initialQ: string;
-  initialScores: ScoreMap | null;
 }) {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [q, setQ] = useState(initialQ);
@@ -147,14 +111,9 @@ export function ProductsExplorer({
   const [rows, setRows] = useState<ProductCardRow[]>(initialPage.rows);
   const [total, setTotal] = useState(initialPage.total);
   const [hasMore, setHasMore] = useState(initialPage.hasMore);
-  const [scores, setScores] = useState<ScoreMap>(initialScores ?? {});
   const [view, setView] = useState<View>("grid");
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-
-  // Null means "no scorable profile" — hide badges entirely rather than show a
-  // number we can't stand behind. Latches on the initial server value.
-  const scorable = initialScores !== null;
 
   const reqId = useRef(0);
   const firstRender = useRef(true);
@@ -181,7 +140,6 @@ export function ProductsExplorer({
       setRows(page.rows);
       setTotal(page.total);
       setHasMore(page.hasMore);
-      setScores(page.scores ?? {});
       setLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -200,7 +158,6 @@ export function ProductsExplorer({
       setRows((prev) => [...prev, ...page.rows]);
       setTotal(page.total);
       setHasMore(page.hasMore);
-      if (page.scores) setScores((prev) => ({ ...prev, ...page.scores }));
     }
     setLoadingMore(false);
   }
@@ -328,7 +285,7 @@ export function ProductsExplorer({
               } transition-opacity`}
             >
               {rows.map((p) => (
-                <GridCard key={p.slug} p={p} match={scorable ? scores[p.slug] : undefined} />
+                <GridCard key={p.slug} p={p} />
               ))}
             </div>
           ) : (
@@ -338,7 +295,7 @@ export function ProductsExplorer({
               } transition-opacity`}
             >
               {rows.map((p) => (
-                <ListCard key={p.slug} p={p} match={scorable ? scores[p.slug] : undefined} />
+                <ListCard key={p.slug} p={p} />
               ))}
             </div>
           )}
