@@ -33,10 +33,11 @@ function GridCard({ p }: { p: ProductCardRow }) {
           imageUrl={p.image_url}
           name={p.name}
           className="absolute inset-0 h-full w-full"
+          imageClassName="object-contain"
           iconSize={48}
         />
       </div>
-      <div className="px-4 pb-4 pt-3.5">
+      <div className="relative -mt-3 rounded-t-xl bg-white px-4 pb-4 pt-3.5 transition-colors group-hover:bg-secondary/40">
         <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-link">
           {p.brand}
         </div>

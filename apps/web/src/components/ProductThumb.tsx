@@ -15,6 +15,12 @@ interface ProductThumbProps {
   iconSize?: number;
   /** Rendered width hint for next/image. Larger for hero images. */
   sizes?: string;
+  /**
+   * Classes for the <Image> itself — object-fit and padding. Defaults to a
+   * contained photo with a small inset. Pass `"object-contain"` (no padding)
+   * to let the photo bleed to the container edges.
+   */
+  imageClassName?: string;
 }
 
 export function ProductThumb({
@@ -24,6 +30,7 @@ export function ProductThumb({
   className = "",
   iconSize = 44,
   sizes = "(max-width: 768px) 40vw, 380px",
+  imageClassName = "object-contain p-1.5",
 }: ProductThumbProps) {
   const src = highResImageUrl(imageUrl);
 
@@ -40,7 +47,7 @@ export function ProductThumb({
           // `contain`, not `cover`. Catalog photography is mostly tall bottles
           // and tubes; cropping them to a square cut the tops and bottoms off
           // the product — the single most visible data-quality complaint.
-          className="object-contain p-1.5"
+          className={imageClassName}
           // Sources are third-party and occasionally 404 or hotlink-block.
           // Without this the alt text renders as a broken-image glyph.
           unoptimized={false}
