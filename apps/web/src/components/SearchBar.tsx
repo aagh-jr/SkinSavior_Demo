@@ -26,7 +26,10 @@ export function SearchBar({
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState(initialQuery);
-  const [mode, setMode] = useState<Mode>(initialMode);
+  // Fixed to the mode it was opened in (products by default). The in-bar
+  // products/ingredients toggle was removed; ingredient search lives on the
+  // /ingredients page.
+  const [mode] = useState<Mode>(initialMode);
   const [dbHits, setDbHits] = useState<DbHit[]>([]);
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -95,30 +98,7 @@ export function SearchBar({
   };
 
   return (
-    <div ref={wrapRef} className="flex items-center gap-2">
-      {/* Products / Ingredients toggle */}
-      <div className="flex flex-shrink-0 items-center rounded-full border border-soft-tan bg-white p-0.5 text-[11px] font-semibold">
-        {(["products", "ingredients"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => {
-              setMode(m);
-              setOpen(true);
-              inputRef.current?.focus();
-            }}
-            className={
-              "rounded-full px-2.5 py-1 capitalize transition-colors " +
-              (mode === m
-                ? "bg-primary text-primary-foreground"
-                : "text-link hover:bg-secondary")
-            }
-          >
-            {m}
-          </button>
-        ))}
-      </div>
-
+    <div ref={wrapRef} className="flex items-center">
       <div className="relative">
       <form
         onSubmit={(e) => {
@@ -126,7 +106,7 @@ export function SearchBar({
           submit();
         }}
         className="flex items-center gap-2 rounded-full border border-soft-tan bg-white px-3.5 py-2 transition-all"
-        style={{ width: expanded ? 300 : 220 }}
+        style={{ width: expanded ? 420 : 330 }}
       >
         <span className="text-sm text-faint">⌕</span>
         <input
