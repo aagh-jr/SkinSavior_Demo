@@ -6,20 +6,18 @@ import { usePathname, useRouter } from "next/navigation";
 import { SearchBar } from "@/components/SearchBar";
 import { supabase } from "@/lib/supabase/client";
 
-// Browse destinations. "My shelf" is deliberately NOT here — it's personal
-// rather than catalogue, so it sits apart on the right (see SHELF_LINK).
-const LINKS = [
-  { href: "/for-you", label: "For you" },
+// Primary nav destinations, in display order. "For you" and "Ingredients" are
+// hidden for the upcoming release — still in development, not ready to ship.
+// "My shelf" (the user's own products, saved items, routines) is inserted at
+// position 2 only when signed in — see the nav render below.
+const HOME_LINK = { href: "/home", label: "Home" } as const;
+const SHELF_LINK = { href: "/shelf", label: "My shelf" } as const;
+const BROWSE_LINKS = [
   { href: "/search", label: "Products" },
-  { href: "/ingredients", label: "Ingredients" },
-  // Back after being cut: as a monogram-card grid it duplicated Products, but
-  // as an A-Z index over 400+ brands it's a known-item shortcut Products
+  // As an A-Z index over 400+ brands it's a known-item shortcut Products
   // can't offer.
   { href: "/brands", label: "Brands" },
 ] as const;
-
-/** The user's own stuff: products in use, saved products, routines. */
-const SHELF_LINK = { href: "/shelf", label: "My shelf" } as const;
 
 // "loading" until we know the session, so we don't flash the wrong CTA.
 type AuthState = "loading" | "in" | "out";
@@ -128,7 +126,12 @@ export function SiteNav() {
           skinsavior
         </Link>
         <nav className="hidden items-center gap-6 lg:flex">
-          {LINKS.map((l) => {
+          {/* Order: Home · My shelf (signed-in only) · Products · Brands. */}
+          {[
+            HOME_LINK,
+            ...(auth === "in" ? [SHELF_LINK] : []),
+            ...BROWSE_LINKS,
+          ].map((l) => {
             const active = pathname === l.href;
             return (
               <Link
@@ -144,21 +147,6 @@ export function SiteNav() {
               </Link>
             );
           })}
-          {/* Separated from the browse links: this is the user's own shelf,
-              not another way to browse the catalogue. */}
-          {auth === "in" && (
-            <Link
-              href={SHELF_LINK.href}
-              className={
-                "border-l border-border pl-6 " +
-                (pathname === SHELF_LINK.href
-                  ? "text-sm font-semibold text-ink"
-                  : "text-sm text-muted-foreground transition-colors hover:text-ink")
-              }
-            >
-              {SHELF_LINK.label}
-            </Link>
-          )}
         </nav>
         <div className="flex items-center gap-3 md:gap-4">
           <div className="hidden sm:block">
