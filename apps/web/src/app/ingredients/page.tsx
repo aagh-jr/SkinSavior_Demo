@@ -3,6 +3,8 @@ import { SiteNav } from "@/components/SiteNav";
 import { IngredientsExplorer } from "@/components/ingredients/IngredientsExplorer";
 import { listIngredients } from "@/lib/ingredients-db";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Ingredients",
   description:

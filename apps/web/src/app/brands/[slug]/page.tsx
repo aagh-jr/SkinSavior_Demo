@@ -5,6 +5,8 @@ import { SiteNav } from "@/components/SiteNav";
 import { ProductThumb } from "@/components/ProductThumb";
 import { getBrandPage, type BrandSort } from "@/lib/brands-db";
 
+export const dynamic = "force-dynamic";
+
 const SORTS: { value: BrandSort; label: string }[] = [
   { value: "newest", label: "Newest" },
   { value: "az", label: "A–Z" },
