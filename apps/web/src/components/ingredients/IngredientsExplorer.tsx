@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { fetchIngredientsPage } from "@/app/ingredients/actions";
-import { FILTER_GROUPS, INGREDIENT_FILTERS } from "@/lib/ingredient-filters";
 import type { IngredientPage, IngredientRow } from "@/lib/ingredients-db";
 
 function titleCase(s: string): string {
@@ -21,7 +20,6 @@ function displayName(row: IngredientRow): string {
 function IngredientCard({ row }: { row: IngredientRow }) {
   const name = displayName(row);
   const inci = titleCase(row.inci_name);
-  const tags = (row.functions ?? []).slice(0, 4);
   const blurb = row.description?.trim() || row.safety_notes?.trim() || "";
 
   return (
@@ -32,18 +30,6 @@ function IngredientCard({ row }: { row: IngredientRow }) {
       <h2 className="font-serif text-xl font-semibold text-ink">{name}</h2>
       {inci !== name && (
         <div className="mt-1 text-[12px] text-muted-foreground">{inci}</div>
-      )}
-      {tags.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {tags.map((t) => (
-            <span
-              key={t}
-              className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground"
-            >
-              {titleCase(t)}
-            </span>
-          ))}
-        </div>
       )}
       {blurb && (
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{blurb}</p>
@@ -59,11 +45,6 @@ export function IngredientsExplorer({
   initialPage: IngredientPage;
   initialQ: string;
 }) {
-  const [filter, setFilter] = useState<string | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const activeFilter = filter
-    ? INGREDIENT_FILTERS.find((f) => f.key === filter) ?? null
-    : null;
   const [q, setQ] = useState(initialQ);
   const [debouncedQ, setDebouncedQ] = useState(initialQ);
   const [rows, setRows] = useState<IngredientRow[]>(initialPage.rows);
@@ -71,6 +52,8 @@ export function IngredientsExplorer({
   const [hasMore, setHasMore] = useState(initialPage.hasMore);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
 
   // Guards against out-of-order responses: only the latest request wins.
   const reqId = useRef(0);
@@ -91,21 +74,26 @@ export function IngredientsExplorer({
     }
     const id = ++reqId.current;
     setLoading(true);
-    fetchIngredientsPage({ filter, q: debouncedQ, offset: 0 }).then((page) => {
+    setError(null);
+    fetchIngredientsPage({ q: debouncedQ, offset: 0 }).then((page) => {
       if (id !== reqId.current) return; // superseded
       setRows(page.rows);
       setTotal(page.total);
       setHasMore(page.hasMore);
-      setLoading(false);
+    }).catch(() => {
+      if (id === reqId.current) { setError("Search is unavailable. Please retry."); setRows([]); setHasMore(false); }
+    }).finally(() => {
+      if (id === reqId.current) setLoading(false);
     });
-  }, [filter, debouncedQ]);
+  }, [debouncedQ, retry]);
 
   async function loadMore() {
     if (loadingMore || loading || !hasMore) return;
     setLoadingMore(true);
     const id = reqId.current;
+    setError(null);
+    try {
     const page = await fetchIngredientsPage({
-      filter,
       q: debouncedQ,
       offset: rows.length,
     });
@@ -114,14 +102,20 @@ export function IngredientsExplorer({
       setTotal(page.total);
       setHasMore(page.hasMore);
     }
-    setLoadingMore(false);
+    } catch {
+      if (id === reqId.current) setError("Could not load more results. Please retry.");
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
   return (
     <div>
+      {error && <div role="alert" className="my-4 rounded-xl border border-border p-4">{error} <button className="underline" onClick={() => setRetry((n) => n + 1)}>Retry search</button></div>}
       {/* Search */}
       <div className="mt-8">
         <input
+          aria-label="Search ingredients"
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -130,86 +124,17 @@ export function IngredientsExplorer({
         />
       </div>
 
-      {/* Filter — collapsed, matching the products page. Thirteen chips in a
-          permanent row buried the ingredients themselves and gave formulation
-          helpers the same weight as the actives people come here to read
-          about. The active filter stays visible as a removable pill so a
-          narrowed list is never mistaken for the whole library. */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setFilterOpen((o) => !o)}
-          aria-expanded={filterOpen}
-          className={
-            "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[13px] font-medium transition-colors " +
-            (filterOpen || filter
-              ? "border-primary text-ink"
-              : "border-border text-muted-foreground hover:border-primary/40 hover:text-ink")
-          }
-        >
-          <span aria-hidden>⌄</span>
-          Filter by function
-        </button>
-
-        {activeFilter && (
-          <button
-            type="button"
-            onClick={() => setFilter(null)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-primary px-3.5 py-2 text-[13px] font-medium text-primary-foreground"
-            aria-label={`Remove ${activeFilter.label} filter`}
-          >
-            {activeFilter.label}
-            <span aria-hidden>×</span>
-          </button>
-        )}
-      </div>
-
-      {filterOpen && (
-        <div className="mt-3 space-y-4 rounded-2xl border border-border bg-warm-white p-4">
-          {FILTER_GROUPS.map((group) => (
-            <div key={group.key}>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                {group.label}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {group.key === "effect" && (
-                  <FilterChip
-                    active={filter === null}
-                    onClick={() => {
-                      setFilter(null);
-                      setFilterOpen(false);
-                    }}
-                    label="All"
-                  />
-                )}
-                {INGREDIENT_FILTERS.filter((f) => f.group === group.key).map((f) => (
-                  <FilterChip
-                    key={f.key}
-                    active={filter === f.key}
-                    onClick={() => {
-                      setFilter(f.key);
-                      setFilterOpen(false);
-                    }}
-                    label={f.label}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Result count */}
       <p className="mt-6 text-[13px] text-muted-foreground">
         {loading
           ? "Loading…"
           : `${total.toLocaleString()} ${total === 1 ? "ingredient" : "ingredients"}${
-              filter || debouncedQ.trim() ? " match your filter" : ""
+              debouncedQ.trim() ? " match your filter" : ""
             }`}
       </p>
 
       {/* Grid */}
-      {rows.length === 0 && !loading ? (
+      {rows.length === 0 && !loading && !error ? (
         <div className="mt-8 rounded-2xl border border-dashed border-border bg-warm-white px-6 py-12 text-center text-sm text-muted-foreground">
           No ingredients match this filter.
         </div>
@@ -239,29 +164,5 @@ export function IngredientsExplorer({
         </div>
       )}
     </div>
-  );
-}
-
-function FilterChip({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-full border px-4 py-2 text-[13px] font-medium transition-colors ${
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border text-muted-foreground hover:border-primary/40 hover:text-ink"
-      }`}
-    >
-      {label}
-    </button>
   );
 }

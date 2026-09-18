@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { searchProducts } from "@/lib/products";
-import { searchIngredients } from "@/lib/ingredients";
 import { ProductThumb } from "@/components/ProductThumb";
 
 interface DbHit {
@@ -14,6 +12,8 @@ interface DbHit {
   category: string;
   imageUrl?: string | null;
 }
+
+interface IngredientHit { id: string; name: string; }
 
 type Mode = "products" | "ingredients";
 
@@ -30,55 +30,41 @@ export function SearchBar({
   // products/ingredients toggle was removed; ingredient search lives on the
   // /ingredients page.
   const [mode] = useState<Mode>(initialMode);
+  const [ingredientResults, setIngredientResults] = useState<IngredientHit[]>([]);
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [retry, setRetry] = useState(0);
   const [dbHits, setDbHits] = useState<DbHit[]>([]);
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  // Product results: static demo matches first, live catalog after; dedupe by
-  // slug, cap at 5.
-  const staticResults = searchProducts(q);
-  const staticSlugs = new Set(staticResults.map((p) => p.slug));
-  const productResults = [
-    ...staticResults.map((p) => ({ ...p, isDb: false })),
-    ...dbHits
-      .filter((h) => !staticSlugs.has(h.slug))
-      .map((h) => ({ ...h, match: 0, isDb: true })),
-  ].slice(0, 5);
-
-  const ingredientResults =
-    mode === "ingredients" ? searchIngredients(q).slice(0, 5) : [];
+  const productResults = dbHits.slice(0, 5);
 
   const hasResults =
     mode === "products" ? productResults.length > 0 : ingredientResults.length > 0;
 
-  // Debounced live-catalog search (products mode only — ingredients are local).
   useEffect(() => {
-    if (mode !== "products") {
-      setDbHits([]);
-      return;
-    }
     const needle = q.trim();
-    if (!needle) {
-      setDbHits([]);
-      return;
-    }
+    setDbHits([]);
+    setIngredientResults([]);
+    if (!needle) { setStatus("idle"); return; }
+    setStatus("loading");
     const controller = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/products/search?q=${encodeURIComponent(needle)}`, {
-          signal: controller.signal,
-        });
-        if (res.ok) setDbHits((await res.json()).results ?? []);
+        const res = await fetch(`/api/${mode}/search?q=${encodeURIComponent(needle)}`, { signal: controller.signal });
+        if (!res.ok) throw new Error("Search unavailable");
+        const data = await res.json();
+        if (controller.signal.aborted) return;
+        if (mode === "products") setDbHits(data.results ?? []);
+        else setIngredientResults(data.results ?? []);
+        setStatus("idle");
       } catch {
-        // aborted or offline — keep whatever we had
+        if (!controller.signal.aborted) setStatus("error");
       }
     }, 200);
-    return () => {
-      clearTimeout(t);
-      controller.abort();
-    };
-  }, [q, mode]);
+    return () => { clearTimeout(t); controller.abort(); };
+  }, [q, mode, retry]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -110,6 +96,7 @@ export function SearchBar({
       >
         <span className="text-sm text-faint">⌕</span>
         <input
+          aria-label={mode === "products" ? "Search products" : "Search ingredients"}
           ref={inputRef}
           value={q}
           onChange={(e) => {
@@ -137,7 +124,9 @@ export function SearchBar({
 
       {open && q.trim() && (
         <div className="absolute right-0 mt-2 w-[380px] overflow-hidden rounded-xl border border-soft-tan bg-white shadow-lg z-30">
-          {!hasResults ? (
+          {status !== "idle" ? (
+            <div role="status" className="px-4 py-5 text-sm">{status === "loading" ? "Searching…" : <><span>Search unavailable. </span><button onClick={() => setRetry((n) => n + 1)} className="underline">Retry</button></>}</div>
+          ) : !hasResults ? (
             <div className="px-4 py-5 text-sm text-faint">
               No {mode} matching <strong>&quot;{q}&quot;</strong>
             </div>
@@ -179,20 +168,20 @@ export function SearchBar({
             <>
               {ingredientResults.map((ing) => (
                 <Link
-                  key={ing.slug}
-                  href={`/ingredients?q=${encodeURIComponent(ing.name)}`}
+                  key={ing.id}
+                  href={`/ingredients/${ing.id}`}
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 border-b border-soft-tan px-4 py-3 last:border-0 hover:bg-secondary"
                 >
                   <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-soft-tan bg-secondary font-serif text-sm font-semibold text-link">
-                    {ing.grade}
+                    INCI
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-semibold text-ink">
                       {ing.name}
                     </div>
                     <div className="text-[11px] uppercase tracking-wider text-link">
-                      {ing.tag}
+                      Ingredient profile
                     </div>
                   </div>
                 </Link>

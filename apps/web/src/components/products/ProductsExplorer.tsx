@@ -115,6 +115,8 @@ export function ProductsExplorer({
   const [view, setView] = useState<View>("grid");
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
 
   const reqId = useRef(0);
   const firstRender = useRef(true);
@@ -136,20 +138,26 @@ export function ProductsExplorer({
     }
     const id = ++reqId.current;
     setLoading(true);
+    setError(null);
     fetchProductsPage({ q: debouncedQ, rawCategories, offset: 0 }).then((page) => {
       if (id !== reqId.current) return;
       setRows(page.rows);
       setTotal(page.total);
       setHasMore(page.hasMore);
-      setLoading(false);
+    }).catch(() => {
+      if (id === reqId.current) { setError("Search is unavailable. Please retry."); setRows([]); setHasMore(false); }
+    }).finally(() => {
+      if (id === reqId.current) setLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeKey, debouncedQ]);
+  }, [activeKey, debouncedQ, retry]);
 
   async function loadMore() {
     if (loadingMore || loading || !hasMore) return;
     setLoadingMore(true);
     const id = reqId.current;
+    setError(null);
+    try {
     const page = await fetchProductsPage({
       q: debouncedQ,
       rawCategories,
@@ -160,11 +168,16 @@ export function ProductsExplorer({
       setTotal(page.total);
       setHasMore(page.hasMore);
     }
-    setLoadingMore(false);
+    } catch {
+      if (id === reqId.current) setError("Could not load more results. Please retry.");
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
   return (
     <div>
+      {error && <div role="alert" className="my-4 rounded-xl border border-border p-4">{error} <button className="underline" onClick={() => setRetry((n) => n + 1)}>Retry search</button></div>}
       {/* Header */}
       <div>
         <h1 className="m-0 font-serif text-4xl font-medium tracking-tight text-ink">
@@ -182,6 +195,7 @@ export function ProductsExplorer({
       {/* Search box */}
       <div className="mt-6">
         <input
+          aria-label="Search products"
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -275,7 +289,7 @@ export function ProductsExplorer({
               </div>
             </div>
           </div>
-          {rows.length === 0 && !loading ? (
+          {rows.length === 0 && !loading && !error ? (
             <div className="rounded-xl border border-dashed border-soft-tan bg-warm-white px-6 py-12 text-center text-sm text-muted-foreground">
               No products match this filter.
             </div>

@@ -118,9 +118,7 @@ export async function getSavedProducts(): Promise<ShelfProduct[]> {
     .eq("profile_id", user.id)
     .order("created_at", { ascending: false });
 
-  // The table arrives with migration 20260812000000; until it's applied the
-  // shelf should still render its other sections rather than 500.
-  if (error) return [];
+  if (error) throw new Error("Saved products unavailable. Please retry later.");
 
   return ((data ?? []) as unknown as SavedRow[])
     .filter((r) => r.products)
@@ -147,6 +145,7 @@ export async function getSaveStateBySlug(slug: string): Promise<{
   productId: string | null;
   saved: boolean;
   signedIn: boolean;
+  unavailable?: boolean;
 }> {
   const supabase = await createClient();
   const {
@@ -158,6 +157,7 @@ export async function getSaveStateBySlug(slug: string): Promise<{
   const { data: product } = await db
     .from("products")
     .select("id")
+    .is("excluded_reason", null)
     .eq("slug", slug)
     .maybeSingle();
   const productId = (product as { id: string } | null)?.id ?? null;
@@ -170,7 +170,7 @@ export async function getSaveStateBySlug(slug: string): Promise<{
     .eq("product_id", productId)
     .maybeSingle();
 
-  return { productId, saved: !error && Boolean(data), signedIn: true };
+  return { productId, saved: Boolean(data), signedIn: true, unavailable: Boolean(error) };
 }
 
 /** Is this product on the user's saved list? Drives the save button state. */
@@ -188,6 +188,6 @@ export async function isProductSaved(productId: string): Promise<boolean> {
     .eq("profile_id", user.id)
     .eq("product_id", productId)
     .maybeSingle();
-  if (error) return false;
+  if (error) throw new Error("Saved products unavailable. Please retry later.");
   return Boolean(data);
 }

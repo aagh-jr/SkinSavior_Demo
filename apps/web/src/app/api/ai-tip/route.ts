@@ -35,6 +35,7 @@ export async function POST() {
   }
 
   const rl = await checkAiTipRateLimit(user.id);
+  if (rl.unavailable) return NextResponse.json({ error: "This feature is temporarily unavailable. Please try again later." }, { status: 503 });
   if (!rl.ok) {
     const retryAfter = rl.resetAt
       ? Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000))

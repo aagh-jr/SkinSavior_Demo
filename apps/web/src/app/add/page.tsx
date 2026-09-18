@@ -68,6 +68,7 @@ export default function AddProductPage() {
 
         <form onSubmit={handleSubmit} className="mt-8">
           <textarea
+            aria-label="Product page URLs"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             rows={4}

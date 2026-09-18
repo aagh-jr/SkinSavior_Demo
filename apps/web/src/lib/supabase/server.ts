@@ -9,12 +9,14 @@ export async function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // TEMPORARY: explicit kill switch, or auto-fallback when Supabase env is
-  // absent (e.g. AI design tools that pull the repo with no .env). Either way
-  // we return a no-op mock so the app renders instead of crashing. See ./mock.
-  if (isSupabaseDisabled() || !url || !anonKey) {
+  // Mock data is available only through the explicit development switch.
+  if (isSupabaseDisabled()) {
     return createMockClient() as ReturnType<typeof createServerClient<Database>>;
   }
+  if (!url || !anonKey) {
+    throw new Error("Supabase configuration missing. Configure database credentials, or explicitly set NEXT_PUBLIC_SUPABASE_DISABLED=true for offline development.");
+  }
+
 
   const cookieStore = await cookies();
 

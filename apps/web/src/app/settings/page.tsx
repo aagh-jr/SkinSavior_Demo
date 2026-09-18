@@ -15,7 +15,12 @@ const AVATAR_COLORS = [
   "#8a7bb0",
 ];
 
-const SKIN_TYPES = ["Dry", "Normal", "Combo", "Oily"];
+const SKIN_TYPES = [
+  { value: "dry", label: "Dry" },
+  { value: "normal", label: "Normal" },
+  { value: "combination", label: "Combo" },
+  { value: "oily", label: "Oily" },
+] as const;
 
 const cardClass = "rounded-[16px] border border-border bg-white p-6";
 const inputClass =
@@ -57,7 +62,7 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
-  const [skin, setSkin] = useState("Dry");
+  const [skin, setSkin] = useState("");
   const initial = (name || "?").charAt(0).toUpperCase();
 
   // Uploaded profile photo. When set it overrides the color/initial avatar and
@@ -99,7 +104,11 @@ export default function SettingsPage() {
         setName(p.display_name ?? data.user.email?.split("@")[0] ?? "");
         setUsername(p.username ?? "");
         if (p.bio) setBio(p.bio);
-        if (p.skin_type) setSkin(p.skin_type);
+        setSkin(
+          SKIN_TYPES.some((type) => type.value === p.skin_type)
+            ? p.skin_type ?? ""
+            : "",
+        );
         const url = p.avatar_url;
         if (url && url.toUpperCase() !== "NULL") setPhotoUrl(url);
         setQuizTakenAt(p.quiz_taken_at);
@@ -135,7 +144,7 @@ export default function SettingsPage() {
           display_name: name.trim() || null,
           username: username.trim() || null,
           bio: bio.trim() || null,
-          skin_type: skin,
+          skin_type: skin || null,
         } as never,
         { onConflict: "id" },
       );
@@ -359,13 +368,13 @@ export default function SettingsPage() {
           </h2>
           <div className="mb-2 text-[13px] font-semibold text-ink">Skin type</div>
           <div className="mb-[18px] flex flex-wrap gap-2">
-            {SKIN_TYPES.map((t) => {
-              const active = skin === t;
+            {SKIN_TYPES.map((type) => {
+              const active = skin === type.value;
               return (
                 <button
-                  key={t}
+                  key={type.value}
                   type="button"
-                  onClick={() => setSkin(t)}
+                  onClick={() => setSkin(type.value)}
                   className={
                     "rounded-full border px-3.5 py-[7px] text-[13px] " +
                     (active
@@ -373,11 +382,16 @@ export default function SettingsPage() {
                       : "border-border text-muted-foreground")
                   }
                 >
-                  {t}
+                  {type.label}
                 </button>
               );
             })}
           </div>
+          {!skin && (
+            <p className="-mt-2 mb-[18px] text-[12.5px] text-muted-foreground">
+              No skin type selected.
+            </p>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-3.5 border-t border-[#f0e8da] pt-[18px]">
             <div>
               <div className="text-[14px] font-semibold text-ink">

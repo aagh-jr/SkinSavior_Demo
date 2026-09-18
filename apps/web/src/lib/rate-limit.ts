@@ -4,10 +4,7 @@
 // daily cap. The identifier is the signed-in user's id, so limits are per
 // account rather than per IP.
 //
-// Rate limiting is ACTIVE only when the Upstash env vars are present. Without
-// them we FAIL OPEN (allow the request) and warn once — so local dev and any
-// build that predates Upstash provisioning still work. The Anthropic Console
-// spend cap remains the ultimate money backstop regardless of this layer.
+// Paid calls fail closed when rate limiting is unavailable.
 //
 // Setup: create a free Upstash Redis database (https://upstash.com) and set
 //   UPSTASH_REDIS_REST_URL
@@ -28,7 +25,7 @@ export const AI_TIP_PER_DAY = 100;
 
 type Limiters = { perMinute: Ratelimit; perDay: Ratelimit };
 
-// undefined = not yet resolved; null = Upstash not configured (fail open).
+// undefined = not yet resolved; null = Upstash not configured.
 // Keyed by prefix so ingest and ai-tip (and any future paid endpoint) don't
 // share a bucket.
 const _limiters = new Map<string, Limiters | null>();
@@ -46,7 +43,7 @@ function getLimiters(
   if (!url || !token) {
     if (!_warned) {
       console.warn(
-        "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN not set — rate limiting is DISABLED (fail-open). Set them to enforce per-user limits.",
+        "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN not set — paid endpoints are unavailable until rate limits are configured.",
       );
       _warned = true;
     }
@@ -74,6 +71,7 @@ function getLimiters(
 export interface RateLimitResult {
   ok: boolean;
   scope?: "minute" | "day";
+  unavailable?: boolean;
   limit?: number;
   remaining?: number;
   /** Epoch ms when the tripped window resets. */
@@ -83,7 +81,7 @@ export interface RateLimitResult {
 /**
  * Enforce the ingest limits for `identifier` (a user id). Checks the minute
  * window first so a burst is rejected before spending the daily budget on the
- * lookup. Returns `{ ok: true }` when Upstash isn't configured.
+ * lookup. Returns an unavailable result when Upstash is not configured.
  */
 export async function checkIngestRateLimit(
   identifier: string,
@@ -105,7 +103,9 @@ async function checkRateLimit(
   identifier: string,
 ): Promise<RateLimitResult> {
   const limiters = getLimiters(prefix, perMinute, perDay);
-  if (!limiters) return { ok: true };
+  if (!limiters) return { ok: false, unavailable: true };
+
+  try {
 
   const minute = await limiters.perMinute.limit(identifier);
   if (!minute.success) {
@@ -130,4 +130,7 @@ async function checkRateLimit(
   }
 
   return { ok: true, remaining: Math.min(minute.remaining, day.remaining) };
+  } catch {
+    return { ok: false, unavailable: true };
+  }
 }

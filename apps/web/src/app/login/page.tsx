@@ -29,12 +29,12 @@ function LoginForm() {
       return;
     }
     setLoading("email");
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
-    if (error) {
-      setError(error.message);
+    if (error || !data.session) {
+      setError(error?.message ?? "Sign-in did not create a session. Please try again.");
       setLoading(null);
       return;
     }

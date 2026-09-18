@@ -14,16 +14,19 @@ export function SaveButton({
   productId,
   initialSaved,
   signedIn,
+  unavailable = false,
 }: {
   productId: string;
   initialSaved: boolean;
   signedIn: boolean;
+  unavailable?: boolean;
 }) {
   const [saved, setSaved] = useState(initialSaved);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   if (!signedIn) return null;
+  if (unavailable) return <p role="status" className="text-sm text-muted-foreground">Saving is temporarily unavailable. Please try again later.</p>;
 
   const onClick = () => {
     const previous = saved;

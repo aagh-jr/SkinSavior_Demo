@@ -57,6 +57,7 @@ export async function POST(req: Request) {
 
   // Per-user throttle (3/min, 40/day) so no single account can drain the bill.
   const rl = await checkIngestRateLimit(user.id);
+  if (rl.unavailable) return NextResponse.json({ error: "This feature is temporarily unavailable. Please try again later." }, { status: 503 });
   if (!rl.ok) {
     const retryAfter = rl.resetAt
       ? Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000))
@@ -115,7 +116,8 @@ export async function POST(req: Request) {
       },
     ],
     output_config: { format: zodOutputFormat(productExtractionSchema) },
-  });
+  }).catch(() => null);
+  if (!response) return NextResponse.json({ error: "Product analysis is temporarily unavailable. Please retry." }, { status: 502 });
 
   if (response.stop_reason === "refusal" || !response.parsed_output) {
     return NextResponse.json(
