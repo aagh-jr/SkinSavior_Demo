@@ -10,7 +10,22 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".output/**", "dist/**", ".next/**", "!.next/cache/**"],
-      "env": ["ANTHROPIC_API_KEY", "DEMO_ACCOUNT_EMAIL", "ADMIN_EMAILS", "FIRECRAWL_API_KEY"]
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_SUPABASE_DISABLED",
+        "SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "FIRECRAWL_API_KEY",
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN",
+        "NCBI_API_KEY",
+        "NCBI_CONTACT_EMAIL",
+        "ADMIN_EMAILS",
+        "DEMO_ACCOUNT_EMAIL"
+      ]
     },
     "lint": {
       "dependsOn": ["^build"]
