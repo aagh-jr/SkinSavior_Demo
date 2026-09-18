@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@skinsavior/core/query";
 // Bridges the pure match scorer (@skinsavior/core/scoring) to Supabase.
 //
 // Mirrors the grading-db.ts split: the engine stays pure and testable, this
@@ -53,13 +54,14 @@ export async function getMyProfile(): Promise<SkinProfile | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select(
       "skin_type, sensitivity, pigmentation, aging_concern, pregnancy_status, medications, reactions, current_routine",
     )
     .eq("id", user.id)
     .maybeSingle();
+  if (error) throw new Error("Safety data unavailable. Please try again.");
   if (!data) return null;
 
   const row = data as Record<string, unknown>;
@@ -86,7 +88,9 @@ export function isScorable(profile: SkinProfile | null): profile is SkinProfile 
       profile.sensitivity ||
       profile.pigmentation ||
       profile.agingConcern ||
-      profile.reactions?.length,
+      profile.reactions?.length ||
+      profile.medications?.length ||
+      profile.pregnancyStatus,
   );
 }
 
@@ -98,12 +102,14 @@ interface IngredientJoinRow {
 /** Load one product's INCI list in concentration order. */
 async function loadIngredients(productId: string) {
   const db = await catalogDb();
-  const { data } = await db
+  const { data, error } = await db
     .from("product_ingredients")
     .select("position, ingredients(inci_name, functions)")
     .eq("product_id", productId)
     .order("position");
+  if (error) throw new Error("Safety data unavailable. Please try again.");
 
+  if (!data?.length || (data as unknown as IngredientJoinRow[]).some((j) => !j.ingredients)) throw new Error("Ingredient data incomplete.");
   return ((data ?? []) as unknown as IngredientJoinRow[])
     .filter((j) => j.ingredients)
     .map((j) => ({
@@ -127,11 +133,13 @@ export async function scoreProductForMe(
   if (!isScorable(profile)) return null;
 
   const db = await catalogDb();
-  const { data: row } = await db
+  const { data: row, error } = await db
     .from("products")
     .select("id, canonical_category")
+    .is("excluded_reason", null)
     .eq("slug", productSlug)
     .maybeSingle();
+  if (error) throw new Error("Safety data unavailable. Please try again.");
   if (!row) return null;
 
   const product = row as { id: string; canonical_category: string | null };
@@ -145,6 +153,7 @@ export async function scoreProductForMe(
 export interface ProductMatch {
   score: number;
   blocked: boolean;
+  blockReasons: MatchResult["blockReasons"];
 }
 
 /**
@@ -171,10 +180,12 @@ export async function scoreProductsForMe(
   if (unique.length === 0) return {};
 
   const db = await catalogDb();
-  const { data: prodRows } = await db
+  const { data: prodRows, error } = await db
     .from("products")
     .select("id, slug, canonical_category")
+    .is("excluded_reason", null)
     .in("slug", unique);
+  if (error) throw new Error("Safety data unavailable. Please try again.");
 
   const productList = (prodRows ?? []) as {
     id: string;
@@ -189,19 +200,15 @@ export async function scoreProductsForMe(
   // read the tail. Never a bare `.select()` here — see the doc comment.
   type JoinRow = IngredientJoinRow & { product_id: string };
   const joinRows: JoinRow[] = [];
-  const PAGE = 1000;
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await db
+  {
+    const batch = await fetchAllPages<JoinRow>((from, to) => db
       .from("product_ingredients")
       .select("product_id, position, ingredients(inci_name, functions)")
       .in("product_id", productIds)
       .order("product_id")
       .order("position")
-      .range(from, from + PAGE - 1);
-    if (error) break;
-    const batch = (data ?? []) as unknown as JoinRow[];
+      .range(from, to));
     joinRows.push(...batch);
-    if (batch.length < PAGE) break;
   }
 
   const byProduct = new Map<
@@ -209,7 +216,7 @@ export async function scoreProductsForMe(
     { inciName: string; position: number; functions: string[] | null }[]
   >();
   for (const j of joinRows) {
-    if (!j.ingredients) continue;
+    if (!j.ingredients) throw new Error("Ingredient data incomplete.");
     const list = byProduct.get(j.product_id) ?? [];
     list.push({
       inciName: j.ingredients.inci_name,
@@ -228,7 +235,7 @@ export async function scoreProductsForMe(
       canonicalCategory: p.canonical_category,
       ingredients,
     });
-    out[p.slug] = { score: result.score, blocked: result.blocked };
+    out[p.slug] = { score: result.score, blocked: result.blocked, blockReasons: result.blockReasons };
   }
   return out;
 }
@@ -258,17 +265,7 @@ export async function rankCategoryForMe(
   if (!isScorable(profile)) return null;
 
   const db = await catalogDb();
-  const { data } = await db
-    .from("products")
-    .select("id, slug, name, brand, image_url, price, canonical_category")
-    .eq("canonical_category", canonicalCategory)
-    // Out-of-scope products (makeup, accessories, bundles, no ingredients) are
-    // flagged rather than deleted — migration 20260816000000. Recommending
-    // them would be worse than not having them: a mascara has an INCI list but
-    // nothing here can say anything useful about it.
-    .is("excluded_reason", null);
-
-  const rows = (data ?? []) as {
+  const rows = await fetchAllPages<{
     id: string;
     slug: string;
     name: string;
@@ -276,7 +273,15 @@ export async function rankCategoryForMe(
     image_url: string | null;
     price: string | null;
     canonical_category: string | null;
-  }[];
+  }>((from, to) => db
+    .from("products")
+    .select("id, slug, name, brand, image_url, price, canonical_category")
+    .eq("canonical_category", canonicalCategory)
+    // Out-of-scope products (makeup, accessories, bundles, no ingredients) are
+    // flagged rather than deleted — migration 20260816000000. Recommending
+    // them would be worse than not having them: a mascara has an INCI list but
+    // nothing here can say anything useful about it.
+    .is("excluded_reason", null).order("id").range(from, to));
   if (!rows.length) return { ranked: [], total: 0, blockedCount: 0 };
 
   // Ingredient links for the whole category, PAGINATED.
@@ -288,23 +293,19 @@ export async function rankCategoryForMe(
   // sits deep in the INCI list (essential oils are typically last) came back
   // looking safe, so safety exclusions were being dropped from the ranking
   // entirely. Anything that reads a whole category has to page.
-  const PAGE = 1000;
   const productIds = rows.map((r) => r.id);
   const byProduct = new Map<string, ScorableProduct["ingredients"]>();
 
-  for (let offset = 0; ; offset += PAGE) {
-    const { data: joins, error } = await db
+  {
+    const page = await fetchAllPages<(IngredientJoinRow & { product_id: string })>((from, to) => db
       .from("product_ingredients")
       .select("product_id, position, ingredients(inci_name, functions)")
       .in("product_id", productIds)
       .order("product_id")
       .order("position")
-      .range(offset, offset + PAGE - 1);
-
-    if (error) break;
-    const page = (joins ?? []) as unknown as (IngredientJoinRow & { product_id: string })[];
+      .range(from, to));
     for (const j of page) {
-      if (!j.ingredients) continue;
+      if (!j.ingredients) throw new Error("Ingredient data incomplete.");
       const list = byProduct.get(j.product_id) ?? [];
       list.push({
         inciName: j.ingredients.inci_name,
@@ -313,8 +314,9 @@ export async function rankCategoryForMe(
       });
       byProduct.set(j.product_id, list);
     }
-    if (page.length < PAGE) break;
   }
+
+  if (rows.some((r) => !byProduct.get(r.id)?.length)) throw new Error("Ingredient data incomplete.");
 
   const scorable = rows.map((r) => ({
     id: r.id,
@@ -357,7 +359,6 @@ export async function getMyRoutineSteps(): Promise<RoutineStepInput[]> {
   if (!withProducts.length) return [];
 
   const db = await catalogDb();
-  const PAGE = 1000;
   const productIds = withProducts.map((s) => s.productId as string);
   const byProduct = new Map<string, string[]>();
 
@@ -366,25 +367,24 @@ export async function getMyRoutineSteps(): Promise<RoutineStepInput[]> {
   // ones at the END of each INCI list -- where fragrance, essential oils and
   // preservatives sit. Under-reporting clashes would look identical to having
   // none.
-  for (let offset = 0; ; offset += PAGE) {
-    const { data, error } = await db
+  {
+    const page = await fetchAllPages<(IngredientJoinRow & { product_id: string })>((from, to) => db
       .from("product_ingredients")
       .select("product_id, position, ingredients(inci_name, functions)")
       .in("product_id", productIds)
       .order("product_id")
       .order("position")
-      .range(offset, offset + PAGE - 1);
-    if (error) break;
-    const page = (data ?? []) as unknown as (IngredientJoinRow & { product_id: string })[];
+      .range(from, to));
     for (const row of page) {
-      if (!row.ingredients) continue;
+      if (!row.ingredients) throw new Error("Ingredient data incomplete.");
       byProduct.set(row.product_id, [
         ...(byProduct.get(row.product_id) ?? []),
         row.ingredients.inci_name,
       ]);
     }
-    if (page.length < PAGE) break;
   }
+
+  if (productIds.some((id) => !byProduct.get(id)?.length)) throw new Error("Routine ingredients incomplete.");
 
   return withProducts.map((s) => ({
     id: s.productId as string,
@@ -449,10 +449,12 @@ export async function rankCategoryWithRoutine(
              conflictCount: 0, routineChecked: routine.length > 0 };
   }
 
-  const { data } = await db
+  const { data, error } = await db
     .from("products")
     .select("id, slug, canonical_category")
+    .is("excluded_reason", null)
     .in("slug", slugs);
+  if (error) throw new Error("Safety data unavailable. Please try again.");
   const rows = (data ?? []) as { id: string; slug: string; canonical_category: string | null }[];
   const bySlug = new Map(rows.map((r) => [r.slug, r]));
 

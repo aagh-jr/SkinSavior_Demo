@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@skinsavior/core/query";
 // Bridges the pure routine-compatibility engine to Supabase.
 //
 // Same split as match-db.ts: analyzeRoutine() in @skinsavior/core/scoring is
@@ -48,29 +49,27 @@ export async function analyzeMyRoutine(
   // are the ones at the END of each INCI list — exactly where fragrance,
   // essential oils and preservatives sit. Truncation here would quietly
   // under-report clashes while the report still looked complete.
-  const PAGE = 1000;
   const productIds = withProducts.map((s) => s.productId as string);
   const byProduct = new Map<string, string[]>();
 
-  for (let offset = 0; ; offset += PAGE) {
-    const { data, error } = await db
+  {
+    const page = await fetchAllPages<IngredientJoinRow>((from, to) => db
       .from("product_ingredients")
       .select("product_id, position, ingredients(inci_name)")
       .in("product_id", productIds)
       .order("product_id")
       .order("position")
-      .range(offset, offset + PAGE - 1);
-    if (error) break;
-    const page = (data ?? []) as unknown as IngredientJoinRow[];
+      .range(from, to));
     for (const row of page) {
-      if (!row.ingredients) continue;
+      if (!row.ingredients) throw new Error("Ingredient data incomplete.");
       byProduct.set(row.product_id, [
         ...(byProduct.get(row.product_id) ?? []),
         row.ingredients.inci_name,
       ]);
     }
-    if (page.length < PAGE) break;
   }
+
+  if (productIds.some((id) => !byProduct.get(id)?.length)) throw new Error("Routine ingredients incomplete. Compatibility cannot be confirmed.");
 
   const input: RoutineStepInput[] = withProducts.map((s) => ({
     id: s.id,

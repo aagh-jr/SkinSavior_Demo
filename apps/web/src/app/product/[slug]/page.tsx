@@ -3,8 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteNav } from "@/components/SiteNav";
 import { ProductThumb } from "@/components/ProductThumb";
-import { getProduct, products } from "@/lib/products";
-import { getDbProduct, getProductResearchIngredients } from "@/lib/products-db";
+import { getDbProduct, getProductResearchIngredients, listRelatedDbProducts } from "@/lib/products-db";
 import { listClaimsForIngredients } from "@/lib/claims-db";
 import { brandSlug } from "@/lib/brands-db";
 import { ProductProfileSplit } from "@/components/products/ProductProfileSplit";
@@ -13,16 +12,8 @@ import { SaveButton } from "@/components/products/SaveButton";
 import { getSaveStateBySlug } from "@/lib/shelf-db";
 import { ResearchDropdown } from "@/components/research/ResearchDropdown";
 
-/**
- * Never cached — the page renders per-viewer content: the save-to-shelf state
- * and any safety block. A cached copy would show one user's result to everyone,
- * and a safety block that a cache can hide is not a block.
- */
+/** Never cached because the page renders per-viewer save-to-shelf state. */
 export const dynamic = "force-dynamic";
-
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
-}
 
 export async function generateMetadata({
   params,
@@ -30,7 +21,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const p = getProduct(slug) ?? (await getDbProduct(slug));
+  const p = await getDbProduct(slug);
   return { title: p ? p.name : "Product" };
 }
 
@@ -40,8 +31,7 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  // Static demo products first, then products ingested via /add.
-  const p = getProduct(slug) ?? (await getDbProduct(slug));
+  const p = await getDbProduct(slug);
   if (!p) notFound();
 
   const saveState = await getSaveStateBySlug(slug);
@@ -54,7 +44,7 @@ export default async function ProductPage({
   const evidenceClaims = [...claimsByIngredient.values()]
     .flat()
     .sort((a, b) => b.notches - a.notches);
-  const related = products.filter((x) => x.slug !== p.slug).slice(0, 3);
+  const related = await listRelatedDbProducts(p.slug, p.category);
 
   return (
     <div className="min-h-screen bg-background font-sans text-ink">
@@ -74,7 +64,6 @@ export default async function ProductPage({
             and summary are passed in as server-rendered slots. */}
         <ProductProfileSplit
           ingredients={p.ingredients}
-          forYou={p.forYou}
           researchLabels={new Set(researchIngredients.map((r) => r.label.toLowerCase()))}
           imageSlot={
             <ProductThumb
@@ -141,6 +130,7 @@ export default async function ProductPage({
                       productId={saveState.productId}
                       initialSaved={saveState.saved}
                       signedIn={saveState.signedIn}
+                      unavailable={saveState.unavailable}
                     />
                   )}
                 </div>

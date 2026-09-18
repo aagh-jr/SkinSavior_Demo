@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@skinsavior/core/query";
 // Brand pages, derived entirely from the products table (no brands table yet).
 //
 // A "brand" is a distinct value of products.brand. We group products by a
@@ -28,7 +29,7 @@ export interface BrandSummary {
   sampleImage: string | null;
 }
 
-export type BrandSort = "top" | "newest" | "az";
+export type BrandSort = "newest" | "az";
 
 /** URL-safe slug from a brand name. */
 export function brandSlug(name: string): string {
@@ -119,8 +120,7 @@ function mostCommon<T>(values: (T | null | undefined)[]): T | null {
  */
 async function loadAllProducts(): Promise<BrandProduct[]> {
   const supabase = await createClient();
-  const PAGE = 1000;
-  const rows: {
+  const rows = await fetchAllPages<{
     slug: string;
     name: string;
     brand: string | null;
@@ -128,22 +128,14 @@ async function loadAllProducts(): Promise<BrandProduct[]> {
     origin: string | null;
     image_url: string | null;
     created_at: string;
-  }[] = [];
-
-  for (let offset = 0; ; offset += PAGE) {
-    const { data, error } = await supabase
+  }>((from, to) => supabase
       .from("products")
       .select("slug, name, brand, category, origin, image_url, created_at")
       // Out-of-scope products are flagged, not deleted (migration
       // 20260816000000). NULL = visible.
       .is("excluded_reason", null)
-      .order("brand")
-      .range(offset, offset + PAGE - 1);
-    if (error) throw new Error(`Couldn't load products: ${error.message}`);
-    const page = (data ?? []) as unknown as typeof rows;
-    rows.push(...page);
-    if (page.length < PAGE) break;
-  }
+      .order("brand").order("id")
+      .range(from, to));
   return rows
     .filter((r) => r.brand && r.brand.trim())
     .map((r) => ({
@@ -251,7 +243,7 @@ export async function getBrandPage(
   // Sort. "top" would rank by rating, but product_ratings is empty for now, so
   // it falls back to newest — swap in a ratings join when reviews exist.
   const sorted = [...visible];
-  const sort = opts.sort ?? "top";
+  const sort = opts.sort ?? "newest";
   if (sort === "az") {
     sorted.sort((a, b) => a.name.localeCompare(b.name));
   } else {

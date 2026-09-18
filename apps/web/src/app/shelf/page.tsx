@@ -32,14 +32,14 @@ export default async function ShelfPage() {
 
   const [inUse, saved, routines] = await Promise.all([
     getProductsInUse(),
-    getSavedProducts(),
+    getSavedProducts().catch(() => null),
     listMyRoutines(),
   ]);
 
   // A product can be both saved and in use; it belongs under "in use", which is
   // the stronger statement.
   const inUseIds = new Set(inUse.map((p) => p.productId));
-  const savedOnly = saved.filter((p) => !inUseIds.has(p.productId));
+  const savedOnly = (saved ?? []).filter((p) => !inUseIds.has(p.productId));
 
   return (
     <div className="min-h-screen bg-background">
@@ -104,7 +104,7 @@ export default async function ShelfPage() {
             </span>
           </div>
 
-          {savedOnly.length === 0 ? (
+          {saved === null ? <p role="alert" className="text-sm text-muted-foreground">Your saved products could not be loaded. Please refresh to retry.</p> : savedOnly.length === 0 ? (
             <EmptyNote>
               Nothing saved. Tap <span className="font-semibold">Save to shelf</span>{" "}
               on any product to keep it here.

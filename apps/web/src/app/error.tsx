@@ -19,8 +19,8 @@ export default function Error({
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           This page didn&apos;t load
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p role="alert" className="mt-2 text-sm text-muted-foreground">
+          Some data is unavailable. Product matches and safety checks cannot be confirmed until it loads. Please retry.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
