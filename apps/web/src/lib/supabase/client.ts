@@ -12,12 +12,14 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export function createClient() {
-  // TEMPORARY: explicit kill switch, or auto-fallback when Supabase env is
-  // absent (e.g. AI design tools that pull the repo with no .env). Either way
-  // we return a no-op mock so the app renders instead of crashing. See ./mock.
-  if (isSupabaseDisabled() || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  // Mock data is available only through the explicit development switch.
+  if (isSupabaseDisabled()) {
     return createMockClient() as ReturnType<typeof createBrowserClient<Database>>;
   }
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error("Supabase configuration missing. Configure database credentials, or explicitly set NEXT_PUBLIC_SUPABASE_DISABLED=true for offline development.");
+  }
+
   return createBrowserClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 

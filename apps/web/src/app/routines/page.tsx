@@ -5,6 +5,8 @@ import { NewRoutineCard, RoutineCard } from "@/components/routines/RoutineCards"
 import { createClient } from "@/lib/supabase/server";
 import { listMyRoutines } from "@/lib/routines-db";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "My routines",
   description:

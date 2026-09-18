@@ -1,13 +1,15 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SiteNav } from "@/components/SiteNav";
-import { ProductThumb } from "@/components/ProductThumb";
 import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "skinsavior — Your skin, finally explained.",
   description:
-    "Answer a few questions about your skin. We'll match you with products backed by real research — and tell you exactly why each one is right for you.",
+    "Decode complete ingredient lists, inspect the evidence, and check the products in your routine for documented conflicts.",
 };
 
 function Nav() {
@@ -21,7 +23,7 @@ function Hero() {
         <div className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-border bg-warm-white px-4 py-2">
           <span className="h-2 w-2 rounded-full bg-sage" />
           <span className="text-[13px] font-medium text-muted-foreground">
-            Personalized by AI · Backed by real science
+            Ingredient transparency · Evidence when available
           </span>
         </div>
 
@@ -34,9 +36,8 @@ function Hero() {
         </h1>
 
         <p className="mt-6 max-w-[450px] text-lg leading-[1.6] text-foreground/75">
-          Answer a few questions about your skin. We&apos;ll match you with products backed
-          by real research — and tell you exactly why each one is right for{" "}
-          <em>you</em>.
+          See complete ingredient lists, build the routine you actually use, and check
+          documented interactions without fearmongering.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center gap-5">
@@ -53,9 +54,9 @@ function Hero() {
 
         <div className="mt-11 flex flex-wrap gap-x-10 gap-y-4 border-t border-border pt-8">
           {[
-            { n: "240k+", l: "skin profiles matched" },
-            { n: "31k+", l: "products decoded" },
-            { n: "12k+", l: "research sources" },
+            { n: "INCI", l: "full ingredient lists" },
+            { n: "Routine", l: "interaction checks" },
+            { n: "Evidence", l: "graded claim by claim" },
           ].map((s) => (
             <div key={s.n}>
               <div className="font-serif text-3xl font-semibold text-ink">{s.n}</div>
@@ -72,71 +73,16 @@ function Hero() {
 
 function HeroCard() {
   return (
-    <div className="relative">
-      <div className="rounded-[20px] border border-border bg-warm-white p-6 shadow-[0_22px_60px_rgba(80,50,30,0.10)]">
-        <div className="flex items-start gap-4">
-          <div
-            className="flex h-[92px] w-[92px] flex-shrink-0 items-end rounded-xl p-2"
-            style={{
-              background:
-                "repeating-linear-gradient(45deg,#e7ddcc 0 8px,#efe7d9 8px 16px)",
-            }}
-          >
-            <span className="rounded bg-white/80 px-1.5 py-0.5 text-[9px] text-ink/40">
-              img
-            </span>
-          </div>
-          <div className="flex-1">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-link">
-              COSRX
-            </div>
-            <div className="mt-1 font-serif text-[17px] font-medium leading-[1.25] text-ink">
-              Advanced Snail 96
-              <br />
-              Mucin Essence
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 flex items-center gap-2.5">
-          <div className="flex h-[50px] w-[50px] flex-shrink-0 flex-col items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <span className="font-serif text-base font-semibold leading-none">94%</span>
-            <span className="text-[8px] tracking-wider opacity-85">MATCH</span>
-          </div>
-          <div>
-            <div className="text-[13px] font-bold text-ink">
-              Great match for your skin
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Personalized · Dry · Sensitive
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-3.5 flex flex-wrap gap-1.5">
-          {["Pregnancy-safe", "Fragrance-free", "FA-safe"].map((t) => (
-            <span
-              key={t}
-              className="rounded-full bg-sage-bg px-2.5 py-1 text-xs font-medium text-sage"
-            >
-              ✓ {t}
-            </span>
-          ))}
-        </div>
-
-        <div className="mt-3.5 flex items-center gap-2.5 border-t border-border pt-3.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary">
-            <span className="font-serif text-sm font-semibold text-sage">B+</span>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            Evidence grade · 6 human trials for hydration
-          </div>
-        </div>
-      </div>
-
-      <div className="absolute -bottom-4 right-5 whitespace-nowrap rounded-xl bg-ink px-4 py-2.5 text-[13px] font-semibold text-warm-white shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
-        ♡ 4.7 · 12,480 reviews
-      </div>
+    <div className="rounded-[20px] border border-border bg-warm-white p-6 shadow-[0_22px_60px_rgba(80,50,30,0.10)]">
+      <p className="text-xs uppercase tracking-wider text-link">Inside a product profile</p>
+      <h2 className="mt-4 font-serif text-2xl">Know what goes on your skin</h2>
+      <ul className="mt-6 space-y-5 text-sm text-muted-foreground">
+        <li><strong className="text-ink">Full INCI list</strong><br />Ingredients in their printed order.</li>
+        <li><strong className="text-ink">Printed order</strong><br />See where each ingredient appears on the label.</li>
+        <li><strong className="text-ink">Routine checks</strong><br />Check documented interactions between products you use.</li>
+        <li><strong className="text-ink">Evidence where available</strong><br />Research is graded claim by claim; gaps stay visible.</li>
+      </ul>
+      <Link href="/search" className="mt-6 inline-block font-semibold text-link underline">Explore the catalogue →</Link>
     </div>
   );
 }
@@ -154,8 +100,8 @@ function HookSection() {
           <span className="italic text-link">Your skin shouldn&apos;t have to guess.</span>
         </h2>
         <p className="mt-8 max-w-2xl font-serif text-xl leading-relaxed text-foreground/75 md:text-2xl">
-          We read the studies, decode the INCI, and cross-check every claim — so the
-          only thing left for you to do is shop like you mean it.
+          We show complete INCI lists, add graded research where we have it, and
+          keep the gaps visible so you can judge each claim for yourself.
         </p>
       </div>
     </section>
@@ -172,12 +118,12 @@ function HowItWorks() {
     {
       n: "2",
       title: "We build your profile",
-      body: "Our AI scores 31,000+ products against your exact needs — weighing ingredients, evidence, and what already works for you.",
+      body: "Your answers seed a routine you can fill with products from the catalogue.",
     },
     {
       n: "3",
-      title: "See your matches",
-      body: "Every product gets a personal match score. Evidence grades stay objective — community reviews are context, never the score.",
+      title: "Check the full routine",
+      body: "Deterministic rules flag documented conflicts and correct commonly feared combinations. Evidence grades stay separate.",
     },
   ];
   return (
@@ -222,154 +168,6 @@ function HowItWorks() {
   );
 }
 
-function ProductSnapshot() {
-  return (
-    <section id="product" className="bg-background">
-      <div className="mx-auto max-w-[1180px] px-6 py-24 md:px-14 md:py-32">
-        <div className="mb-12 max-w-2xl">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-link">
-            Inside the app
-          </p>
-          <h2 className="mt-3 font-serif text-4xl tracking-tight md:text-5xl text-balance">
-            One product. One brutally clear verdict.
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            A peek at a real product page in skinsavior — the same view you&apos;ll get for
-            every bottle, tube, and jar on your shelf.
-          </p>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-border bg-warm-white shadow-[0_30px_80px_-40px_rgba(60,45,25,0.3)]">
-          <div className="flex items-center justify-between border-b border-border px-6 py-4">
-            <div className="text-xs text-muted-foreground">
-              Products / Essences / Hydrating
-            </div>
-            <div className="hidden gap-1 md:flex">
-              <span className="h-2.5 w-2.5 rounded-full bg-border" />
-              <span className="h-2.5 w-2.5 rounded-full bg-border" />
-              <span className="h-2.5 w-2.5 rounded-full bg-primary/70" />
-            </div>
-          </div>
-
-          <div className="grid gap-10 p-6 md:grid-cols-[340px_1fr] md:p-10">
-            <div>
-              <ProductThumb
-                category="essence"
-                name="Hydrating essence"
-                className="aspect-square w-full overflow-hidden rounded-2xl"
-                iconSize={88}
-              />
-              <div className="mt-2.5 grid grid-cols-3 gap-2">
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="aspect-square rounded-md"
-                    style={{
-                      background:
-                        "repeating-linear-gradient(45deg,#e7ddcc 0 8px,#efe7d9 8px 16px)",
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2 text-[13px]">
-                <span className="font-semibold uppercase tracking-[0.08em] text-link">
-                  COSRX
-                </span>
-                <span className="text-muted-foreground/60">·</span>
-                <span className="text-muted-foreground">South Korea</span>
-              </div>
-              <h3 className="mt-2 font-serif text-3xl leading-[1.08] md:text-4xl">
-                Advanced Snail 96
-                <br /> Mucin Power Essence
-              </h3>
-
-              <div className="mt-5 flex items-center gap-3.5">
-                <div className="flex h-16 w-16 flex-shrink-0 flex-col items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                  <span className="font-serif text-2xl font-semibold leading-none">
-                    94%
-                  </span>
-                  <span className="mt-1 text-[9px] uppercase tracking-[0.1em] opacity-85">
-                    match
-                  </span>
-                </div>
-                <div>
-                  <div className="font-semibold text-ink">Great match for your skin</div>
-                  <div className="text-sm text-muted-foreground">
-                    Personalized by skinsavior AI to{" "}
-                    <strong>Dry · Sensitive · Fragrance-free</strong>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 flex flex-wrap gap-2">
-                {[
-                  "Cosmetic — not a drug",
-                  "Pregnancy-safe",
-                  "Fragrance-free",
-                  "Fungal-acne safe",
-                ].map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-full bg-sage-bg px-3 py-1.5 text-[13px] font-medium text-sage"
-                  >
-                    ✓ {t}
-                  </span>
-                ))}
-              </div>
-
-              <div className="mt-6 grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-[oklch(0.88_0.04_55)] bg-secondary/70 p-5">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary font-serif text-base font-semibold text-primary-foreground">
-                      94%
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-ink">
-                        For you · great match
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        skinsavior AI · from your profile
-                      </div>
-                    </div>
-                  </div>
-                  <ul className="mt-3 space-y-1.5 text-[13px] text-sage">
-                    <li>✓ Heavy humectant load for dehydration</li>
-                    <li>✓ Fragrance-free — fits your sensitivity</li>
-                    <li className="text-link">⚠ Contains Phenoxyethanol</li>
-                  </ul>
-                </div>
-                <div className="rounded-xl border border-border bg-background p-5">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-secondary font-serif text-lg font-semibold text-sage">
-                      B+
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-ink">
-                        Evidence &amp; efficacy
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        objective · same for everyone
-                      </div>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
-                    Hydration &amp; barrier repair well-supported by{" "}
-                    <strong>6 human trials</strong>. Anti-aging claims rest on{" "}
-                    <strong>14 lab studies</strong> — promising, not proven on skin.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function CTASurvey() {
   return (
     <section id="survey" className="mx-auto max-w-[1180px] px-6 py-20 md:px-14 md:py-28">
@@ -386,12 +184,13 @@ function CTASurvey() {
           <h2 className="mt-5 font-serif text-4xl leading-[1.05] text-warm-white md:text-6xl">
             Take the skin quiz.
             <br />
-            <em className="italic text-[oklch(0.82_0.09_55)]">We&apos;ll do the rest.</em>
+            <em className="italic text-[oklch(0.82_0.09_55)]">
+              We&apos;ll build your starting point.
+            </em>
           </h2>
           <p className="mt-6 max-w-lg text-lg text-warm-white/75">
-            A few questions about your skin, your reactions, and what you want from
-            your routine. You&apos;ll walk away with a personal match score on every
-            product we track.
+            A few questions about your skin, your reactions, and what you use now.
+            We&apos;ll turn those answers into a routine you can complete and check.
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -417,7 +216,7 @@ function Footer() {
       <div className="mx-auto flex max-w-[1180px] flex-col gap-3 px-6 py-8 md:flex-row md:items-center md:justify-between md:px-14">
         <span className="font-serif text-lg font-semibold text-ink">skinsavior</span>
         <span className="text-[13px] text-muted-foreground">
-          © 2026 · Independent &amp; unbiased · Not medical advice.
+          © {new Date().getFullYear()} · Independent &amp; unbiased · Not medical advice.
         </span>
       </div>
     </footer>
@@ -440,7 +239,6 @@ export default async function LandingPage() {
         <Hero />
         <HookSection />
         <HowItWorks />
-        <ProductSnapshot />
         <CTASurvey />
       </main>
       <Footer />

@@ -29,11 +29,11 @@ export const metadata: Metadata = {
     template: "%s · skinsavior",
   },
   description:
-    "AI-powered skincare transparency. Personalized matches backed by real research.",
+    "Skincare ingredient transparency with complete INCI lists, evidence context, and deterministic routine checks.",
   openGraph: {
     title: "skinsavior — Your skin, finally explained.",
     description:
-      "AI-powered skincare transparency. Personalized matches backed by real research.",
+      "Skincare ingredient transparency with complete INCI lists, evidence context, and deterministic routine checks.",
     type: "website",
   },
   twitter: { card: "summary" },

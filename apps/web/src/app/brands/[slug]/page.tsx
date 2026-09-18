@@ -5,8 +5,9 @@ import { SiteNav } from "@/components/SiteNav";
 import { ProductThumb } from "@/components/ProductThumb";
 import { getBrandPage, type BrandSort } from "@/lib/brands-db";
 
+export const dynamic = "force-dynamic";
+
 const SORTS: { value: BrandSort; label: string }[] = [
-  { value: "top", label: "Top rated" },
   { value: "newest", label: "Newest" },
   { value: "az", label: "A–Z" },
 ];
@@ -49,7 +50,7 @@ export default async function BrandPage({
   const { slug } = await params;
   const { category, sort } = await searchParams;
   const activeSort: BrandSort =
-    sort === "newest" || sort === "az" ? sort : "top";
+    sort === "newest" || sort === "az" ? sort : "newest";
 
   const brand = await getBrandPage(slug, { category, sort: activeSort });
   if (!brand) notFound();
@@ -60,7 +61,7 @@ export default async function BrandPage({
     const cat = next.category === undefined ? category : next.category;
     const srt = next.sort ?? activeSort;
     if (cat) p.set("category", cat);
-    if (srt !== "top") p.set("sort", srt);
+    if (srt !== "newest") p.set("sort", srt);
     const qs = p.toString();
     return `/brands/${brand.slug}${qs ? `?${qs}` : ""}`;
   };

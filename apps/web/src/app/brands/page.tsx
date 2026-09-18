@@ -3,6 +3,8 @@ import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { listBrands, type BrandSummary } from "@/lib/brands-db";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Brands",
   description: "Every brand in the skinsavior catalog, A to Z.",

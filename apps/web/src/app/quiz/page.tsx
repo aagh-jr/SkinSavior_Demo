@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useRef, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -9,7 +9,6 @@ import { seedRoutineFromQuizAction } from "@/app/routines/actions";
 import {
   clearPendingAnswers,
   persistAnswers,
-  readPendingAnswers,
   stashPendingAnswers,
   type QuizAnswers,
 } from "@/lib/quiz-answers";
@@ -238,28 +237,8 @@ function QuizInner() {
       new Promise((r) => setTimeout(r, 900)),
     ]).then(([res]) => {
       router.push(res.ok ? `/routines/${res.id}` : "/home");
-    });
+    }).catch(() => router.push("/home"));
   }, [router, isRetake]);
-
-  // Already signed in: save and skip the account step.
-  //
-  // This used to setPhase("done") and stop, so anyone with an existing
-  // session finished the quiz, saw "Your skin profile is saved" -- which
-  // promises "Next: your routine" -- and then sat on that screen forever.
-  // Only brand-new signups ever reached the routine builder, which is the
-  // one place the clash checks have anything to run on.
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session && phase === "account") {
-        void persistAnswers(answers).then((ok) => {
-          if (ok) {
-            clearPendingAnswers();
-            finish();
-          }
-        });
-      }
-    });
-  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const step = STEPS[stepIdx];
   const progress = phase === "survey" ? ((stepIdx + 1) / (TOTAL + 1)) * 100 : 100;
@@ -332,7 +311,7 @@ function QuizInner() {
             // blank page — and routine data is what the compatibility checks
             // need to run on at all.
             onSuccess={finish}
-            onBack={() => setStepIdx(TOTAL - 1)}
+            onBack={() => { setStepIdx(TOTAL - 1); setPhase("survey"); }}
           />
         )}
         {phase === "done" && <DoneView isRetake={isRetake} />}
@@ -397,6 +376,7 @@ function QuestionView({
             : selected === c.value;
           return (
             <button
+              aria-pressed={active}
               key={c.value}
               type="button"
               onClick={() => toggle(c.value)}
@@ -479,22 +459,37 @@ function AccountStep({
     stashPendingAnswers(answers);
   }, [answers]);
 
-  // Once a session appears (OAuth return, sign-in, or signup without
-  // email confirmation), persist and finish.
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const saving = useRef(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const saveProfile = useCallback(async () => {
+    if (saving.current) return;
+    saving.current = true;
+    setSavingProfile(true);
+    setSaveError(null);
+    try {
+      const ok = await persistAnswers(answers);
+      if (!ok) throw new Error("Save failed");
+      clearPendingAnswers();
+      onSuccess();
+    } catch {
+      setSaveError("Your skin profile could not be saved. Your answers are still here; please retry.");
+      setLoading(null);
+    } finally {
+      saving.current = false;
+      setSavingProfile(false);
+    }
+  }, [answers, onSuccess]);
+
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
-        const a = readPendingAnswers() ?? answers;
-        void persistAnswers(a).then((ok) => {
-          if (ok) {
-            clearPendingAnswers();
-            onSuccess();
-          }
-        });
+        // Start after the auth callback releases its lock.
+        setTimeout(() => { void saveProfile(); }, 0);
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [answers, onSuccess]);
+  }, [saveProfile]);
 
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -521,11 +516,12 @@ function AccountStep({
         }
         toast.success("Account created — saving your skin profile…");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
         if (error) throw error;
+        if (!data.session) throw new Error("Sign-in did not create a session.");
         toast.success("Signed in — saving your skin profile…");
       }
     } catch (err) {
@@ -623,14 +619,14 @@ function AccountStep({
         <span className="h-px flex-1 bg-border" />
       </div>
 
+      {saveError && <div role="alert" className="my-4 rounded-xl border border-border p-4">{saveError} <button type="button" onClick={() => void saveProfile()} disabled={savingProfile} className="underline">{savingProfile ? "Saving…" : "Retry save"}</button></div>}
       <form onSubmit={handleEmail} className="space-y-3">
         {mode === "signup" && (
           <div>
-            <label className="mb-1.5 block text-[13px] font-medium text-ink">
-              Your name
-            </label>
+            <label htmlFor="quiz-name" className="mb-1.5 block text-[13px] font-medium text-ink">Your name</label>
             <input
               type="text"
+              id="quiz-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Alex Morgan"
@@ -639,27 +635,25 @@ function AccountStep({
           </div>
         )}
         <div>
-          <label className="mb-1.5 block text-[13px] font-medium text-ink">
-            Email
-          </label>
+          <label htmlFor="quiz-email" className="mb-1.5 block text-[13px] font-medium text-ink">Email</label>
           <input
             required
             type="email"
-            value={email}
+            id="quiz-email"
+              value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@email.com"
             className="w-full rounded-xl border border-border bg-warm-white px-4 py-3 text-[15px] text-ink outline-none transition-colors focus:border-primary"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-[13px] font-medium text-ink">
-            Password
-          </label>
+          <label htmlFor="quiz-password" className="mb-1.5 block text-[13px] font-medium text-ink">Password</label>
           <input
             required
             type="password"
             minLength={8}
-            value={password}
+            id="quiz-password"
+              value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
             className="w-full rounded-xl border border-border bg-warm-white px-4 py-3 text-[15px] text-ink outline-none transition-colors focus:border-primary"

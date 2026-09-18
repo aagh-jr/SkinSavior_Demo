@@ -4,6 +4,8 @@ import type { Database } from "@skinsavior/core/supabase";
 import { SiteNav } from "@/components/SiteNav";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 // Read public profiles through the curated `public_profiles` view, which
 // exposes ONLY these safe columns. The base `profiles` table is not readable
 // by anonymous visitors — see the public_profiles migration.
@@ -110,22 +112,7 @@ export default async function UserProfilePage({
             </div>
           </div>
 
-          {/* Skin Analysis Card — awaiting quiz-backed columns on `profiles` */}
-          <div className="rounded-2xl border bg-card p-6 shadow-sm">
-            <h2 className="font-serif text-xl font-semibold text-ink">Skin Analysis</h2>
-            <p className="mt-4 text-sm text-muted-foreground">
-              No skin analysis yet. Once the quiz answers are stored on the
-              profile, sensitivity, concerns, and goals will appear here.
-            </p>
-          </div>
 
-          {/* Saved Products Card — awaiting a saved-products relation */}
-          <div className="rounded-2xl border bg-card p-6 shadow-sm">
-            <h2 className="font-serif text-xl font-semibold text-ink">Saved Products</h2>
-            <p className="mt-4 text-sm text-muted-foreground">
-              No saved products yet.
-            </p>
-          </div>
         </div>
       </div>
     </div>

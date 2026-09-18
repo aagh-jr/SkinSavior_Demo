@@ -8,6 +8,8 @@ import { EvidenceExplainer } from "@/components/research/EvidenceExplainer";
 import { getIngredient } from "@/lib/ingredients-db";
 import { listClaimsForIngredient } from "@/lib/claims-db";
 
+export const dynamic = "force-dynamic";
+
 function titleCase(s: string): string {
   return s.replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -33,7 +35,7 @@ export default async function IngredientPage({
 
   const name = titleCase(ing.common_name?.trim() || ing.inci_name);
   const inci = titleCase(ing.inci_name);
-  const functions = ing.functions ?? [];
+
   const researched = isResearched(ing.inci_name);
   const claims = await listClaimsForIngredient(id);
 
@@ -51,18 +53,6 @@ export default async function IngredientPage({
         </h1>
         {inci !== name && <div className="mt-2 text-sm text-muted-foreground">{inci}</div>}
 
-        {functions.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {functions.map((f) => (
-              <span
-                key={f}
-                className="rounded-full bg-muted px-3 py-1 text-[12px] font-medium text-muted-foreground"
-              >
-                {titleCase(f)}
-              </span>
-            ))}
-          </div>
-        )}
 
         {ing.description?.trim() && (
           <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-foreground">

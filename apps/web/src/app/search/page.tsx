@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import { SiteNav } from "@/components/SiteNav";
 import { ProductsExplorer } from "@/components/products/ProductsExplorer";

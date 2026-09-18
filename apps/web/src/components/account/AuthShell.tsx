@@ -36,8 +36,7 @@ export function AuthShell({
       </main>
 
       <footer className="px-5 py-5 text-center text-xs text-muted-foreground">
-        <span>Privacy</span> · <span>Terms</span> · <span>Contact</span> · © 2026
-        skinsavior
+        © {new Date().getFullYear()} skinsavior
       </footer>
     </div>
   );

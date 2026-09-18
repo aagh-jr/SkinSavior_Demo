@@ -1,3 +1,4 @@
+import { fetchAllPages, sanitizeSearch } from "@skinsavior/core/query";
 // Server-only access to the products catalog in Supabase.
 //
 // NOTE: packages/core/src/supabase/types.ts is generated from the live
@@ -47,15 +48,19 @@ export async function getDbProduct(slug: string): Promise<Product | null> {
   const { data: row, error } = await db
     .from("products")
     .select("*")
+    .is("excluded_reason", null)
     .eq("slug", slug)
     .maybeSingle<ProductRow>();
-  if (error || !row) return null;
+  if (error) throw new Error("Could not load product.");
+  if (!row) return null;
 
-  const { data: joins } = await db
+  const { data: joins, error: joinError } = await db
     .from("product_ingredients")
     .select("position, pct, is_key_active, ingredients(inci_name, ingredient_function)")
     .eq("product_id", row.id)
     .order("position");
+
+  if (joinError) throw new Error("Could not load product ingredients.");
 
   const ingredients: ProductIngredient[] = ((joins ?? []) as unknown as ProductIngredientJoinRow[])
     .filter((j) => j.ingredients)
@@ -121,6 +126,7 @@ export async function getProductResearchIngredients(
   const { data: product } = await db
     .from("products")
     .select("id")
+    .is("excluded_reason", null)
     .eq("slug", slug)
     .maybeSingle<{ id: string }>();
   if (!product) return [];
@@ -182,7 +188,6 @@ function rowToCard(row: ProductRow): Product {
 
 /**
  * Search the catalog by product name/brand/category and by ingredient name
- * (mirrors what lib/products.ts searchProducts() does for the static data).
  */
 export async function searchDbProducts(q: string, limit = 24): Promise<Product[]> {
   return (await searchDbProductRows(q, limit)).map(rowToCard);
@@ -190,31 +195,37 @@ export async function searchDbProducts(q: string, limit = 24): Promise<Product[]
 
 /** Row-level variant of searchDbProducts for callers that need product ids. */
 export async function searchDbProductRows(q: string, limit = 24): Promise<ProductRow[]> {
-  const safe = q.trim().replace(/[,()]/g, " ");
+  const safe = sanitizeSearch(q);
   if (!safe) return [];
 
-  const { data: byText } = await db
+  const { data: byText, error: textError } = await db
     .from("products")
     .select("*")
+    .is("excluded_reason", null)
     .or(`name.ilike.%${safe}%,brand.ilike.%${safe}%,category.ilike.%${safe}%`)
     .limit(limit);
 
+  if (textError) throw new Error("Product search unavailable.");
+
   // Ingredient-name search, e.g. "niacinamide" finds products containing it.
   let byIngredient: ProductRow[] = [];
-  const { data: ings } = await db
+  const { data: ings, error: ingredientError } = await db
     .from("ingredients")
     .select("id")
     .ilike("inci_name", `%${safe}%`)
     .limit(5);
+  if (ingredientError) throw new Error("Ingredient search unavailable.");
   if (ings?.length) {
-    const { data: joins } = await db
+    const { data: joins, error: joinError } = await db
       .from("product_ingredients")
       .select("product_id")
       .in("ingredient_id", (ings as { id: string }[]).map((i) => i.id))
       .limit(limit);
+    if (joinError) throw new Error("Product ingredient search unavailable.");
     const ids = [...new Set(((joins ?? []) as { product_id: string }[]).map((j) => j.product_id))];
     if (ids.length) {
-      const { data } = await db.from("products").select("*").in("id", ids).limit(limit);
+      const { data, error } = await db.from("products").select("*").is("excluded_reason", null).in("id", ids).limit(limit);
+      if (error) throw new Error("Product search unavailable.");
       byIngredient = (data ?? []) as ProductRow[];
     }
   }
@@ -264,8 +275,9 @@ export interface ProductCategory {
  * how many products they cover.
  */
 export async function listProductCategories(): Promise<ProductCategory[]> {
-  const { data } = await db.from("products").select("category");
-  const rows = (data ?? []) as { category: string | null }[];
+  const rows = await fetchAllPages<{ category: string | null }>((from, to) =>
+    db.from("products").select("category").is("excluded_reason", null).order("id").range(from, to),
+  );
 
   const groups = new Map<
     string,
@@ -337,7 +349,7 @@ export async function listDbProductsPage({
 
   const needle = q.trim();
   if (needle) {
-    const safe = needle.replace(/[%,()]/g, " ").trim();
+    const safe = sanitizeSearch(needle);
     const ors = [`name.ilike.%${safe}%`, `brand.ilike.%${safe}%`];
 
     // Preserve ingredient→product search: match products that contain an
@@ -368,7 +380,7 @@ export async function listDbProductsPage({
   const { data, count, error } = await query
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
-  if (error) return { rows: [], total: 0, hasMore: false };
+  if (error) throw new Error("Product catalogue unavailable.");
 
   const rows = ((data ?? []) as ProductCardRow[]).map((r) => ({
     ...r,
@@ -649,4 +661,13 @@ async function resolveBrandOrigin(
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Related products come only from the visible catalogue. */
+export async function listRelatedDbProducts(slug: string, category: string): Promise<Product[]> {
+  const { data, error } = await db.from("products").select("*")
+    .is("excluded_reason", null).eq("category", category).neq("slug", slug)
+    .order("id").limit(3);
+  if (error) throw new Error("Related products unavailable.");
+  return ((data ?? []) as ProductRow[]).map(rowToCard);
 }
