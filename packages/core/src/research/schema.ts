@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * One research paper as surfaced by the ingredient-research feature. Shape
- * mirrors files/ingredient-research-spec.md section 3 and the `research_papers`
+ * mirrors docs/specs/ingredient-research-spec.md section 3 and the `research_papers`
  * table. Populated from PubMed metadata only — no LLM classification.
  */
 export const paperSchema = z.object({

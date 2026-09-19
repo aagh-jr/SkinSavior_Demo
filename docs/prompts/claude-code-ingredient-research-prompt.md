@@ -1,10 +1,10 @@
 # Claude Code prompt — Ingredient Research integration
 
-Paste everything below the line into Claude Code from the repo root, with `docs/ingredient-research-spec.md` committed.
+Paste everything below the line into Claude Code from the repo root, with `docs/specs/ingredient-research-spec.md` committed.
 
 ---
 
-You are a senior full-stack engineer implementing a new feature in an existing Turborepo monorepo. Read `docs/ingredient-research-spec.md` in full before writing any code. It is the source of truth; where this prompt and the spec conflict, the spec wins.
+You are a senior full-stack engineer implementing a new feature in an existing Turborepo monorepo. Read `docs/specs/ingredient-research-spec.md` in full before writing any code. It is the source of truth; where this prompt and the spec conflict, the spec wins.
 
 ## Task
 

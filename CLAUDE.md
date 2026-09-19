@@ -4,7 +4,7 @@ Read this first. It's loaded automatically each session, so it's the memory
 that survives a context reset. Keep it current: when a decision here stops
 being true, change it rather than leaving both versions around.
 
-Longer-form docs live in `docs/`; deferred ideas in `Ideas for later.md`.
+Longer-form docs live in `docs/`; deferred ideas in `docs/ideas/`.
 
 ---
 
