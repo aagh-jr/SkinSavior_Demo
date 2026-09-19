@@ -29,7 +29,9 @@ export function ResearchDropdown({ ingredients }: { ingredients: ResearchIngredi
         >
           {open ? "−" : "+"}
         </span>
-        <span className="font-mono text-[26px] font-medium text-ink">The research</span>
+        <span className="font-mono text-[18px] font-bold uppercase tracking-[0.02em] text-ink">
+          The research
+        </span>
       </button>
       {open && (
         <div className="mt-4">

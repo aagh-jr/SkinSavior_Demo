@@ -143,7 +143,7 @@ export default async function ProductPage({
             Deterministic grades; the Gemini prose only narrates them. */}
         {evidenceClaims.length > 0 && (
           <div className="mt-10 border-t border-soft-tan pt-9">
-            <h2 className="m-0 mb-6 font-serif text-[22px] font-medium leading-[28px] text-ink">
+            <h2 className="m-0 mb-6 font-mono text-[18px] font-bold uppercase tracking-[0.02em] text-ink">
               Evidence by claim
             </h2>
             <EvidenceByClaim claims={evidenceClaims} />
@@ -160,7 +160,7 @@ export default async function ProductPage({
         {/* SAFETY */}
         {p.safety.length > 0 && (
           <div className="mt-10 border-t border-soft-tan pt-9">
-            <h2 className="m-0 font-serif text-[22px] font-medium leading-[28px] text-ink">
+            <h2 className="m-0 font-mono text-[18px] font-bold uppercase tracking-[0.02em] text-ink">
               Safety &amp; allergens
             </h2>
             <div className="mt-4 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-soft-tan bg-soft-tan sm:grid-cols-2">
@@ -191,7 +191,7 @@ export default async function ProductPage({
             doesn't exist". */}
         <div id="where-to-buy" className="mt-10 scroll-mt-24 border-t border-soft-tan pt-9">
           <div className="flex items-baseline gap-2.5">
-            <h2 className="m-0 font-serif text-[22px] font-medium leading-[28px] text-ink">
+            <h2 className="m-0 font-mono text-[18px] font-bold uppercase tracking-[0.02em] text-ink">
               Where to buy
             </h2>
             {p.retailerCount > 0 && (
@@ -233,7 +233,7 @@ export default async function ProductPage({
           <div className="mt-10 border-t border-soft-tan pt-9">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h2 className="m-0 font-serif text-[22px] font-medium leading-[28px] text-ink">
+                <h2 className="m-0 font-mono text-[18px] font-bold uppercase tracking-[0.02em] text-ink">
                   From the community
                 </h2>
                 <div className="mt-0.5 text-[13px] text-faint">
@@ -277,7 +277,7 @@ export default async function ProductPage({
         {/* MORE TO EXPLORE */}
         <div className="mt-10 border-t border-soft-tan pt-9">
           <div className="flex items-center justify-between">
-            <h2 className="m-0 font-serif text-[22px] font-medium leading-[28px] text-ink">
+            <h2 className="m-0 font-mono text-[18px] font-bold uppercase tracking-[0.02em] text-ink">
               More to explore
             </h2>
             <span aria-hidden="true" className="text-[20px] text-faint">→</span>
