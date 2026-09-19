@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:design": "bun --env-file=.env.design run dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

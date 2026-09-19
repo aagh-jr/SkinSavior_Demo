@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { listMyRoutines } from "@/lib/routines-db";
 import { getProductsInUse, getSavedProducts, type ShelfProduct } from "@/lib/shelf-db";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "My shelf",
   description: "The products you use, the ones you're considering, and your routines.",

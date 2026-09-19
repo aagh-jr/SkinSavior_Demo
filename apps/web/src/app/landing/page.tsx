@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { SiteNav } from "@/components/SiteNav";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "skinsavior — Your skin, finally explained.",
   description:

@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getRoutine, getRoutineSteps } from "@/lib/routines-db";
 import { analyzeMyRoutine } from "@/lib/compatibility-db";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Routine",
   description: "Build a skincare routine that fits your skin and your goals.",
