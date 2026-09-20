@@ -11,20 +11,8 @@
 // only ever sees their own shelf.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ShelfProduct } from "@skinsavior/core/types";
 import { createClient } from "@/lib/supabase/server";
-
-export interface ShelfProduct {
-  productId: string;
-  slug: string | null;
-  name: string;
-  brand: string;
-  imageUrl: string | null;
-  category: string | null;
-  /** Routine names this product appears in — empty for saved-only products. */
-  usedIn: string[];
-  savedAt: string | null;
-  note: string | null;
-}
 
 interface StepRow {
   product_id: string | null;

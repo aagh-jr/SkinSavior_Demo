@@ -2,100 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ProductThumb } from "@/components/ProductThumb";
 import { fetchProductsPage } from "@/app/search/actions";
 import type {
   ProductCardRow,
   ProductCategory,
   ProductsPage,
 } from "@skinsavior/core/types";
+import { GridCard } from "@/components/products/GridCard";
+import { ListCard } from "@/components/products/ListCard";
+import { RailRow } from "@/components/products/RailRow";
+import { ViewButton } from "@/components/products/ViewButton";
 
 type View = "grid" | "list";
-
-/** Client-safe tidy of a raw category value for the card subtitle. */
-function prettyCategory(c: string | null): string {
-  if (!c) return "";
-  return c
-    .replace(/[-_]+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (ch) => ch.toUpperCase());
-}
-
-function GridCard({ p }: { p: ProductCardRow }) {
-  return (
-    <Link
-      href={`/product/${p.slug}`}
-      className="group overflow-hidden rounded-xl border border-soft-tan bg-white transition-colors hover:border-clay hover:bg-secondary/40"
-    >
-      <div className="relative aspect-[4/3]">
-        <ProductThumb
-          category={p.category}
-          imageUrl={p.image_url}
-          name={p.name}
-          className="absolute inset-0 h-full w-full"
-          imageClassName="object-contain"
-          iconSize={48}
-        />
-      </div>
-      <div className="relative -mt-3 rounded-t-xl bg-white px-4 pb-4 pt-3.5 transition-colors group-hover:bg-secondary/40">
-        <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-link">
-          {p.brand}
-        </div>
-        <div className="mt-1 font-serif text-[17px] font-medium leading-[1.18] text-ink">
-          {p.name}
-        </div>
-        {p.category && (
-          <div className="mt-1 text-[13px] text-muted-foreground">
-            {prettyCategory(p.category)}
-          </div>
-        )}
-        <div className="mt-3 flex items-baseline justify-between">
-          <span className="font-serif text-[16px] font-semibold text-ink">
-            {p.price ?? ""}
-          </span>
-          <span className="text-[13px] font-semibold text-link group-hover:underline">
-            View →
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function ListCard({ p }: { p: ProductCardRow }) {
-  return (
-    <Link
-      href={`/product/${p.slug}`}
-      className="flex items-center gap-4 rounded-xl border border-soft-tan bg-white p-3 transition-colors hover:border-clay hover:bg-secondary/40"
-    >
-      <div className="h-[64px] w-[64px] flex-shrink-0 overflow-hidden rounded-xl border border-soft-tan">
-        <ProductThumb
-          category={p.category}
-          imageUrl={p.image_url}
-          name={p.name}
-          className="h-full w-full"
-          iconSize={28}
-        />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-link">
-          {p.brand}
-        </div>
-        <div className="mt-0.5 truncate font-serif text-[16px] font-medium text-ink">
-          {p.name}
-        </div>
-        {p.category && (
-          <div className="text-[12px] text-muted-foreground">
-            {prettyCategory(p.category)}
-          </div>
-        )}
-      </div>
-      <span className="flex-shrink-0 font-serif text-[15px] font-semibold text-ink">
-        {p.price ?? ""}
-      </span>
-    </Link>
-  );
-}
 
 export function ProductsExplorer({
   categories,
@@ -332,70 +250,5 @@ export function ProductsExplorer({
         </div>
       </div>
     </div>
-  );
-}
-
-function RailRow({
-  label,
-  hint,
-  active,
-  onClick,
-}: {
-  label: string;
-  hint?: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        "flex items-center justify-between gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-colors " +
-        (active
-          ? "border-clay bg-secondary"
-          : "border-soft-tan bg-warm-white hover:border-clay hover:bg-secondary/60")
-      }
-    >
-      <span className="text-[14px] font-semibold text-ink">{label}</span>
-      {hint && <span className="text-[11px] text-faint">{hint}</span>}
-    </button>
-  );
-}
-
-function ViewButton({
-  active,
-  onClick,
-  label,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      aria-pressed={active}
-      className={
-        "flex h-7 w-8 items-center justify-center rounded-[7px] transition-colors " +
-        (active ? "bg-secondary text-link" : "text-faint hover:text-ink")
-      }
-    >
-      <svg
-        width="15"
-        height="15"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      >
-        {children}
-      </svg>
-    </button>
   );
 }
