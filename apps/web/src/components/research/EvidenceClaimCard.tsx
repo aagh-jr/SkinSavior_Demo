@@ -2,7 +2,7 @@
 
 import { ArrowUp, ArrowDown, Minus, Lock } from "lucide-react";
 import type { GradeReason } from "@skinsavior/core/research";
-import type { EvidenceClaim } from "@/lib/claims-db";
+import type { EvidenceClaim } from "@skinsavior/core/types";
 import {
   Accordion,
   AccordionContent,

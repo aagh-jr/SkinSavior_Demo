@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 // `/user` resolves to the signed-in user's own public profile at
 // `/user/[username]`. Signed-out visitors are sent to the quiz to create one.
 export default async function UserIndexPage() {

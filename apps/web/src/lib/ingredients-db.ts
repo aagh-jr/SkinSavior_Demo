@@ -1,3 +1,4 @@
+import "server-only";
 import { sanitizeSearch } from "@skinsavior/core/query";
 // Server-only access to the ingredients catalog in Supabase.
 //
@@ -6,27 +7,13 @@ import { sanitizeSearch } from "@skinsavior/core/query";
 // filter naturally narrows to the rows that have been tagged.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { IngredientRow, IngredientPage } from "@skinsavior/core/types";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   INGREDIENTS_PAGE_SIZE,
 } from "@/lib/ingredient-filters";
 
 const db = supabaseAdmin as unknown as SupabaseClient;
-
-export interface IngredientRow {
-  id: string;
-  inci_name: string;
-  common_name: string | null;
-  functions?: string[] | null;
-  description: string | null;
-  safety_notes: string | null;
-}
-
-export interface IngredientPage {
-  rows: IngredientRow[];
-  total: number;
-  hasMore: boolean;
-}
 
 export interface ListIngredientsParams {
   filter?: string | null;

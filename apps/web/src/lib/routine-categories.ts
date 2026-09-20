@@ -6,14 +6,12 @@
 // supabase/migrations/20260704000000_routine_builder_steps.sql — a mismatch
 // surfaces only as a runtime 23514 check-violation error.
 
-export type TimeOfDay = "am" | "pm" | "both";
-
-export type RoutineFrequency =
-  | "daily"
-  | "every_other_day"
-  | "2x_week"
-  | "weekly"
-  | "custom";
+// The canonical routine-step union types live in the shared core package so
+// visual components and the data layer share one contract; the value lists and
+// seeding logic below stay app-side. Re-exported here so existing
+// `@/lib/routine-categories` importers are unaffected.
+import type { RoutineCategory, RoutineFrequency, TimeOfDay } from "@skinsavior/core/types";
+export type { RoutineCategory, RoutineFrequency, TimeOfDay };
 
 export const ROUTINE_FREQUENCIES: { value: RoutineFrequency; label: string }[] = [
   { value: "daily", label: "Daily" },
@@ -25,22 +23,6 @@ export const ROUTINE_FREQUENCIES: { value: RoutineFrequency; label: string }[] =
 
 /** Index = the custom_days value stored in the DB (0 = Monday … 6 = Sunday). */
 export const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-export type RoutineCategory =
-  | "oil_cleanser"
-  | "cleanser"
-  | "exfoliant"
-  | "mask"
-  | "toner"
-  | "essence"
-  | "serum"
-  | "eye_cream"
-  | "spot_treatment"
-  | "moisturizer"
-  | "face_oil"
-  | "lip_balm"
-  | "sunscreen"
-  | "other";
 
 export const ROUTINE_CATEGORIES: { value: RoutineCategory; label: string }[] = [
   { value: "oil_cleanser", label: "Oil cleanser" },

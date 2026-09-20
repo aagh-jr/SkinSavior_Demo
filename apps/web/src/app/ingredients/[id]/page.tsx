@@ -8,6 +8,8 @@ import { EvidenceExplainer } from "@/components/research/EvidenceExplainer";
 import { getIngredient } from "@/lib/ingredients-db";
 import { listClaimsForIngredient } from "@/lib/claims-db";
 
+export const dynamic = "force-dynamic";
+
 function titleCase(s: string): string {
   return s.replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
 }

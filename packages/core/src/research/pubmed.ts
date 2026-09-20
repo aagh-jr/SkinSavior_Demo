@@ -2,7 +2,7 @@ import { XMLParser } from "fast-xml-parser";
 import type { Paper } from "./schema";
 
 // PubMed E-utilities. Two calls: esearch (JSON, PMIDs) then efetch (XML, full
-// records). See files/ingredient-research-spec.md section 2.
+// records). See docs/specs/ingredient-research-spec.md section 2.
 const ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi";
 const EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi";
 

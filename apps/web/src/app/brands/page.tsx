@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import type { BrandSummary } from "@skinsavior/core/types";
 import { SiteNav } from "@/components/SiteNav";
-import { listBrands, type BrandSummary } from "@/lib/brands-db";
+import { AlphabetJumpBar } from "@/components/brands/AlphabetJumpBar";
+import { BrandLetterSection } from "@/components/brands/BrandLetterSection";
+import { listBrands } from "@/lib/brands-db";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Brands",
@@ -52,33 +56,10 @@ export default async function BrandsPage() {
           {brands.length} brands in the catalog. Open one to see its products.
         </p>
 
-        {/* Alphabet jump bar. Letters with no brands are shown but inert, so
-            the row stays a stable ruler rather than reflowing per catalogue. */}
-        <nav
-          aria-label="Jump to letter"
-          className="sticky top-[72px] z-20 -mx-2 mt-8 flex flex-wrap gap-0.5 border-b border-border bg-background/95 px-2 py-3 backdrop-blur"
-        >
-          {LETTERS.map((letter) => {
-            const has = (byLetter.get(letter)?.length ?? 0) > 0;
-            return has ? (
-              <Link
-                key={letter}
-                href={`#letter-${letter === "#" ? "num" : letter}`}
-                className="flex h-8 w-8 items-center justify-center rounded-md text-[13px] font-medium text-ink transition-colors hover:bg-secondary"
-              >
-                {letter}
-              </Link>
-            ) : (
-              <span
-                key={letter}
-                aria-hidden
-                className="flex h-8 w-8 items-center justify-center text-[13px] text-faint/50"
-              >
-                {letter}
-              </span>
-            );
-          })}
-        </nav>
+        <AlphabetJumpBar
+          letters={LETTERS}
+          activeLetters={new Set(LETTERS.filter((l) => byLetter.get(l)?.length))}
+        />
 
         {brands.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-dashed border-border bg-warm-white px-6 py-12 text-center text-sm text-muted-foreground">
@@ -86,28 +67,7 @@ export default async function BrandsPage() {
           </div>
         ) : (
           LETTERS.filter((l) => byLetter.get(l)?.length).map((letter) => (
-            <section
-              key={letter}
-              id={`letter-${letter === "#" ? "num" : letter}`}
-              // Offset so the sticky nav doesn't cover the heading on jump.
-              className="scroll-mt-[132px] border-b border-border py-7 last:border-b-0"
-            >
-              <h2 className="m-0 font-serif text-[28px] font-medium leading-none text-link">
-                {letter}
-              </h2>
-              <ul className="mt-4 flex list-none flex-wrap gap-x-10 gap-y-2 p-0">
-                {byLetter.get(letter)!.map((brand) => (
-                  <li key={brand.slug}>
-                    <Link
-                      href={`/brands/${brand.slug}`}
-                      className="text-[15px] text-ink transition-colors hover:text-link"
-                    >
-                      {brand.name} <span className="text-muted-foreground">({brand.productCount})</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <BrandLetterSection key={letter} letter={letter} brands={byLetter.get(letter)!} />
           ))
         )}
       </main>

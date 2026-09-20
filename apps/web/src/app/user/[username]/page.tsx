@@ -4,6 +4,8 @@ import type { Database } from "@skinsavior/core/supabase";
 import { SiteNav } from "@/components/SiteNav";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 // Read public profiles through the curated `public_profiles` view, which
 // exposes ONLY these safe columns. The base `profiles` table is not readable
 // by anonymous visitors — see the public_profiles migration.

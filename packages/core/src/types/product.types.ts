@@ -69,3 +69,45 @@ export interface Product {
   reviewCount: number;
   reviews: Review[];
 }
+
+// ---------------------------------------------------------------------------
+// Catalog / browse view types.
+//
+// Data shapes returned by the product data layer (apps/web/src/lib/products-db.ts)
+// and consumed by visual components. Kept here so components depend on the
+// shared contract rather than on the database module.
+// ---------------------------------------------------------------------------
+
+/** One product's research-pilot ingredient, driving the product-page toggle. */
+export interface ResearchIngredient {
+  ingredientId: string;
+  /** Display label for the toggle pill. */
+  label: string;
+}
+
+/** A browse-filter chip: a normalized product category and its coverage. */
+export interface ProductCategory {
+  key: string;
+  label: string;
+  /** Raw `products.category` values that normalize to this key. */
+  rawValues: string[];
+  count: number;
+}
+
+/** A single catalog card row (raw column shape, snake_case from the DB). */
+export interface ProductCardRow {
+  slug: string;
+  name: string;
+  brand: string;
+  origin: string | null;
+  category: string | null;
+  price: string | null;
+  image_url: string | null;
+}
+
+/** One page of catalog cards plus paging metadata. */
+export interface ProductsPage {
+  rows: ProductCardRow[];
+  total: number;
+  hasMore: boolean;
+}

@@ -1,3 +1,4 @@
+import "server-only";
 // Server-only admin gate. The app has no role system — curation surfaces like
 // /review are gated by an ADMIN_EMAILS allowlist (comma-separated, matched
 // case-insensitively against the signed-in user's email). Unset env means
