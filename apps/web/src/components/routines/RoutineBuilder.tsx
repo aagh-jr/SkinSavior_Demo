@@ -33,7 +33,7 @@ import {
   type RoutineFrequency,
   type TimeOfDay,
 } from "@/lib/routine-categories";
-import type { BuilderStep, StepPatch } from "@/lib/routines-db";
+import type { BuilderStep, StepPatch } from "@skinsavior/core/types";
 import { ProductThumb } from "@/components/ProductThumb";
 import {
   addStepAction,

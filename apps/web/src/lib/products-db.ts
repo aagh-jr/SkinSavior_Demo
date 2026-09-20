@@ -9,7 +9,14 @@ import { fetchAllPages, sanitizeSearch } from "@skinsavior/core/query";
 // Once types are regenerated, drop the cast and these interfaces.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Product, ProductIngredient } from "@skinsavior/core/types";
+import type {
+  Product,
+  ProductIngredient,
+  ResearchIngredient,
+  ProductCategory,
+  ProductCardRow,
+  ProductsPage,
+} from "@skinsavior/core/types";
 import type { ProductExtraction } from "@skinsavior/core/schemas";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { isSupabaseDisabled } from "@/lib/supabase/mock";
@@ -170,12 +177,6 @@ export async function getDbProduct(slug: string): Promise<Product | null> {
   };
 }
 
-export interface ResearchIngredient {
-  ingredientId: string;
-  /** Display label for the toggle pill. */
-  label: string;
-}
-
 /**
  * The product's ingredients that are in the research pilot allowlist, in
  * printed order, deduped. Drives the product-page research toggle; empty when
@@ -323,14 +324,6 @@ export async function listRecentDbProducts(limit = 24): Promise<Product[]> {
   return ((data ?? []) as ProductRow[]).map(rowToCard);
 }
 
-export interface ProductCategory {
-  key: string;
-  label: string;
-  /** Raw `products.category` values that normalize to this key. */
-  rawValues: string[];
-  count: number;
-}
-
 /**
  * Distinct product types for the browse filter chips, grouped by normalized
  * key (so "sunscreens" / "Sunscreen" become one "Sunscreens" chip). Sorted by
@@ -366,22 +359,6 @@ export async function listProductCategories(): Promise<ProductCategory[]> {
       count: g.count,
     }))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-}
-
-export interface ProductCardRow {
-  slug: string;
-  name: string;
-  brand: string;
-  origin: string | null;
-  category: string | null;
-  price: string | null;
-  image_url: string | null;
-}
-
-export interface ProductsPage {
-  rows: ProductCardRow[];
-  total: number;
-  hasMore: boolean;
 }
 
 /**

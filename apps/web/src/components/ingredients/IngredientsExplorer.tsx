@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { fetchIngredientsPage } from "@/app/ingredients/actions";
-import type { IngredientPage, IngredientRow } from "@/lib/ingredients-db";
+import type { IngredientPage, IngredientRow } from "@skinsavior/core/types";
 
 function titleCase(s: string): string {
   return s

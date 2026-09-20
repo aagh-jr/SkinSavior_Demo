@@ -8,7 +8,7 @@ import type {
   ProductCardRow,
   ProductCategory,
   ProductsPage,
-} from "@/lib/products-db";
+} from "@skinsavior/core/types";
 
 type View = "grid" | "list";
 

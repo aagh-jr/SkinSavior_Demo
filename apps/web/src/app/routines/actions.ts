@@ -23,9 +23,8 @@ import {
   setPrimaryRoutine,
   updateRoutine,
   updateStep,
-  type BuilderStep,
-  type StepPatch,
 } from "@/lib/routines-db";
+import type { BuilderStep, StepPatch } from "@skinsavior/core/types";
 
 export type ActionResult =
   | { ok: true; steps: BuilderStep[] }

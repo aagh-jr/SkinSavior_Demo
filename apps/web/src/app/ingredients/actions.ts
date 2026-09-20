@@ -1,9 +1,7 @@
 "use server";
 
-import {
-  listIngredients,
-  type IngredientPage,
-} from "@/lib/ingredients-db";
+import { listIngredients } from "@/lib/ingredients-db";
+import type { IngredientPage } from "@skinsavior/core/types";
 import { INGREDIENTS_PAGE_SIZE } from "@/lib/ingredient-filters";
 
 /**
