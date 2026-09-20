@@ -1,28 +1,44 @@
 {
-  "extends": "next/core-web-vitals",
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:storybook/recommended"
+  ],
   "overrides": [
     {
-      "files": ["src/components/**/*.{ts,tsx}"],
-      "excludedFiles": ["src/components/ui/**"],
+      "files": [
+        "src/components/**/*.{ts,tsx}"
+      ],
+      "excludedFiles": [
+        "src/components/ui/**"
+      ],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "group": ["@supabase/*"],
+                "group": [
+                  "@supabase/*"
+                ],
                 "message": "Visual components can't talk to Supabase directly. Put data access in a hook in src/hooks/ or a -db.ts module in src/lib/."
               },
               {
-                "group": ["@/lib/supabase/*"],
+                "group": [
+                  "@/lib/supabase/*"
+                ],
                 "message": "Visual components can't import the Supabase clients. Put data access in a hook in src/hooks/ or a -db.ts module in src/lib/."
               },
               {
-                "group": ["@/lib/*-db"],
+                "group": [
+                  "@/lib/*-db"
+                ],
                 "message": "Visual components can't import data files. Put data access in a hook in src/hooks/."
               },
               {
-                "group": ["@/lib/admin", "@/lib/ingest"],
+                "group": [
+                  "@/lib/admin",
+                  "@/lib/ingest"
+                ],
                 "message": "Visual components can't import server-only admin/ingest code. Put it behind a hook in src/hooks/ or a route in src/app/api/."
               }
             ]
