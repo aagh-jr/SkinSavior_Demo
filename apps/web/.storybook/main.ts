@@ -1,6 +1,6 @@
 import type { StorybookConfig } from '@storybook/nextjs-vite';
 
-import { dirname } from "path"
+import { dirname, resolve } from "path"
 
 import { fileURLToPath } from "url"
 
@@ -26,6 +26,45 @@ const config: StorybookConfig = {
   "framework": getAbsolutePath('@storybook/nextjs-vite'),
   "staticDirs": [
     "../public"
-  ]
+  ],
+  // Phase 2 safety net: even if a story forgot the env flag, these aliases make
+  // it structurally impossible to construct a real Supabase client. They are
+  // prepended so they win over the framework's general `@` -> ./src alias.
+  async viteFinal(config) {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const shim = resolve(here, "supabase-mock.ts");
+
+    config.resolve = config.resolve ?? {};
+    const existing = config.resolve.alias;
+    const asArray = Array.isArray(existing)
+      ? existing
+      : Object.entries(existing ?? {}).map(([find, replacement]) => ({
+          find,
+          replacement: replacement as string,
+        }));
+
+    config.resolve.alias = [
+      { find: /^@\/lib\/supabase\/(client|server|admin)$/, replacement: shim },
+      ...asArray,
+    ];
+
+    // Belt-and-suspenders: force the app's own Supabase kill switch on.
+    config.define = {
+      ...(config.define ?? {}),
+      "process.env.NEXT_PUBLIC_SUPABASE_DISABLED": JSON.stringify("true"),
+    };
+
+    // Pre-bundle the MSW deps so the vitest browser project (Phase 6) doesn't
+    // re-optimize them mid-run and reload the test worker.
+    config.optimizeDeps = config.optimizeDeps ?? {};
+    config.optimizeDeps.include = [
+      ...(config.optimizeDeps.include ?? []),
+      "msw",
+      "msw/browser",
+      "msw-storybook-addon/csf3",
+    ];
+
+    return config;
+  },
 };
 export default config;

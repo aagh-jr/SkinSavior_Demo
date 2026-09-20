@@ -2,9 +2,29 @@ import type { Preview } from "@storybook/nextjs-vite";
 import { Newsreader, Hanken_Grotesk, Space_Grotesk } from "next/font/google";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { makeQueryClient } from "@skinsavior/core/query";
+import { mswLoader } from "msw-storybook-addon/csf3";
+import { http, HttpResponse } from "msw";
 
 // Tailwind + theme tokens. Everything visual in the app hangs off these.
 import "../src/app/globals.css";
+
+// mswLoader() (CSF3) starts the MSW worker (public/mockServiceWorker.js) and
+// applies each story's parameters.msw.handlers. Asset/Storybook requests are
+// bypassed by the addon; /api is caught by the default handler below.
+
+// Default catch-all: any /api/* request a story forgot to mock fails loudly
+// with a 501 instead of silently reaching the real backend. Stories that need
+// data override parameters.msw.handlers with their own success/error handlers.
+const unhandledApi = http.all("*/api/*", ({ request }) =>
+  HttpResponse.json(
+    {
+      error:
+        "Unhandled /api request in Storybook. Add an MSW handler to this story's parameters.msw.handlers.",
+      url: request.url,
+    },
+    { status: 501 },
+  ),
+);
 
 // Match the three families layout.tsx loads, and expose the same CSS
 // variables (--font-newsreader / --font-hanken / --font-space-grotesk) that
@@ -45,6 +65,9 @@ const preview: Preview = {
       // 'off' - skip a11y checks entirely
       test: "todo",
     },
+    msw: {
+      handlers: [unhandledApi],
+    },
     // Render components as they run under the App Router (next/navigation,
     // next/link, next/image all resolve against a mocked app router).
     nextjs: {
@@ -70,6 +93,7 @@ const preview: Preview = {
   initialGlobals: {
     backgrounds: { value: "cream" },
   },
+  loaders: [mswLoader()],
   decorators: [
     (Story) => (
       <QueryClientProvider client={queryClient}>
