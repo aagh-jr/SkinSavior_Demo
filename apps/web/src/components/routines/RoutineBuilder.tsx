@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GripVertical } from "lucide-react";
@@ -34,6 +34,7 @@ import {
   type TimeOfDay,
 } from "@/lib/routine-categories";
 import type { BuilderStep, StepPatch } from "@skinsavior/core/types";
+import { useProductSearch } from "@/hooks/useProductSearch";
 import { ProductThumb } from "@/components/ProductThumb";
 import {
   addStepAction,
@@ -578,36 +579,8 @@ function ProductPicker({
   onClose: () => void;
 }) {
   const [q, setQ] = useState("");
-  const [hits, setHits] = useState<SearchHit[]>([]);
-  const [searching, setSearching] = useState(false);
+  const { hits, searching } = useProductSearch(q);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Debounced catalog search — same endpoint the SiteNav typeahead uses.
-  useEffect(() => {
-    const needle = q.trim();
-    if (!needle) {
-      setHits([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    const controller = new AbortController();
-    const t = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/products/search?q=${encodeURIComponent(needle)}`, {
-          signal: controller.signal,
-        });
-        if (res.ok) setHits((await res.json()).results ?? []);
-        setSearching(false);
-      } catch {
-        // aborted or offline — keep whatever we had
-      }
-    }, 200);
-    return () => {
-      clearTimeout(t);
-      controller.abort();
-    };
-  }, [q]);
 
   return (
     <div className="mt-4 rounded-[16px] border border-border bg-white p-4">
