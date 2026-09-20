@@ -1,3 +1,4 @@
+import "server-only";
 // Server-only access to graded Evidence Explainer claims (Pass 2 read layer).
 //
 // Reads the deterministic grades written by the grading service (studies /

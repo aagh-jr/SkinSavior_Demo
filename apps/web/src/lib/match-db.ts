@@ -1,3 +1,4 @@
+import "server-only";
 import { fetchAllPages } from "@skinsavior/core/query";
 // Bridges the pure match scorer (@skinsavior/core/scoring) to Supabase.
 //

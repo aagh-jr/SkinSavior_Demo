@@ -1,3 +1,4 @@
+import "server-only";
 // Server-only access to the signed-in user's personal routine.
 //
 // Everything runs through the cookie-aware user client, so the RLS owner

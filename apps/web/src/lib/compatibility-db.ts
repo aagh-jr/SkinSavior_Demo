@@ -1,3 +1,4 @@
+import "server-only";
 import { fetchAllPages } from "@skinsavior/core/query";
 // Bridges the pure routine-compatibility engine to Supabase.
 //

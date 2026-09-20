@@ -1,3 +1,4 @@
+import "server-only";
 import { fetchAllPages, sanitizeSearch } from "@skinsavior/core/query";
 // Server-only access to the products catalog in Supabase.
 //

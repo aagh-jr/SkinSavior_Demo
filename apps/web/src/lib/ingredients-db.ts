@@ -1,3 +1,4 @@
+import "server-only";
 import { sanitizeSearch } from "@skinsavior/core/query";
 // Server-only access to the ingredients catalog in Supabase.
 //

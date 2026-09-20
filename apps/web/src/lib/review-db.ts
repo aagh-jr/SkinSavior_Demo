@@ -1,3 +1,4 @@
+import "server-only";
 // Server-only data layer for the study-review queue (/review) — the web
 // replacement for scripts/review-studies.mjs. The extractor holds any study
 // that would move a claim's grade with verified_by=null; a person approves or

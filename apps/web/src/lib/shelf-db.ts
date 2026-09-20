@@ -1,3 +1,4 @@
+import "server-only";
 // "My shelf" — the signed-in user's products and routines.
 //
 // Two distinct senses of "my products", kept separate because they mean

@@ -1,3 +1,4 @@
+import "server-only";
 import { fetchAllPages } from "@skinsavior/core/query";
 import type { BrandSummary } from "@skinsavior/core/types";
 // Brand pages, derived entirely from the products table (no brands table yet).
