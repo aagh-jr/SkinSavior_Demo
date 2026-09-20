@@ -73,15 +73,48 @@ flowchart LR
 ```
 skinsavior/
 ├─ apps/
-│  ├─ web/        # Next.js 15 app (App Router)
-│  └─ mobile/     # Expo / React Native app
+│  ├─ web/                      # Next.js 15 app (App Router)
+│  │  └─ src/
+│  │     ├─ app/                # pages (page.tsx) + backend routes (api/**/route.ts)
+│  │     ├─ components/         # visual components, by feature (never fetch data)
+│  │     │  └─ ui/              # shadcn primitives (left as-is)
+│  │     ├─ hooks/              # use* data hooks (own every fetch/subscription)
+│  │     ├─ lib/                # *-db.ts data modules (server-only) + helpers
+│  │     └─ fixtures/           # fake data for Storybook (planned)
+│  └─ mobile/                   # Expo / React Native app
 ├─ packages/
-│  ├─ core/       # Shared Supabase client, types, Zod schemas, query client
+│  ├─ core/       # Shared Supabase client, engines, Zod schemas; types in src/types/*.types.ts
 │  └─ ui/         # Shared design tokens
 ├─ scripts/       # Data pipeline: catalog seeding, research + evidence grading
 ├─ supabase/      # SQL migrations, config
+├─ docs/          # Specs, policies, ideas, prompts, assets (ideas/ prompts/ specs/ assets/)
 └─ turbo.json     # Turborepo task pipeline
 ```
+
+### File-type conventions
+
+Every file has one job, and its name and folder say what that job is. The core
+split is **visual files** (only render) versus **data files** (fetch/read) — so
+AI design tools can safely edit visuals without touching data, secrets or
+Supabase. The boundary is enforced by an ESLint rule, not by memory.
+
+| Type | Job | Named | Lives in |
+|---|---|---|---|
+| Visual component | Renders from props; never fetches | `ProductThumb.tsx` (pure half of a split: `SiteNavView.tsx`) | `apps/web/src/components/<feature>/` |
+| Data hook | Owns a fetch/subscription for the client | `useAiTip.ts` | `apps/web/src/hooks/` |
+| Database module | Reads/writes Supabase; `server-only` | `products-db.ts` | `apps/web/src/lib/` |
+| Page | Loads data, assembles components (thin) | `page.tsx` | `apps/web/src/app/` |
+| Backend route | Server work with secret keys | `route.ts` | `apps/web/src/app/api/` |
+| Engine | Pure scoring/grading/matching | plain name | `packages/core/src/` |
+| Types & schemas | Data shapes only | `*.types.ts` / `schemas/` | `packages/core/src/types/` |
+| Stories & fixtures | Components with fake data | `*.stories.tsx` / `*.fixtures.ts` | next to component / `src/fixtures/` |
+
+Three rules, lint-enforced in `apps/web/.eslintrc.json`: **visual components
+never fetch**; **new data access goes in a `use*` hook or a `-db.ts` module**;
+**every new visual component gets a `*.stories.tsx`**. When a component both
+fetches and renders, split it: the fetch moves to a `use*` hook, the render to
+a `<Name>View`, and the original name stays as a thin wrapper. See
+[`AGENTS.md`](AGENTS.md) for the full table and rationale.
 
 ### Seeding the product catalog
 

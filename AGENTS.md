@@ -69,6 +69,55 @@ review, store the result. Runtime stays a table lookup.
 
 ---
 
+## File types and where they go
+
+Every file has one job, and its name and folder say what that job is. The main
+split is **visual files** (only show information) versus **data files** (get
+information) — so AI design tools can edit visuals without touching data,
+secrets or Supabase, and the boundary is enforced by lint, not memory.
+
+| # | Type | Its one job | How it's labeled | Where it lives |
+|---|---|---|---|---|
+| 1 | Visual component | Receives props and renders. No fetching, no Supabase, no `-db` imports (type imports from `@skinsavior/core/types` are fine) | PascalCase, no suffix: `ProductThumb.tsx`. The pure half of a split component takes the `View` suffix: `SiteNavView.tsx` | `apps/web/src/components/<feature>/` |
+| 2 | Data hook | Fetches/subscribes for the client and returns it (owns loading/error) | `use*`: `useAiTip.ts` | `apps/web/src/hooks/` |
+| 3 | Database file | Reads/writes Supabase. No UI. `import "server-only"` at top | `*-db.ts` | `apps/web/src/lib/` |
+| 4 | Page | Loads data for one screen and assembles components. Thin | `page.tsx` | `apps/web/src/app/` |
+| 5 | Backend route | Server-only work needing secret keys (Gemini, Claude, admin Supabase) | `route.ts` | `apps/web/src/app/api/` |
+| 6 | Engine | Pure logic: scoring, grading, matching | plain name | `packages/core/src/` |
+| 7 | Types & schemas | Data shapes only | `<domain>.types.ts`; schemas stay in `packages/core/src/schemas/` | `packages/core/src/types/` |
+| 8 | Design tokens | Colors, spacing, type | `tokens.ts` | `packages/ui/src/` |
+| 9 | UI kit | shadcn primitives (leave as is) | — | `apps/web/src/components/ui/` |
+| 10 | Tests | Check behavior | `*.test.ts` next to the file | next to the file |
+| 11 | Stories & fixtures | Show visual components with fake data | `*.stories.tsx` next to the component; `<domain>.fixtures.ts` | stories next to components; fixtures in `apps/web/src/fixtures/` |
+| 12 | Scripts | Offline data pipeline | grouped by job | `scripts/` (`import/`, `research/`, `seed/`, `maintenance/`) |
+| 13 | Docs | Specs, policies, ideas, prompts | `.md` | `docs/` (`ideas/`, `prompts/`, `specs/`, `assets/`) |
+| 14 | Analytics (future) | The only place that talks to PostHog | `analytics.ts` | `apps/web/src/lib/` (not built yet) |
+
+**Split pattern (View suffix):** when a component both fetches and renders,
+split it. The fetch/subscription moves to a `use*` hook; the pure render moves
+to `<Name>View.tsx`; the original name stays as a thin wrapper that calls the
+hook and renders the view, so pages don't change. Examples:
+`SiteNav` = `useSession()` + `<SiteNavView />`; `AiTipCard` = `useAiTip()` +
+`<AiTipCardView />`.
+
+**Three rules, enforced by `apps/web/.eslintrc.json`:**
+1. **Visual components never fetch.** No `fetch`, Supabase, `/api/` or
+   `process.env` under `components/` (except `components/ui/`). A lint rule
+   blocks `@supabase/*`, `@/lib/supabase/*`, `@/lib/*-db`, `@/lib/admin` and
+   `@/lib/ingest` there.
+2. **New data access goes in a `use*` hook (client) or a `-db.ts` module
+   (server).** Never inline in a component.
+3. **Every new visual component gets a `*.stories.tsx`** next to it, covering
+   the states it has (default, loading, empty, error, long text).
+
+**Design without a database:** `apps/web/src/lib/supabase/mock.ts` is the
+Supabase kill switch (`NEXT_PUBLIC_SUPABASE_DISABLED=true`, wired to the
+`dev:design` script) so AI design tools can run the app without secrets.
+Storybook is the intended home for design work on individual components — see
+the file-structure PR for status.
+
+---
+
 ## Non-obvious decisions (don't undo these without reason)
 
 **Ingredient matching is by curated name, NOT `ingredients.functions`.** Only
