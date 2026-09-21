@@ -112,9 +112,46 @@ hook and renders the view, so pages don't change. Examples:
 
 **Design without a database:** `apps/web/src/lib/supabase/mock.ts` is the
 Supabase kill switch (`NEXT_PUBLIC_SUPABASE_DISABLED=true`, wired to the
-`dev:design` script) so AI design tools can run the app without secrets.
-Storybook is the intended home for design work on individual components — see
-the file-structure PR for status.
+`dev:design` script) so AI design tools can run the whole app without secrets.
+It's kept as a fallback; **Storybook (below) is now the preferred home for
+AI-assisted design work** on individual components.
+
+---
+
+## Storybook
+
+The design workshop for `apps/web`. Every visual component appears in a gallery
+with realistic fake data, in all its states, with **no Supabase, no `/api/`, no
+network** — so you (or an AI design tool) can view and redesign one piece at a
+time without touching the real backend.
+
+**Run it:** `bun run storybook` from `apps/web` (build: `bun run build-storybook`).
+Storybook is additive and never ships to production — `next build` and the
+Vercel deploy are unaffected.
+
+**Rules (match the file-types rules above):**
+
+1. **Every new visual component gets a `*.stories.tsx`** next to it (same folder,
+   grouped by feature: `Products/…`, `Research/…`, `Routines/…`). Cover the
+   states that apply: default, loading, empty, error, long text, and mobile
+   (375px via `globals: { viewport: { value: "iphoneSE" } }`).
+2. **New fake data goes in `apps/web/src/fixtures/`** as `<domain>.fixtures.ts`,
+   typed against `@skinsavior/core/types` so it breaks loudly if a shape changes.
+   Reuse the existing fixtures rather than inlining data in a story.
+3. **Stories never call Supabase or `/api/`.** Pass fixtures as props for pure
+   components; for a component that fetches, add per-story
+   `parameters.msw.handlers` (MSW). An unhandled `/api/*` request fails with a
+   loud 501 by design — that means a story forgot a handler.
+
+**How the sandbox is enforced** (`.storybook/`): `preview.tsx` loads
+`globals.css` + the three app fonts and wraps stories in the shared
+`QueryClientProvider`; `main.ts` aliases `@/lib/supabase/{client,server,admin}`
+to a no-op mock and forces `NEXT_PUBLIC_SUPABASE_DISABLED=true`; DB-backed
+server actions (`@/app/{search,ingredients,routines,review}/actions`) are aliased
+to `action-stubs.ts` so their server-only `-db` stack never enters the browser
+bundle (a server action can't run in Storybook anyway). The `storybook` vitest
+project smoke-tests that every story renders (`bunx vitest run --project storybook`);
+`unit` is the plain vitest project for `*.test.ts`.
 
 ---
 
