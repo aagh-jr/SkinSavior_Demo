@@ -12,6 +12,8 @@ import type {
   ProductIngredient,
   ProductCardRow,
   ProductsPage,
+  ProductCategory,
+  ShelfProduct,
 } from "@skinsavior/core/types";
 
 /** A neutral inline placeholder so a card can show "a photo" with no network. */
@@ -356,3 +358,54 @@ export const productsPage: ProductsPage = {
 };
 
 export const emptyProductsPage: ProductsPage = { rows: [], total: 0, hasMore: false };
+
+/** Browse-filter category chips for the products explorer. */
+export const productCategories: ProductCategory[] = [
+  { key: "cleanser", label: "Cleansers", rawValues: ["Cleanser"], count: 1 },
+  { key: "serum", label: "Serums", rawValues: ["Serum"], count: 4 },
+  { key: "moisturizer", label: "Moisturizers", rawValues: ["Moisturizer"], count: 2 },
+  { key: "sunscreen", label: "Sunscreens", rawValues: ["Sunscreen"], count: 1 },
+  { key: "toner", label: "Toners", rawValues: ["Toner"], count: 1 },
+];
+
+/** "My shelf" rows: some in-use (in routines), some saved-only. */
+export const shelfProducts: ShelfProduct[] = [
+  {
+    productId: "prod-niacinamide",
+    slug: niacinamideSerum.slug,
+    name: niacinamideSerum.name,
+    brand: niacinamideSerum.brand,
+    imageUrl: niacinamideSerum.imageUrl ?? null,
+    category: niacinamideSerum.category,
+    usedIn: ["Morning routine"],
+    savedAt: "2026-05-03T12:00:00.000Z",
+    note: "Cut my midday shine noticeably.",
+  },
+  {
+    productId: "prod-sunscreen",
+    slug: mineralSunscreen.slug,
+    name: mineralSunscreen.name,
+    brand: mineralSunscreen.brand,
+    imageUrl: mineralSunscreen.imageUrl ?? null,
+    category: mineralSunscreen.category,
+    usedIn: ["Morning routine"],
+    savedAt: null,
+    note: null,
+  },
+  {
+    productId: "prod-cleanser",
+    slug: gentleCleanser.slug,
+    name: gentleCleanser.name,
+    brand: gentleCleanser.brand,
+    imageUrl: null,
+    category: gentleCleanser.category,
+    usedIn: [],
+    savedAt: "2026-06-01T09:00:00.000Z",
+    note: null,
+  },
+];
+
+export const savedOnlyShelfProducts: ShelfProduct[] = shelfProducts.filter(
+  (p) => p.usedIn.length === 0,
+);
+

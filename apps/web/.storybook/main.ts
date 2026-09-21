@@ -33,6 +33,7 @@ const config: StorybookConfig = {
   async viteFinal(config) {
     const here = dirname(fileURLToPath(import.meta.url));
     const shim = resolve(here, "supabase-mock.ts");
+    const actionStub = resolve(here, "action-stubs.ts");
 
     config.resolve = config.resolve ?? {};
     const existing = config.resolve.alias;
@@ -45,6 +46,9 @@ const config: StorybookConfig = {
 
     config.resolve.alias = [
       { find: /^@\/lib\/supabase\/(client|server|admin)$/, replacement: shim },
+      // Server actions that reach the DB stack — stubbed so components that
+      // import them can render in the browser (they can't run in Storybook).
+      { find: /^@\/app\/(search|ingredients|routines|review)\/actions$/, replacement: actionStub },
       ...asArray,
     ];
 

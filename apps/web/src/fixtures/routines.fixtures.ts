@@ -6,6 +6,7 @@
  * interactions.ts (`retinoid_plus_bha`, major).
  */
 import type { BuilderStep, RoutineSummary } from "@skinsavior/core/types";
+import type { CompatibilityReport } from "@skinsavior/core/scoring";
 import {
   niacinamideSerum,
   vitaminCSerum,
@@ -92,3 +93,59 @@ export const routineSummaries: RoutineSummary[] = [
 ];
 
 export const emptyRoutineSummaries: RoutineSummary[] = [];
+
+// ---------------------------------------------------------------------------
+// Compatibility reports (the RoutineCompatibility component's input), matching
+// the real rules in packages/core/src/scoring/interactions.ts.
+// ---------------------------------------------------------------------------
+
+/** The niacinamide + vitamin C reassurance — a debunked "clash". */
+const niacinamideVitCReassurance = {
+  code: "niacinamide_plus_vitamin_c_myth",
+  note: "Niacinamide and vitamin C are fine together. The idea that they cancel out traces to mid-century experiments on raw ingredients under heat, not finished products.",
+};
+
+/** No clashes — but still corrects a commonly-feared pair. */
+export const noClashReport: CompatibilityReport = {
+  verdict: "no_clashes",
+  findings: [],
+  reassurances: [niacinamideVitCReassurance],
+};
+
+/** A major clash: retinoid + 2% BHA on the same PM slot. */
+export const majorClashReport: CompatibilityReport = {
+  verdict: "major_clashes",
+  findings: [
+    {
+      code: "retinoid_plus_bha",
+      severity: "major",
+      title: "Retinoid + BHA on the same night",
+      explanation:
+        "Using a retinoid and a salicylic-acid (BHA) exfoliant together can over-exfoliate and irritate the barrier for many people.",
+      recommendation: "Alternate nights, or move the BHA to your morning routine.",
+      evidenceTier: "B",
+      steps: ["Retinal 0.2% Emulsion", "Skin Perfecting 2% BHA Liquid Exfoliant"],
+      ingredients: ["Retinal", "Salicylic Acid"],
+    },
+  ],
+  reassurances: [niacinamideVitCReassurance],
+};
+
+/** A minor clash: vitamin C layered with an AHA. */
+export const minorClashReport: CompatibilityReport = {
+  verdict: "minor_clashes",
+  findings: [
+    {
+      code: "vitamin_c_plus_aha",
+      severity: "minor",
+      title: "Vitamin C with an AHA",
+      explanation:
+        "Both are low-pH actives; layering them can sting or reduce vitamin C stability for some people, though many tolerate it.",
+      recommendation: "If you notice stinging, use them at different times of day.",
+      evidenceTier: "C",
+      steps: ["C E Ferulic", "Glycolic Acid Toner"],
+      ingredients: ["Ascorbic Acid", "Glycolic Acid"],
+    },
+  ],
+  reassurances: [],
+};
