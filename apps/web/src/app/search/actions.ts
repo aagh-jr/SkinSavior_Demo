@@ -1,10 +1,7 @@
 "use server";
 
-import {
-  listDbProductsPage,
-  PRODUCTS_PAGE_SIZE,
-  type ProductsPage,
-} from "@/lib/products-db";
+import { listDbProductsPage, PRODUCTS_PAGE_SIZE } from "@/lib/products-db";
+import type { ProductsPage } from "@skinsavior/core/types";
 
 /**
  * Server action the products explorer calls when the user changes the type

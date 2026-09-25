@@ -9,7 +9,10 @@ import { supabase } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  // "checking" until the client has finished reading the recovery link, so
+  // the invalid-link warning doesn't flash on a perfectly good link.
+  const [link, setLink] = useState<"checking" | "ready" | "invalid">("checking");
+  const ready = link === "ready";
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,10 +22,11 @@ export default function ResetPasswordPage() {
   // the client detects it and fires PASSWORD_RECOVERY once the session is set.
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" && session) setReady(true);
+      if (event === "PASSWORD_RECOVERY" && session) setLink("ready");
     });
+    // getSession waits for the client to finish exchanging the link's code.
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
+      setLink((prev) => (prev === "ready" || data.session ? "ready" : "invalid"));
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -59,7 +63,10 @@ export default function ResetPasswordPage() {
           Choose a strong password you haven&apos;t used before.
         </p>
 
-        {!ready ? (
+        {link === "checking" ? (
+          <p className="mb-3.5 text-[13px] text-muted-foreground">Checking your link…</p>
+        ) : null}
+        {link === "invalid" ? (
           <div className="mb-3.5 rounded-[10px] border border-destructive/40 bg-[#fdf1ee] px-3.5 py-2.5 text-[13px] text-destructive">
             This reset link is invalid or has expired.{" "}
             <Link href="/forgot-password" className="font-semibold underline">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ResearchIngredient } from "@/lib/products-db";
+import type { ResearchIngredient } from "@skinsavior/core/types";
 import { IngredientResearch } from "./IngredientResearch";
 
 /**

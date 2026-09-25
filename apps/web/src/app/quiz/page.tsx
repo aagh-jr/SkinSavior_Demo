@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useRef, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -12,20 +12,15 @@ import {
   stashPendingAnswers,
   type QuizAnswers,
 } from "@/lib/quiz-answers";
+import { QuestionView } from "@/components/quiz/QuestionView";
+import { DoneView } from "@/components/quiz/DoneView";
+import { GoogleMark } from "@/components/quiz/GoogleMark";
+import { AppleMark } from "@/components/quiz/AppleMark";
+import { UsernameField } from "@/components/account/UsernameField";
+import { isUsernameTaken, normalizeUsername, validateUsername } from "@/lib/username";
+import type { Step } from "@/components/quiz/survey.types";
 
 // ---------- survey definition ----------
-type Choice = { value: string; label: string; hint?: string };
-type Step =
-  | { key: keyof Answers; kind: "single"; title: string; sub?: string; choices: Choice[] }
-  | {
-      key: keyof Answers;
-      kind: "multi";
-      title: string;
-      sub?: string;
-      choices: Choice[];
-      max?: number;
-    };
-
 type Answers = QuizAnswers;
 
 // Survey design note: the first four questions score the four independent
@@ -321,121 +316,6 @@ function QuizInner() {
 }
 
 // ---------- question view ----------
-function QuestionView({
-  step,
-  value,
-  onChange,
-  onNext,
-  onBack,
-  canBack,
-  canContinue,
-  isLast,
-  onSkip,
-}: {
-  step: Step;
-  value: string | string[] | undefined;
-  onChange: (v: string | string[]) => void;
-  onNext: () => void;
-  onBack: () => void;
-  canBack: boolean;
-  canContinue: boolean;
-  isLast: boolean;
-  onSkip?: () => void;
-}) {
-  const multi = step.kind === "multi";
-  const selected = useMemo(
-    () => (multi ? (Array.isArray(value) ? value : []) : value),
-    [value, multi],
-  );
-
-  function toggle(v: string) {
-    if (!multi) {
-      onChange(v);
-      return;
-    }
-    const cur = Array.isArray(selected) ? selected : [];
-    const has = cur.includes(v);
-    const max = (step as Extract<Step, { kind: "multi" }>).max ?? 99;
-    if (has) onChange(cur.filter((x) => x !== v));
-    else if (cur.length < max) onChange([...cur, v]);
-  }
-
-  return (
-    <div>
-      <h1 className="font-serif text-3xl font-medium leading-[1.15] tracking-tight text-ink md:text-[40px]">
-        {step.title}
-      </h1>
-      {step.sub && (
-        <p className="mt-3 text-[15px] text-muted-foreground">{step.sub}</p>
-      )}
-
-      <div className="mt-9 grid gap-3 md:grid-cols-2">
-        {step.choices.map((c) => {
-          const active = multi
-            ? Array.isArray(selected) && selected.includes(c.value)
-            : selected === c.value;
-          return (
-            <button
-              aria-pressed={active}
-              key={c.value}
-              type="button"
-              onClick={() => toggle(c.value)}
-              className={[
-                "flex items-center justify-between gap-3 rounded-xl border px-5 py-4 text-left transition-all",
-                active
-                  ? "border-primary bg-primary/5 shadow-[0_4px_14px_-6px_rgba(154,74,47,0.35)]"
-                  : "border-border bg-warm-white hover:border-primary/40 hover:bg-secondary/40",
-              ].join(" ")}
-            >
-              <span className="text-[15px] font-medium text-ink">{c.label}</span>
-              <span
-                className={[
-                  "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                  active ? "border-primary bg-primary text-primary-foreground" : "border-border",
-                ].join(" ")}
-                aria-hidden
-              >
-                {active ? "✓" : ""}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-10 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          disabled={!canBack}
-          className="rounded-full px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-ink disabled:opacity-40"
-        >
-          ← Back
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={!canContinue}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {isLast ? "See my results" : "Continue"} <span>→</span>
-        </button>
-      </div>
-
-      {onSkip && (
-        <div className="mt-6 text-center">
-          <button
-            type="button"
-            onClick={onSkip}
-            className="text-[13px] text-muted-foreground underline-offset-4 transition-colors hover:text-ink hover:underline"
-          >
-            Skip the survey for now
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ---------- account step ----------
 function AccountStep({
   answers,
@@ -450,6 +330,8 @@ function AccountStep({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [loading, setLoading] = useState<null | "email" | "google" | "apple">(null);
   const [awaitingConfirmFor, setAwaitingConfirmFor] = useState<string | null>(null);
 
@@ -494,15 +376,29 @@ function AccountStep({
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
+    setUsernameError(null);
+    const handle = normalizeUsername(username);
+    if (mode === "signup") {
+      const handleProblem = validateUsername(handle);
+      if (handleProblem) {
+        setUsernameError(handleProblem);
+        return;
+      }
+    }
     setLoading("email");
     try {
       if (mode === "signup") {
+        if (await isUsernameTaken(handle)) {
+          setUsernameError("That username is taken.");
+          setLoading(null);
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { display_name: name.trim() || undefined },
+            data: { display_name: name.trim() || undefined, username: handle },
           },
         });
         if (error) throw error;
@@ -634,6 +530,18 @@ function AccountStep({
             />
           </div>
         )}
+        {mode === "signup" && (
+          <UsernameField
+            id="quiz-username"
+            value={username}
+            onChange={(v) => {
+              setUsername(v);
+              setUsernameError(null);
+            }}
+            error={usernameError}
+            disabled={!!loading}
+          />
+        )}
         <div>
           <label htmlFor="quiz-email" className="mb-1.5 block text-[13px] font-medium text-ink">Email</label>
           <input
@@ -701,52 +609,3 @@ function AccountStep({
 }
 
 // ---------- done ----------
-function DoneView({ isRetake }: { isRetake: boolean }) {
-  return (
-    <div className="text-center">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sage-bg text-2xl text-sage">
-        ✓
-      </div>
-      <h1 className="mt-6 font-serif text-3xl font-medium tracking-tight text-ink md:text-4xl">
-        Your skin profile is saved.
-      </h1>
-      <p className="mt-3 text-[15px] text-muted-foreground">
-        {isRetake
-          ? "Your match scores are updated across the site. Back to settings…"
-          : "Next: your routine. We've started it with the steps you told us you already use — add the products you own so we can check them for clashes."}
-      </p>
-    </div>
-  );
-}
-
-// ---------- brand marks ----------
-function GoogleMark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
-      <path
-        fill="#4285F4"
-        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"
-      />
-      <path
-        fill="#34A853"
-        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.9v2.32A9 9 0 0 0 9 18z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.96H.9A9 9 0 0 0 0 9c0 1.45.35 2.83.9 4.04l3.07-2.32z"
-      />
-      <path
-        fill="#EA4335"
-        d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.47.88 11.43 0 9 0A9 9 0 0 0 .9 4.96l3.07 2.32C4.68 5.16 6.66 3.58 9 3.58z"
-      />
-    </svg>
-  );
-}
-
-function AppleMark() {
-  return (
-    <svg width="16" height="18" viewBox="0 0 16 18" fill="currentColor" aria-hidden>
-      <path d="M13.04 9.55c-.02-2.16 1.76-3.2 1.84-3.25-1-1.47-2.56-1.67-3.12-1.69-1.33-.13-2.6.78-3.27.78-.69 0-1.71-.76-2.82-.74-1.45.02-2.8.84-3.55 2.14-1.52 2.64-.39 6.54 1.09 8.68.72 1.05 1.58 2.23 2.7 2.18 1.09-.04 1.5-.7 2.81-.7 1.31 0 1.68.7 2.82.68 1.17-.02 1.91-1.06 2.62-2.12.83-1.21 1.17-2.39 1.19-2.45-.03-.01-2.27-.87-2.29-3.46zM10.95 3.18c.6-.73 1.01-1.74.9-2.74-.87.04-1.91.58-2.53 1.3-.55.64-1.04 1.66-.91 2.65.96.07 1.95-.49 2.54-1.21z" />
-    </svg>
-  );
-}

@@ -1,5 +1,5 @@
 import { CERTAINTY_META, type Certainty } from "@skinsavior/core/research";
-import type { EvidenceClaim } from "@/lib/claims-db";
+import type { EvidenceClaim } from "@skinsavior/core/types";
 import { EvidenceClaimCard } from "./EvidenceClaimCard";
 
 /**

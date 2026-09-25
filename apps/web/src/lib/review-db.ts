@@ -1,3 +1,4 @@
+import "server-only";
 // Server-only data layer for the study-review queue (/review) — the web
 // replacement for scripts/review-studies.mjs. The extractor holds any study
 // that would move a claim's grade with verified_by=null; a person approves or
@@ -8,6 +9,7 @@
 // gradeAndWriteClaim, the only writer of grade columns.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ClaimImpact, PendingStudy } from "@skinsavior/core/types";
 import {
   CERTAINTY_META,
   CLAIM_BADGES,
@@ -42,34 +44,6 @@ function toInput(s: StudyInputRow): StudyInput {
     outcome_measured: s.outcome_measured ?? null,
     effect_size: s.effect_size ?? null,
   };
-}
-
-export interface ClaimImpact {
-  claimId: string;
-  badgeSlug: string;
-  badgeLabel: string;
-  /** Grade from accepted studies today (null = ungraded). */
-  currentLabel: string;
-  /** Grade if this study is approved. */
-  wouldBecomeLabel: string;
-  flips: boolean;
-}
-
-export interface PendingStudy {
-  id: string;
-  paperRef: string;
-  title: string;
-  ingredientName: string;
-  tierLabel: string;
-  sampleSize: number | null;
-  effectDirection: string | null;
-  concentration: string | null;
-  outcomeMeasured: string | null;
-  fundingSource: string | null;
-  conflictFlag: boolean;
-  extractionConfidence: string | null;
-  ingestedAt: string;
-  impacts: ClaimImpact[];
 }
 
 interface PendingRow {

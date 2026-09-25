@@ -1,4 +1,6 @@
+import "server-only";
 import { fetchAllPages } from "@skinsavior/core/query";
+import type { BrandSummary } from "@skinsavior/core/types";
 // Brand pages, derived entirely from the products table (no brands table yet).
 //
 // A "brand" is a distinct value of products.brand. We group products by a
@@ -18,15 +20,6 @@ export interface BrandProduct {
   origin: string | null;
   imageUrl: string | null;
   createdAt: string;
-}
-
-export interface BrandSummary {
-  slug: string;
-  name: string;
-  origin: string | null;
-  productCount: number;
-  categories: string[]; // normalized display labels, deduped
-  sampleImage: string | null;
 }
 
 export type BrandSort = "newest" | "az";

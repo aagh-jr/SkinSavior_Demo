@@ -1,3 +1,4 @@
+import "server-only";
 import { fetchAllPages, sanitizeSearch } from "@skinsavior/core/query";
 // Server-only access to the products catalog in Supabase.
 //
@@ -9,9 +10,17 @@ import { fetchAllPages, sanitizeSearch } from "@skinsavior/core/query";
 // Once types are regenerated, drop the cast and these interfaces.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Product, ProductIngredient } from "@skinsavior/core/types";
+import type {
+  Product,
+  ProductIngredient,
+  ResearchIngredient,
+  ProductCategory,
+  ProductCardRow,
+  ProductsPage,
+} from "@skinsavior/core/types";
 import type { ProductExtraction } from "@skinsavior/core/schemas";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isSupabaseDisabled } from "@/lib/supabase/mock";
 import { isResearched } from "@skinsavior/core/research";
 import { slugify } from "@/lib/ingest";
 import { normalizeCategory, canonicalBrand } from "@/lib/brands-db";
@@ -20,6 +29,65 @@ import { normalizeCategory, canonicalBrand } from "@/lib/brands-db";
 export const PRODUCTS_PAGE_SIZE = 50;
 
 const db = supabaseAdmin as unknown as SupabaseClient;
+
+/**
+ * Local design fixture. It deliberately uses the same Product contract as
+ * Supabase-backed products, so the real profile page remains the thing we
+ * style. Enable it with NEXT_PUBLIC_SUPABASE_DISABLED=true.
+ */
+const DESIGN_PRODUCTS: Record<string, Product> = {
+  "demo-barrier-serum": {
+    slug: "demo-barrier-serum",
+    name: "Barrier Support Serum",
+    brand: "skinsavior studio",
+    origin: "United States",
+    category: "Serums",
+    imageUrl: null,
+    breadcrumb: "Products / Serums",
+    tagline: "A calm, everyday barrier-support serum",
+    description:
+      "A lightweight serum designed to support the skin barrier with humectants, soothing ingredients, and a soft finish.",
+    price: "$28.00",
+    retailerCount: 2,
+    match: 91,
+    matchFor: "your barrier-support routine",
+    badges: ["Fragrance-free", "Key active"],
+    forYou: { good: ["Supports a sensitive-skin routine"], warn: [] },
+    rank: "Best match",
+    evidenceGrade: "B",
+    evidenceText: "A design fixture with representative product evidence content.",
+    ingredients: [
+      { name: "Water", tags: [{ label: "Solvent", tone: "neutral" }] },
+      { name: "Glycerin", pct: "4%", tags: [{ label: "Humectant", tone: "good" }] },
+      { name: "Niacinamide", pct: "5%", tags: [{ label: "★ Key active", tone: "good" }] },
+      { name: "Panthenol", tags: [{ label: "Soothing", tone: "good" }] },
+      { name: "Ceramide NP", tags: [{ label: "Barrier support", tone: "good" }] },
+      { name: "Sodium Hyaluronate", tags: [{ label: "Humectant", tone: "neutral" }] },
+      { name: "Ethylhexylglycerin", tags: [{ label: "Preservative support", tone: "neutral" }] },
+    ],
+    safety: [
+      { label: "Fragrance", value: "None listed", tone: "good" },
+      { label: "Essential oils", value: "None listed", tone: "good" },
+      { label: "Alcohol", value: "None listed", tone: "good" },
+      { label: "Patch test", value: "Recommended", tone: "warn" },
+    ],
+    retailers: [
+      { name: "skinsavior studio", price: "$28.00", highlight: true },
+      { name: "Example retailer", price: "$30.00" },
+    ],
+    rating: 4.7,
+    reviewCount: 128,
+    reviews: [
+      {
+        author: "Maya R.",
+        profile: "Sensitive · Dry",
+        stars: "★★★★★",
+        text: "Comfortable under moisturizer and easy to fit into my routine.",
+        color: "#d7b7a4",
+      },
+    ],
+  },
+};
 
 export interface ProductRow {
   id: string;
@@ -45,6 +113,8 @@ interface ProductIngredientJoinRow {
 
 /** Load an ingested product by slug and shape it into the shared Product type. */
 export async function getDbProduct(slug: string): Promise<Product | null> {
+  if (isSupabaseDisabled()) return DESIGN_PRODUCTS[slug] ?? null;
+
   const { data: row, error } = await db
     .from("products")
     .select("*")
@@ -106,12 +176,6 @@ export async function getDbProduct(slug: string): Promise<Product | null> {
     reviewCount: 0,
     reviews: [],
   };
-}
-
-export interface ResearchIngredient {
-  ingredientId: string;
-  /** Display label for the toggle pill. */
-  label: string;
 }
 
 /**
@@ -261,14 +325,6 @@ export async function listRecentDbProducts(limit = 24): Promise<Product[]> {
   return ((data ?? []) as ProductRow[]).map(rowToCard);
 }
 
-export interface ProductCategory {
-  key: string;
-  label: string;
-  /** Raw `products.category` values that normalize to this key. */
-  rawValues: string[];
-  count: number;
-}
-
 /**
  * Distinct product types for the browse filter chips, grouped by normalized
  * key (so "sunscreens" / "Sunscreen" become one "Sunscreens" chip). Sorted by
@@ -304,22 +360,6 @@ export async function listProductCategories(): Promise<ProductCategory[]> {
       count: g.count,
     }))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-}
-
-export interface ProductCardRow {
-  slug: string;
-  name: string;
-  brand: string;
-  origin: string | null;
-  category: string | null;
-  price: string | null;
-  image_url: string | null;
-}
-
-export interface ProductsPage {
-  rows: ProductCardRow[];
-  total: number;
-  hasMore: boolean;
 }
 
 /**

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { ProductThumb } from "@/components/ProductThumb";
+import { CategorySelector } from "@/components/for-you/CategorySelector";
+import { ForYouEmptyState } from "@/components/for-you/ForYouEmptyState";
 import { getMyProfile, isScorable, rankCategoryWithRoutine } from "@/lib/match-db";
 
 export const metadata: Metadata = {
@@ -67,27 +69,7 @@ export default async function ForYouPage({
 
   // No profile: prompt rather than render meaningless numbers.
   if (!isScorable(profile)) {
-    return (
-      <div className="min-h-screen bg-background">
-        <SiteNav />
-        <main className="mx-auto w-full max-w-[860px] px-6 py-16 md:px-12 md:py-24">
-          <h1 className="font-serif text-4xl font-medium tracking-tight text-ink md:text-5xl">
-            Nothing to rank yet.
-          </h1>
-          <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-muted-foreground">
-            Once you&apos;ve told us about your skin, we&apos;ll score every
-            product in the catalogue against it — and show exactly how each
-            score was reached, ingredient by ingredient.
-          </p>
-          <Link
-            href="/quiz"
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-bold text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            Take the skin quiz →
-          </Link>
-        </main>
-      </div>
-    );
+    return <ForYouEmptyState />;
   }
 
   const active =
@@ -111,26 +93,7 @@ export default async function ForYouPage({
         </p>
 
         {/* Category selector — server-side links, so no client JS needed. */}
-        <div className="mt-6 flex flex-wrap gap-2">
-          {CATEGORIES.map((c) => {
-            const isActive = c.key === active;
-            return (
-              <Link
-                key={c.key}
-                href={`/for-you?category=${c.key}`}
-                scroll={false}
-                className={
-                  "rounded-full border px-4 py-2 text-[14px] font-medium transition-colors " +
-                  (isActive
-                    ? "border-ink bg-ink text-warm-white"
-                    : "border-border bg-warm-white text-ink hover:border-clay")
-                }
-              >
-                {c.label}
-              </Link>
-            );
-          })}
-        </div>
+        <CategorySelector categories={CATEGORIES} active={active} />
 
         {/* Honest framing: with 7 exfoliants, "top 20" would imply a selection
             that barely happened. Say what we actually looked at. */}

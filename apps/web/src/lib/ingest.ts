@@ -1,3 +1,4 @@
+import "server-only";
 // Helpers for the URL → product ingest pipeline. Server-only.
 
 import { Firecrawl } from "firecrawl";

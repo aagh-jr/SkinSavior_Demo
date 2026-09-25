@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
-import type { PendingStudy } from "@/lib/review-db";
+import type { PendingStudy } from "@skinsavior/core/types";
 import { approveStudyAction, rejectStudyAction } from "@/app/review/actions";
 import { Badge } from "@/components/ui/badge";
 
