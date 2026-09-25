@@ -32,19 +32,24 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const demoEvidence = getDemoProductEvidence(slug);
   const product = await getDbProduct(slug);
   if (!product) notFound();
 
-  const saveState = await getSaveStateBySlug(slug);
-  const demoEvidence = getDemoProductEvidence(slug);
-  const researchIngredients = demoEvidence?.researchIngredients ?? (await getProductResearchIngredients(slug));
+  const saveState = demoEvidence
+    ? { productId: null, saved: false, signedIn: false }
+    : await getSaveStateBySlug(slug);
+  const researchIngredients =
+    demoEvidence?.researchIngredients ?? (await getProductResearchIngredients(slug));
   const claimsByIngredient = demoEvidence
     ? new Map()
-    : await listClaimsForIngredients(researchIngredients.map((ingredient) => ingredient.ingredientId));
-  const evidenceClaims = demoEvidence?.evidence ?? [...claimsByIngredient.values()]
-    .flat()
-    .sort((a, b) => b.notches - a.notches);
-  const related = await listRelatedDbProducts(product.slug, product.category);
+    : await listClaimsForIngredients(
+        researchIngredients.map((ingredient) => ingredient.ingredientId),
+      );
+  const evidenceClaims =
+    demoEvidence?.evidence ??
+    [...claimsByIngredient.values()].flat().sort((a, b) => b.notches - a.notches);
+  const related = demoEvidence ? [] : await listRelatedDbProducts(product.slug, product.category);
   const researchLabels = new Set(
     researchIngredients.map((ingredient) => ingredient.label.toLowerCase()),
   );
@@ -169,17 +174,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               ingredients={product.ingredients}
               researchLabels={researchLabels}
               evidenceSlot={
-                evidenceClaims.length > 0 ? (
-                  <section aria-labelledby="evidence-heading">
-                    <h2
-                      id="evidence-heading"
-                      className="m-0 mb-4 font-mono text-[14px] font-bold uppercase tracking-[0.07em] text-ink"
-                    >
-                      Evidence by claim
-                    </h2>
-                    <EvidenceByClaim claims={evidenceClaims} />
-                  </section>
-                ) : null
+                <section aria-labelledby="evidence-heading">
+                  <h2
+                    id="evidence-heading"
+                    className="m-0 mb-4 font-mono text-[14px] font-bold uppercase tracking-[0.07em] text-ink"
+                  >
+                    Evidence by claim
+                  </h2>
+                  <EvidenceByClaim claims={evidenceClaims} />
+                </section>
               }
               researchSlot={
                 <ResearchDropdown ingredients={researchIngredients} papers={demoEvidence?.papers} />
@@ -226,45 +229,47 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </div>
         </section>
 
-        <section className="bg-cream">
-          <div className="mx-auto max-w-[1440px] px-6 pb-[72px] pt-8 md:px-14 lg:px-[76px]">
-            <div className="flex items-center justify-between">
-              <h2 className="m-0 font-mono text-[18px] font-bold uppercase tracking-[0.02em] text-ink">
-                More to explore
-              </h2>
-              <span aria-hidden="true" className="text-[20px] text-faint">
-                →
-              </span>
-            </div>
+        {related.length > 0 ? (
+          <section className="bg-cream">
+            <div className="mx-auto max-w-[1440px] px-6 pb-[72px] pt-8 md:px-14 lg:px-[76px]">
+              <div className="flex items-center justify-between">
+                <h2 className="m-0 font-mono text-[18px] font-bold uppercase tracking-[0.02em] text-ink">
+                  More to explore
+                </h2>
+                <span aria-hidden="true" className="text-[20px] text-faint">
+                  →
+                </span>
+              </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {related.map((item) => (
-                <Link
-                  key={item.slug}
-                  href={`/product/${item.slug}`}
-                  className="group overflow-hidden rounded-[10px] border border-soft-tan bg-white outline-none transition-colors hover:border-primary focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <ProductThumb
-                    category={item.category}
-                    imageUrl={item.imageUrl}
-                    name={item.name}
-                    className="h-[200px] w-full bg-cream"
-                    iconSize={56}
-                  />
-                  <div className="p-[18px]">
-                    <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-faint group-hover:text-link">
-                      {item.brand}
+              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {related.map((item) => (
+                  <Link
+                    key={item.slug}
+                    href={`/product/${item.slug}`}
+                    className="group overflow-hidden rounded-[10px] border border-soft-tan bg-white outline-none transition-colors hover:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <ProductThumb
+                      category={item.category}
+                      imageUrl={item.imageUrl}
+                      name={item.name}
+                      className="h-[200px] w-full bg-cream"
+                      iconSize={56}
+                    />
+                    <div className="p-[18px]">
+                      <div className="font-mono text-[10px] font-medium uppercase tracking-wider text-faint group-hover:text-link">
+                        {item.brand}
+                      </div>
+                      <div className="mt-1 font-serif text-[18px] font-medium leading-snug text-ink">
+                        {item.name}
+                      </div>
+                      <div className="mt-1 text-[12px] text-faint">{item.tagline}</div>
                     </div>
-                    <div className="mt-1 font-serif text-[18px] font-medium leading-snug text-ink">
-                      {item.name}
-                    </div>
-                    <div className="mt-1 text-[12px] text-faint">{item.tagline}</div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
       </main>
     </div>
   );

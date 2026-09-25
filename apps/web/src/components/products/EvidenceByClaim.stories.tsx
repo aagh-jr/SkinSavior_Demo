@@ -18,14 +18,14 @@ export default meta;
 
 type Story = StoryObj<typeof EvidenceByClaim>;
 
-/** One row per certainty tier. */
+/** Card layout across the certainty tiers. */
 export const AllTiers: Story = { args: { claims } };
 
 export const SingleStrong: Story = { args: { claims: [strongClaim] } };
 
 export const SingleVeryLimited: Story = { args: { claims: [veryLimitedClaim] } };
 
-/** No claims → renders nothing. */
+/** An explicit card explains when no graded evidence is available. */
 export const Empty: Story = { args: { claims: [] } };
 
 export const Mobile: Story = {

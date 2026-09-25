@@ -31,9 +31,8 @@ export const PRODUCTS_PAGE_SIZE = 50;
 const db = supabaseAdmin as unknown as SupabaseClient;
 
 /**
- * Local design fixture. It deliberately uses the same Product contract as
- * Supabase-backed products, so the real profile page remains the thing we
- * style. Enable it with NEXT_PUBLIC_SUPABASE_DISABLED=true.
+ * Explicit demo product used by the public product-page reference. It uses
+ * the same Product contract as Supabase-backed products.
  */
 const DESIGN_PRODUCTS: Record<string, Product> = {
   "demo-barrier-serum": {
@@ -113,7 +112,9 @@ interface ProductIngredientJoinRow {
 
 /** Load an ingested product by slug and shape it into the shared Product type. */
 export async function getDbProduct(slug: string): Promise<Product | null> {
-  if (isSupabaseDisabled()) return DESIGN_PRODUCTS[slug] ?? null;
+  const demoProduct = DESIGN_PRODUCTS[slug];
+  if (demoProduct) return demoProduct;
+  if (isSupabaseDisabled()) return null;
 
   const { data: row, error } = await db
     .from("products")
