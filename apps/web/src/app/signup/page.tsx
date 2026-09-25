@@ -18,11 +18,15 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AuthShell, authClass } from "@/components/account/AuthShell";
 import { PasswordField } from "@/components/account/PasswordField";
+import { UsernameField } from "@/components/account/UsernameField";
+import { isUsernameTaken, normalizeUsername, validateUsername } from "@/lib/username";
 import { supabase } from "@/lib/supabase/client";
 
 export default function SignupPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState<null | "email" | "google" | "apple">(null);
@@ -44,7 +48,14 @@ export default function SignupPage() {
     e.preventDefault();
     if (loading) return;
     setError(null);
+    setUsernameError(null);
 
+    const handle = normalizeUsername(username);
+    const handleProblem = validateUsername(handle);
+    if (handleProblem) {
+      setUsernameError(handleProblem);
+      return;
+    }
     if (!email.trim() || !password) {
       setError("Enter your email and a password.");
       return;
@@ -58,12 +69,17 @@ export default function SignupPage() {
 
     setLoading("email");
     try {
+      if (await isUsernameTaken(handle)) {
+        setUsernameError("That username is taken.");
+        setLoading(null);
+        return;
+      }
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
           emailRedirectTo: window.location.origin + "/quiz",
-          data: { display_name: name.trim() || undefined },
+          data: { display_name: name.trim() || undefined, username: handle },
         },
       });
       if (signUpError) throw signUpError;
@@ -190,6 +206,16 @@ export default function SignupPage() {
             className={authClass.input}
           />
         </div>
+        <UsernameField
+          id="signup-username"
+          value={username}
+          onChange={(v) => {
+            setUsername(v);
+            setUsernameError(null);
+          }}
+          error={usernameError}
+          disabled={busy}
+        />
         <div className="mb-3.5">
           <label className={authClass.label} htmlFor="signup-email">
             Email

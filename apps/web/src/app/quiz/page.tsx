@@ -16,6 +16,8 @@ import { QuestionView } from "@/components/quiz/QuestionView";
 import { DoneView } from "@/components/quiz/DoneView";
 import { GoogleMark } from "@/components/quiz/GoogleMark";
 import { AppleMark } from "@/components/quiz/AppleMark";
+import { UsernameField } from "@/components/account/UsernameField";
+import { isUsernameTaken, normalizeUsername, validateUsername } from "@/lib/username";
 import type { Step } from "@/components/quiz/survey.types";
 
 // ---------- survey definition ----------
@@ -328,6 +330,8 @@ function AccountStep({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [loading, setLoading] = useState<null | "email" | "google" | "apple">(null);
   const [awaitingConfirmFor, setAwaitingConfirmFor] = useState<string | null>(null);
 
@@ -372,15 +376,29 @@ function AccountStep({
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
+    setUsernameError(null);
+    const handle = normalizeUsername(username);
+    if (mode === "signup") {
+      const handleProblem = validateUsername(handle);
+      if (handleProblem) {
+        setUsernameError(handleProblem);
+        return;
+      }
+    }
     setLoading("email");
     try {
       if (mode === "signup") {
+        if (await isUsernameTaken(handle)) {
+          setUsernameError("That username is taken.");
+          setLoading(null);
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { display_name: name.trim() || undefined },
+            data: { display_name: name.trim() || undefined, username: handle },
           },
         });
         if (error) throw error;
@@ -511,6 +529,18 @@ function AccountStep({
               className="w-full rounded-xl border border-border bg-warm-white px-4 py-3 text-[15px] text-ink outline-none transition-colors focus:border-primary"
             />
           </div>
+        )}
+        {mode === "signup" && (
+          <UsernameField
+            id="quiz-username"
+            value={username}
+            onChange={(v) => {
+              setUsername(v);
+              setUsernameError(null);
+            }}
+            error={usernameError}
+            disabled={!!loading}
+          />
         )}
         <div>
           <label htmlFor="quiz-email" className="mb-1.5 block text-[13px] font-medium text-ink">Email</label>
