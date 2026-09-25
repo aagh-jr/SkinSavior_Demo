@@ -39,26 +39,25 @@ function ProductScreen() {
       <main className="mx-auto w-full max-w-[1000px] px-6 py-10 md:px-10">
         <p className="text-[13px] text-muted-foreground">Products · {p.category}</p>
 
-        <div className="mt-4">
+        <div className="mt-4 grid items-center gap-8 md:grid-cols-[300px_minmax(0,1fr)]">
+          <ProductThumb
+            category={p.category}
+            imageUrl={PLACEHOLDER_IMAGE}
+            name={p.name}
+            className="h-[300px] w-full rounded-[18px] border border-border"
+          />
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-wider text-link">{p.brand}</p>
+            <h1 className="mt-2 font-serif text-3xl text-ink">{p.name}</h1>
+            <p className="mt-3 text-[15px] text-muted-foreground">{p.tagline}</p>
+            <div className="mt-4">
+              <SaveButton productId="prod-niacinamide" initialSaved={false} signedIn />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-12">
           <ProductProfileSplit
-            imageSlot={
-              <ProductThumb
-                category={p.category}
-                imageUrl={PLACEHOLDER_IMAGE}
-                name={p.name}
-                className="h-[340px] w-full rounded-[18px] border border-border"
-              />
-            }
-            summarySlot={
-              <div>
-                <p className="font-mono text-[11px] uppercase tracking-wider text-link">{p.brand}</p>
-                <h1 className="mt-2 font-serif text-3xl text-ink">{p.name}</h1>
-                <p className="mt-3 text-[15px] text-muted-foreground">{p.tagline}</p>
-                <div className="mt-4">
-                  <SaveButton productId="prod-niacinamide" initialSaved={false} signedIn />
-                </div>
-              </div>
-            }
             ingredients={p.ingredients}
             researchLabels={new Set(["niacinamide", "zinc pca"])}
           />

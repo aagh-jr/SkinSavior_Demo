@@ -123,6 +123,12 @@
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 @layer utilities {
   .font-serif { font-family: var(--font-serif); }
   .font-mono { font-family: var(--font-mono); }
