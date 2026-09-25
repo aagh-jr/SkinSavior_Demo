@@ -34,9 +34,7 @@ function bestStudyType(types: string[]): string | null {
 /** Terracotta for the strong study types, muted for the generic ones. */
 function badgeTone(type: string): string {
   const score = STUDY_TYPE_RANK[type] ?? 20;
-  return score >= 60
-    ? "bg-primary/10 text-link"
-    : "bg-muted text-muted-foreground";
+  return score >= 60 ? "bg-primary/10 text-link" : "bg-muted text-muted-foreground";
 }
 
 function truncateAbstract(abstract: string, max = 240): string {
@@ -52,54 +50,83 @@ function PaperCard({ paper }: { paper: Paper }) {
   const studyType = bestStudyType(paper.publication_types);
 
   return (
-    <article className="rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40">
-      <div className="flex flex-wrap items-center gap-2">
-        {studyType && (
-          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${badgeTone(studyType)}`}>
-            {studyType}
+    <details className="group bg-white open:bg-[#fafbfc]">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-5 py-[18px] outline-none hover:bg-cream focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0">
+          <span className="flex flex-wrap items-center gap-2">
+            {studyType ? (
+              <span
+                className={`rounded px-2 py-1 text-[11px] font-semibold ${badgeTone(studyType)}`}
+              >
+                {studyType}
+              </span>
+            ) : null}
+            {paper.journal ? (
+              <span className="text-[12px] text-faint">
+                {paper.journal}
+                {paper.year ? ` · ${paper.year}` : ""}
+              </span>
+            ) : null}
           </span>
-        )}
-        {paper.journal && (
-          <span className="text-[12px] text-muted-foreground">
-            {paper.journal}
-            {paper.year ? ` · ${paper.year}` : ""}
+          <span className="mt-2 block font-serif text-[18px] font-medium leading-snug text-ink">
+            {paper.title}
           </span>
+        </span>
+        <span
+          aria-hidden="true"
+          className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-soft-tan text-lg text-link transition-transform group-open:rotate-45"
+        >
+          +
+        </span>
+      </summary>
+
+      <div className="border-t border-soft-tan px-5 pb-5 pt-4">
+        {paper.abstract ? (
+          <p className="m-0 max-w-[78ch] text-[13px] leading-[1.6] text-faint">
+            {truncateAbstract(paper.abstract)}
+          </p>
+        ) : (
+          <p className="m-0 text-[13px] text-faint">No abstract is available in the catalogue.</p>
         )}
-      </div>
-      <h3 className="mt-2 font-serif text-lg leading-snug text-ink">
         <a
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-link hover:underline"
+          className="mt-3 inline-block rounded-sm text-[13px] font-semibold text-link outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {paper.title}
+          {paper.doi ? "Read full text →" : "View on PubMed →"}
         </a>
-      </h3>
-      {paper.abstract && (
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {truncateAbstract(paper.abstract)}
-        </p>
-      )}
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-3 inline-block text-[13px] font-semibold text-link hover:underline"
-      >
-        {paper.doi ? "Read full text →" : "View on PubMed →"}
-      </a>
-    </article>
+      </div>
+    </details>
   );
 }
 
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="border-b border-border bg-card p-5 last:border-b-0">
       <div className="h-4 w-24 animate-pulse rounded-full bg-muted" />
       <div className="mt-3 h-5 w-3/4 animate-pulse rounded bg-muted" />
       <div className="mt-2 h-4 w-full animate-pulse rounded bg-muted" />
       <div className="mt-1.5 h-4 w-5/6 animate-pulse rounded bg-muted" />
+    </div>
+  );
+}
+
+/** Pure paper list used for cached API results and the static design fixture. */
+export function ResearchPaperList({ papers }: { papers: Paper[] }) {
+  if (!papers.length) {
+    return (
+      <p className="rounded-2xl border border-dashed border-border bg-warm-white px-5 py-6 text-sm text-muted-foreground">
+        No research found for this ingredient yet.
+      </p>
+    );
+  }
+
+  return (
+    <div className="divide-y divide-soft-tan overflow-hidden rounded-xl border border-soft-tan">
+      {papers.map((paper) => (
+        <PaperCard key={paper.pmid} paper={paper} />
+      ))}
     </div>
   );
 }
@@ -120,7 +147,7 @@ export function IngredientResearch({ ingredientId }: { ingredientId: string }) {
           <ScientistAvatar talking size={40} />
           <span>Pulling up the research…</span>
         </div>
-        <div className="grid gap-4">
+        <div className="overflow-hidden rounded-xl border border-soft-tan">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -139,19 +166,5 @@ export function IngredientResearch({ ingredientId }: { ingredientId: string }) {
     );
   }
 
-  if (!papers.length) {
-    return (
-      <p className="rounded-2xl border border-dashed border-border bg-warm-white px-5 py-6 text-sm text-muted-foreground">
-        No research found for this ingredient yet.
-      </p>
-    );
-  }
-
-  return (
-    <div className="grid gap-4">
-      {papers.map((p) => (
-        <PaperCard key={p.pmid} paper={p} />
-      ))}
-    </div>
-  );
+  return <ResearchPaperList papers={papers} />;
 }

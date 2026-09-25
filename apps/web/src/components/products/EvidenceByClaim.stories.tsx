@@ -6,7 +6,13 @@ const meta: Meta<typeof EvidenceByClaim> = {
   title: "Products/EvidenceByClaim",
   component: EvidenceByClaim,
   parameters: { layout: "padded" },
-  decorators: [(Story) => <div className="max-w-[560px]"><Story /></div>],
+  decorators: [
+    (Story) => (
+      <div className="max-w-[1100px]">
+        <Story />
+      </div>
+    ),
+  ],
 };
 export default meta;
 

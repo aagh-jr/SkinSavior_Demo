@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { ProductProfileSplit } from "./ProductProfileSplit";
-import { ProductThumb } from "@/components/ProductThumb";
-import { niacinamideSerum, PLACEHOLDER_IMAGE } from "@/fixtures/products.fixtures";
+import { niacinamideSerum } from "@/fixtures/products.fixtures";
 
 const meta: Meta<typeof ProductProfileSplit> = {
   title: "Products/ProductProfileSplit",
@@ -12,40 +11,32 @@ export default meta;
 
 type Story = StoryObj<typeof ProductProfileSplit>;
 
-const imageSlot = (
-  <ProductThumb
-    category={niacinamideSerum.category}
-    imageUrl={PLACEHOLDER_IMAGE}
-    name={niacinamideSerum.name}
-    className="h-[320px] w-full rounded-[18px] border border-border"
-  />
-);
-
-const summarySlot = (
-  <div>
-    <p className="font-mono text-[11px] uppercase tracking-wider text-link">
-      {niacinamideSerum.brand}
-    </p>
-    <h1 className="mt-2 font-serif text-3xl text-ink">{niacinamideSerum.name}</h1>
-    <p className="mt-3 text-[15px] text-muted-foreground">{niacinamideSerum.tagline}</p>
-  </div>
-);
-
 export const Default: Story = {
   args: {
-    imageSlot,
-    summarySlot,
     ingredients: niacinamideSerum.ingredients,
-    // Ingredients that have a research drill-in (lowercased names).
     researchLabels: new Set(["niacinamide", "zinc pca"]),
+    evidenceSlot: (
+      <section>
+        <h2 className="font-mono text-sm font-bold uppercase">Evidence by claim</h2>
+        <div className="mt-4 grid grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="h-44 rounded-xl border border-soft-tan bg-[#fafbfc]" />
+          ))}
+        </div>
+      </section>
+    ),
+    researchSlot: (
+      <section>
+        <h2 className="font-mono text-sm font-bold uppercase">The research</h2>
+        <div className="mt-4 h-48 rounded-xl border border-soft-tan" />
+      </section>
+    ),
   },
 };
 
 /** No ingredient has research → no research affordance on any ingredient. */
 export const NoResearchLabels: Story = {
   args: {
-    imageSlot,
-    summarySlot,
     ingredients: niacinamideSerum.ingredients,
     researchLabels: new Set<string>(),
   },
@@ -53,10 +44,15 @@ export const NoResearchLabels: Story = {
 
 export const Mobile: Story = {
   args: {
-    imageSlot,
-    summarySlot,
     ingredients: niacinamideSerum.ingredients,
     researchLabels: new Set(["niacinamide"]),
   },
   globals: { viewport: { value: "iphoneSE" } },
+};
+
+export const Empty: Story = {
+  args: {
+    ingredients: [],
+    researchLabels: new Set<string>(),
+  },
 };
