@@ -15,11 +15,15 @@ export function SaveButton({
   initialSaved,
   signedIn,
   unavailable = false,
+  unsavedLabel = "Save to shelf",
+  savedLabel = "On your shelf",
 }: {
   productId: string;
   initialSaved: boolean;
   signedIn: boolean;
   unavailable?: boolean;
+  unsavedLabel?: string;
+  savedLabel?: string;
 }) {
   const [saved, setSaved] = useState(initialSaved);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +67,7 @@ export function SaveButton({
         }
       >
         <span aria-hidden>{saved ? "★" : "☆"}</span>
-        {saved ? "On your shelf" : "Save to shelf"}
+        {saved ? savedLabel : unsavedLabel}
       </button>
       {error && <p className="mt-1.5 text-[12px] text-link">{error}</p>}
     </div>

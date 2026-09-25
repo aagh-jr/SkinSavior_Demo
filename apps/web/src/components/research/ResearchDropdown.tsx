@@ -1,47 +1,38 @@
-"use client";
-
-import { useState } from "react";
 import type { ResearchIngredient } from "@skinsavior/core/types";
+import type { Paper } from "@skinsavior/core/research";
 import { ProductResearch } from "./ProductResearch";
+import { ResearchPaperList } from "./IngredientResearch";
 
 /**
- * Collapsible wrapper for the product-page research section. Collapsed by
- * default — a plus reveals it, a minus hides it again — so the papers sit
- * quietly at the bottom of the profile until asked for. Keeps id="research"
- * (the ingredient decoder's "read the research" link scrolls here); expanding
- * on demand is fine because the anchor still lands on the header.
+ * Research reading list for the shipping product profile. The section remains
+ * visible; each paper owns its own disclosure in IngredientResearch so people
+ * can inspect one abstract without expanding the entire bibliography.
  */
-export function ResearchDropdown({ ingredients }: { ingredients: ResearchIngredient[] }) {
-  const [open, setOpen] = useState(false);
+export function ResearchDropdown({
+  ingredients,
+  papers,
+}: {
+  ingredients: ResearchIngredient[];
+  /** Preloaded source list for a static design fixture; regular products fetch lazily. */
+  papers?: Paper[];
+}) {
   if (!ingredients.length) return null;
 
   return (
-    <div id="research" className="mt-10 scroll-mt-24 border-t border-soft-tan pt-9">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-3 text-left"
+    <section id="research" className="scroll-mt-28" aria-labelledby="research-heading">
+      <h2
+        id="research-heading"
+        className="m-0 font-mono text-[14px] font-bold uppercase tracking-[0.07em] text-ink"
       >
-        <span
-          aria-hidden
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-soft-tan bg-cream font-mono text-[20px] leading-none text-clay-strong"
-        >
-          {open ? "−" : "+"}
-        </span>
-        <span className="font-mono text-[18px] font-bold uppercase tracking-[0.02em] text-ink">
-          The research
-        </span>
-      </button>
-      {open && (
-        <div className="mt-4">
-          <div className="mb-4 text-[13px] text-faint">
-            Top PubMed papers
-            {ingredients.length > 1 ? " — pick an ingredient" : ""}. Titles link to the source.
-          </div>
-          <ProductResearch ingredients={ingredients} />
-        </div>
-      )}
-    </div>
+        The research
+      </h2>
+      <p className="mt-1 text-[13px] leading-5 text-faint">
+        Top PubMed papers{ingredients.length > 1 ? " — pick an ingredient" : ""}. Expand a paper for
+        its abstract and source link.
+      </p>
+      <div className="mt-4">
+        {papers ? <ResearchPaperList papers={papers} /> : <ProductResearch ingredients={ingredients} />}
+      </div>
+    </section>
   );
 }
