@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ProductThumb } from "@/components/ProductThumb";
-import type { BuilderStep } from "@/lib/routines-db";
+import type { BuilderStep } from "@skinsavior/core/types";
 
 /** A single step's product photo — the large 130×160 tile from the redesign.
  *  Deliberately just the photo: at this size a name label would either

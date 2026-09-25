@@ -8,7 +8,7 @@ import {
   deleteRoutineAction,
   setPrimaryRoutineAction,
 } from "@/app/routines/actions";
-import type { RoutineSummary } from "@/lib/routines-db";
+import type { RoutineSummary } from "@skinsavior/core/types";
 
 const cardBase =
   "group relative flex min-h-[150px] flex-col justify-between rounded-2xl border p-6 text-left transition-colors";

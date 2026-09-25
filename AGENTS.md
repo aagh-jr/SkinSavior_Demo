@@ -4,7 +4,9 @@ Read this first. It's loaded automatically each session, so it's the memory
 that survives a context reset. Keep it current: when a decision here stops
 being true, change it rather than leaving both versions around.
 
-Longer-form docs live in `docs/`; deferred ideas in `Ideas for later.md`.
+Longer-form docs live in `docs/`; deferred ideas in `docs/ideas/`. Every
+external service, API, data source and tool the project uses is catalogued in
+`docs/services-and-tools.md`.
 
 ---
 
@@ -66,6 +68,92 @@ review, store the result. Runtime stays a table lookup.
 
 **Convention:** engines are pure and live in `packages/core`; `*-db.ts` in
 `apps/web/src/lib` does the I/O. Never mix them.
+
+---
+
+## File types and where they go
+
+Every file has one job, and its name and folder say what that job is. The main
+split is **visual files** (only show information) versus **data files** (get
+information) — so AI design tools can edit visuals without touching data,
+secrets or Supabase, and the boundary is enforced by lint, not memory.
+
+| # | Type | Its one job | How it's labeled | Where it lives |
+|---|---|---|---|---|
+| 1 | Visual component | Receives props and renders. No fetching, no Supabase, no `-db` imports (type imports from `@skinsavior/core/types` are fine) | PascalCase, no suffix: `ProductThumb.tsx`. The pure half of a split component takes the `View` suffix: `SiteNavView.tsx` | `apps/web/src/components/<feature>/` |
+| 2 | Data hook | Fetches/subscribes for the client and returns it (owns loading/error) | `use*`: `useAiTip.ts` | `apps/web/src/hooks/` |
+| 3 | Database file | Reads/writes Supabase. No UI. `import "server-only"` at top | `*-db.ts` | `apps/web/src/lib/` |
+| 4 | Page | Loads data for one screen and assembles components. Thin | `page.tsx` | `apps/web/src/app/` |
+| 5 | Backend route | Server-only work needing secret keys (Gemini, Claude, admin Supabase) | `route.ts` | `apps/web/src/app/api/` |
+| 6 | Engine | Pure logic: scoring, grading, matching | plain name | `packages/core/src/` |
+| 7 | Types & schemas | Data shapes only | `<domain>.types.ts`; schemas stay in `packages/core/src/schemas/` | `packages/core/src/types/` |
+| 8 | Design tokens | Colors, spacing, type | `tokens.ts` | `packages/ui/src/` |
+| 9 | UI kit | shadcn primitives (leave as is) | — | `apps/web/src/components/ui/` |
+| 10 | Tests | Check behavior | `*.test.ts` next to the file | next to the file |
+| 11 | Stories & fixtures | Show visual components with fake data | `*.stories.tsx` next to the component; `<domain>.fixtures.ts` | stories next to components; fixtures in `apps/web/src/fixtures/` |
+| 12 | Scripts | Offline data pipeline | grouped by job | `scripts/` (`import/`, `research/`, `seed/`, `maintenance/`) |
+| 13 | Docs | Specs, policies, ideas, prompts | `.md` | `docs/` (`ideas/`, `prompts/`, `specs/`, `assets/`) |
+| 14 | Analytics (future) | The only place that talks to PostHog | `analytics.ts` | `apps/web/src/lib/` (not built yet) |
+
+**Split pattern (View suffix):** when a component both fetches and renders,
+split it. The fetch/subscription moves to a `use*` hook; the pure render moves
+to `<Name>View.tsx`; the original name stays as a thin wrapper that calls the
+hook and renders the view, so pages don't change. Examples:
+`SiteNav` = `useSession()` + `<SiteNavView />`; `AiTipCard` = `useAiTip()` +
+`<AiTipCardView />`.
+
+**Three rules, enforced by `apps/web/.eslintrc.json`:**
+1. **Visual components never fetch.** No `fetch`, Supabase, `/api/` or
+   `process.env` under `components/` (except `components/ui/`). A lint rule
+   blocks `@supabase/*`, `@/lib/supabase/*`, `@/lib/*-db`, `@/lib/admin` and
+   `@/lib/ingest` there.
+2. **New data access goes in a `use*` hook (client) or a `-db.ts` module
+   (server).** Never inline in a component.
+3. **Every new visual component gets a `*.stories.tsx`** next to it, covering
+   the states it has (default, loading, empty, error, long text).
+
+**Design without a database:** `apps/web/src/lib/supabase/mock.ts` is the
+Supabase kill switch (`NEXT_PUBLIC_SUPABASE_DISABLED=true`, wired to the
+`dev:design` script) so AI design tools can run the whole app without secrets.
+It's kept as a fallback; **Storybook (below) is now the preferred home for
+AI-assisted design work** on individual components.
+
+---
+
+## Storybook
+
+The design workshop for `apps/web`. Every visual component appears in a gallery
+with realistic fake data, in all its states, with **no Supabase, no `/api/`, no
+network** — so you (or an AI design tool) can view and redesign one piece at a
+time without touching the real backend.
+
+**Run it:** `bun run storybook` from `apps/web` (build: `bun run build-storybook`).
+Storybook is additive and never ships to production — `next build` and the
+Vercel deploy are unaffected.
+
+**Rules (match the file-types rules above):**
+
+1. **Every new visual component gets a `*.stories.tsx`** next to it (same folder,
+   grouped by feature: `Products/…`, `Research/…`, `Routines/…`). Cover the
+   states that apply: default, loading, empty, error, long text, and mobile
+   (375px via `globals: { viewport: { value: "iphoneSE" } }`).
+2. **New fake data goes in `apps/web/src/fixtures/`** as `<domain>.fixtures.ts`,
+   typed against `@skinsavior/core/types` so it breaks loudly if a shape changes.
+   Reuse the existing fixtures rather than inlining data in a story.
+3. **Stories never call Supabase or `/api/`.** Pass fixtures as props for pure
+   components; for a component that fetches, add per-story
+   `parameters.msw.handlers` (MSW). An unhandled `/api/*` request fails with a
+   loud 501 by design — that means a story forgot a handler.
+
+**How the sandbox is enforced** (`.storybook/`): `preview.tsx` loads
+`globals.css` + the three app fonts and wraps stories in the shared
+`QueryClientProvider`; `main.ts` aliases `@/lib/supabase/{client,server,admin}`
+to a no-op mock and forces `NEXT_PUBLIC_SUPABASE_DISABLED=true`; DB-backed
+server actions (`@/app/{search,ingredients,routines,review}/actions`) are aliased
+to `action-stubs.ts` so their server-only `-db` stack never enters the browser
+bundle (a server action can't run in Storybook anyway). The `storybook` vitest
+project smoke-tests that every story renders (`bunx vitest run --project storybook`);
+`unit` is the plain vitest project for `*.test.ts`.
 
 ---
 

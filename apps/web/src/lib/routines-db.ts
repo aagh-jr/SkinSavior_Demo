@@ -1,3 +1,4 @@
+import "server-only";
 // Server-only access to the signed-in user's personal routine.
 //
 // Everything runs through the cookie-aware user client, so the RLS owner
@@ -15,6 +16,7 @@
 // client. Once types are regenerated, drop the cast and these interfaces.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { BuilderStep, StepPatch, RoutineSummary } from "@skinsavior/core/types";
 import { createClient } from "@/lib/supabase/server";
 import {
   categoryRank,
@@ -24,26 +26,6 @@ import {
   type RoutineFrequency,
   type TimeOfDay,
 } from "@/lib/routine-categories";
-
-export interface BuilderStep {
-  id: string;
-  productId: string | null;
-  productSlug: string | null;
-  productName: string;
-  productBrand: string;
-  productImage: string | null;
-  category: RoutineCategory;
-  timeOfDay: TimeOfDay;
-  frequency: RoutineFrequency;
-  customDays: number[];
-}
-
-export interface StepPatch {
-  timeOfDay?: TimeOfDay;
-  frequency?: RoutineFrequency;
-  customDays?: number[];
-  category?: RoutineCategory;
-}
 
 interface StepRow {
   id: string;
@@ -87,15 +69,6 @@ function rowToStep(row: StepRow): BuilderStep {
     frequency: row.frequency,
     customDays: row.custom_days ?? [],
   };
-}
-
-export interface RoutineSummary {
-  id: string;
-  name: string;
-  description: string | null;
-  stepCount: number;
-  isPrimary: boolean;
-  createdAt: string;
 }
 
 // TEMPORARY: some columns (skincare_routines.description → migration

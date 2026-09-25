@@ -1,5 +1,5 @@
 import { CERTAINTY_META, type Certainty } from "@skinsavior/core/research";
-import type { EvidenceClaim } from "@/lib/claims-db";
+import type { EvidenceClaim } from "@skinsavior/core/types";
 
 /**
  * Compact "Evidence by claim" rollup (Paper design "Product Profile 1",

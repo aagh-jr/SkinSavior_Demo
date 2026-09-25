@@ -1,3 +1,4 @@
+import "server-only";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@skinsavior/core/supabase";
 import { createMockClient, isSupabaseDisabled } from "./mock";

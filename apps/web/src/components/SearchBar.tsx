@@ -4,36 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProductThumb } from "@/components/ProductThumb";
-
-interface DbHit {
-  slug: string;
-  name: string;
-  brand: string;
-  category: string;
-  imageUrl?: string | null;
-}
-
-interface IngredientHit { id: string; name: string; }
-
-type Mode = "products" | "ingredients";
+import { useSearch, type SearchMode } from "@/hooks/useSearch";
 
 export function SearchBar({
   initialQuery = "",
   initialMode = "products",
 }: {
   initialQuery?: string;
-  initialMode?: Mode;
+  initialMode?: SearchMode;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState(initialQuery);
   // Fixed to the mode it was opened in (products by default). The in-bar
   // products/ingredients toggle was removed; ingredient search lives on the
   // /ingredients page.
-  const [mode] = useState<Mode>(initialMode);
-  const [ingredientResults, setIngredientResults] = useState<IngredientHit[]>([]);
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [retry, setRetry] = useState(0);
-  const [dbHits, setDbHits] = useState<DbHit[]>([]);
+  const [mode] = useState<SearchMode>(initialMode);
+  const { dbHits, ingredientResults, status, retry } = useSearch(q, mode);
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -42,29 +28,6 @@ export function SearchBar({
 
   const hasResults =
     mode === "products" ? productResults.length > 0 : ingredientResults.length > 0;
-
-  useEffect(() => {
-    const needle = q.trim();
-    setDbHits([]);
-    setIngredientResults([]);
-    if (!needle) { setStatus("idle"); return; }
-    setStatus("loading");
-    const controller = new AbortController();
-    const t = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/${mode}/search?q=${encodeURIComponent(needle)}`, { signal: controller.signal });
-        if (!res.ok) throw new Error("Search unavailable");
-        const data = await res.json();
-        if (controller.signal.aborted) return;
-        if (mode === "products") setDbHits(data.results ?? []);
-        else setIngredientResults(data.results ?? []);
-        setStatus("idle");
-      } catch {
-        if (!controller.signal.aborted) setStatus("error");
-      }
-    }, 200);
-    return () => { clearTimeout(t); controller.abort(); };
-  }, [q, mode, retry]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -125,7 +88,7 @@ export function SearchBar({
       {open && q.trim() && (
         <div className="absolute right-0 mt-2 w-[380px] overflow-hidden rounded-xl border border-soft-tan bg-white shadow-lg z-30">
           {status !== "idle" ? (
-            <div role="status" className="px-4 py-5 text-sm">{status === "loading" ? "Searching…" : <><span>Search unavailable. </span><button onClick={() => setRetry((n) => n + 1)} className="underline">Retry</button></>}</div>
+            <div role="status" className="px-4 py-5 text-sm">{status === "loading" ? "Searching…" : <><span>Search unavailable. </span><button onClick={retry} className="underline">Retry</button></>}</div>
           ) : !hasResults ? (
             <div className="px-4 py-5 text-sm text-faint">
               No {mode} matching <strong>&quot;{q}&quot;</strong>
